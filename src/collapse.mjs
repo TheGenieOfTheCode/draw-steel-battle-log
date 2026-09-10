@@ -68,11 +68,33 @@ function syncSiblingPanels(root) {
   const cards = root.querySelectorAll('.message-part-html > document-embed.draw-steel.ability');
   const hide = cards.length > 0 && [...cards].every(card => card.classList.contains('dscp-collapsed'));
   root.classList.toggle('dscp-hide-panels', hide);
-  requestAnimationFrame(() => markTrailingPart(root));
+  scheduleTrailingPart(root);
+  watchRoot(root, hide);
+}
+
+function scheduleTrailingPart(root, attempts = 10) {
+  requestAnimationFrame(() => {
+    if (root.isConnected) return markTrailingPart(root);
+    if (attempts > 0) scheduleTrailingPart(root, attempts - 1);
+  });
+}
+
+const _observers = new WeakMap();
+
+function watchRoot(root, active) {
+  const existing = _observers.get(root);
+  if (!active) {
+    existing?.disconnect();
+    _observers.delete(root);
+    return;
+  }
+  if (existing) return;
+  const observer = new MutationObserver(() => scheduleTrailingPart(root, 0));
+  observer.observe(root, { childList: true });
+  _observers.set(root, observer);
 }
 
 function markTrailingPart(root) {
-  if (!root.isConnected) return;
   for (const marked of root.querySelectorAll('.dscp-part-trailing')) marked.classList.remove('dscp-part-trailing');
   const last = [...root.children].filter(child => child.getClientRects().length > 0).at(-1);
   if (last?.classList.contains('dscp-part-collapsed')) last.classList.add('dscp-part-trailing');
