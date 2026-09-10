@@ -1,0 +1,40 @@
+{
+  "id": "draw-steel-chat-polish",
+  "title": "Draw Steel: Chat Polish",
+  "description": "Fits the default Draw Steel chat cards to the Foundry dark theme, and lets you collapse an ability card down to its name by clicking it.",
+  "version": "0.1.0",
+  "esmodules": [
+    "src/main.mjs"
+  ],
+  "styles": [
+    "styles/chat-polish.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "authors": [
+    {
+      "name": "TheGenieOfTheCode"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "draw-steel",
+        "type": "system",
+        "compatibility": {
+          "minimum": "1.1.0",
+          "verified": "1.1.1"
+        }
+      }
+    ]
+  },
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  }
+}

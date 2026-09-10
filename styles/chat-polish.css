@@ -1,0 +1,92 @@
+
+
+body.dscp-dark-chat.theme-dark,
+body.dscp-dark-chat .theme-dark {
+
+  .chat-message {
+    --chat-message-background: #17151f;
+    --chat-message-border-color: var(--color-cool-4, #302831);
+    --color-emote-background: #1f1c28;
+    --color-emote-border: #574c3b;
+    --color-whisper-background: #1a1a26;
+    --color-whisper-border: #545469;
+    --color-blind-background: #221a27;
+    --color-blind-border: #6b476b;
+
+    --draw-steel-c-dark: #c9c7b8;
+    --draw-steel-c-faint: #191813;
+    --draw-steel-c-beige: #444444;
+    --draw-steel-c-tan: #b5b3a4;
+    --draw-steel-c-white: #000000;
+    --draw-steel-c-black: whitesmoke;
+    --draw-steel-c-groove: #11121f;
+    --draw-steel-c-item-header-bg: #28232f;
+    --draw-steel-c-item-alternating-bg: rgba(255, 255, 255, 0.05);
+    --draw-steel-c-laserline: #d9c186;
+    --draw-steel-c-laserline-rev: #856c4b;
+    --draw-steel-c-primary-party: #b9578c;
+    --draw-steel-embed-separator-filter: grayscale(0.8) brightness(0.2) invert(1);
+    --ability-default-border: url("/systems/draw-steel/assets/ui/abilityborderwhite.svg");
+    --ability-quick-border: url("/systems/draw-steel/assets/ui/abilityborderlight.svg");
+    --button-focus-outline-color: var(--draw-steel-c-laserline);
+    --button-hover-background-color: var(--draw-steel-c-laserline);
+
+    color: var(--color-light-2, #efe6d8);
+
+    .message-header,
+    .message-metadata {
+      color: var(--color-light-5, #9f8475);
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--color-light-1, #f7f3e8);
+    }
+
+    
+    &.draw-steel > section:not(:last-of-type) {
+      border-bottom: 1px solid var(--color-cool-4, #302831);
+    }
+  }
+
+  
+  .chat-message document-embed div.actor.npc.no-role {
+    --color-statblock: rgb(70, 70, 70);
+  }
+}
+
+body.dscp-collapse .dscp-ability-name {
+  cursor: pointer;
+  user-select: none;
+}
+
+body.dscp-collapse .dscp-ability-name:hover {
+  color: var(--draw-steel-c-laserline);
+}
+
+.dscp-caret {
+  display: inline-block;
+  width: 0.75em;
+  margin-right: 0.35em;
+  opacity: 0.6;
+  transition: transform 0.12s ease-out;
+}
+
+body:not(.dscp-collapse) .dscp-caret {
+  display: none;
+}
+
+body.dscp-collapse .dscp-collapsed > .dscp-ability-name .dscp-caret {
+  transform: rotate(-90deg);
+}
+
+body.dscp-collapse document-embed.draw-steel.ability.dscp-collapsed > *:not(h5) {
+  display: none;
+}
+
+body.dscp-collapse [data-message-part].dscp-part-collapsed > footer.message-part-buttons {
+  display: none;
+}
+
+body.dscp-collapse .chat-message.dscp-hide-panels > section.draw-steel-target-damage-panel {
+  display: none;
+}

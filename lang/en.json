@@ -1,0 +1,14 @@
+{
+  "DSCP": {
+    "Settings": {
+      "darkChat": {
+        "name": "Dark Theme Chat Cards",
+        "hint": "Recolours the default Draw Steel chat cards, buttons and embeds to match the Foundry dark theme."
+      },
+      "collapsibleAbilities": {
+        "name": "Click Ability Name to Collapse",
+        "hint": "Clicking the name of an ability in chat collapses the card down to just its name. Remembered between reloads."
+      }
+    }
+  }
+}
