@@ -13,6 +13,24 @@ body.dscp-dark-chat .theme-dark {
     --color-blind-background: #221a27;
     --color-blind-border: #6b476b;
 
+    --color-text-emphatic: var(--color-light-1, #f7f3e8);
+    --color-text-primary: var(--color-light-2, #efe6d8);
+    --color-text-secondary: var(--color-light-3, #e7d1b1);
+    --color-text-subtle: var(--color-light-5, #9f8475);
+    --content-link-background: var(--color-cool-5-90, rgba(11, 10, 19, 0.9));
+    --content-link-border-color: var(--color-light-6, #816b66);
+    --content-link-icon-color: var(--color-light-4, #d0b8a3);
+    --content-link-text-color: var(--color-light-2, #efe6d8);
+    --sidebar-separator: 1px solid var(--color-cool-4, #302831);
+    --hr-border: 0;
+    --hr-gradient: linear-gradient(90deg, transparent 0%, #e7d1b1 50%, transparent 100%);
+    --table-background-color: var(--color-cool-5-50, rgba(11, 10, 19, 0.5));
+    --table-header-bg-color: var(--color-cool-4, #302831);
+    --table-header-border-color: var(--color-cool-4, #302831);
+    --table-row-color-even: rgba(255, 255, 255, 0.1);
+    --table-row-color-odd: transparent;
+    --table-row-color-highlight: var(--color-cool-3, #584a75);
+
     --draw-steel-c-dark: #c9c7b8;
     --draw-steel-c-faint: #191813;
     --draw-steel-c-beige: #444444;
@@ -25,11 +43,10 @@ body.dscp-dark-chat .theme-dark {
     --draw-steel-c-laserline: #d9c186;
     --draw-steel-c-laserline-rev: #856c4b;
     --draw-steel-c-primary-party: #b9578c;
+    --draw-steel-c-thead-bg: var(--table-header-bg-color);
     --draw-steel-embed-separator-filter: grayscale(0.8) brightness(0.2) invert(1);
     --ability-default-border: url("/systems/draw-steel/assets/ui/abilityborderwhite.svg");
     --ability-quick-border: url("/systems/draw-steel/assets/ui/abilityborderlight.svg");
-    --button-focus-outline-color: var(--draw-steel-c-laserline);
-    --button-hover-background-color: var(--draw-steel-c-laserline);
 
     color: var(--color-light-2, #efe6d8);
 
@@ -45,6 +62,40 @@ body.dscp-dark-chat .theme-dark {
     
     &.draw-steel > section:not(:last-of-type) {
       border-bottom: 1px solid var(--color-cool-4, #302831);
+    }
+
+    :is(a.button, button, kbd) {
+      --button-background-color: var(--color-cool-5-50, rgba(11, 10, 19, 0.5));
+      --button-border-color: var(--color-light-5, #9f8475);
+      --button-text-color: var(--color-light-3, #e7d1b1);
+      --button-focus-outline-color: var(--color-warm-2, #c9593f);
+      --button-hover-background-color: var(--color-warm-2, #c9593f);
+      --button-hover-border-color: var(--color-light-3, #e7d1b1);
+      --button-hover-text-color: var(--color-light-1, #f7f3e8);
+    }
+
+    :is(a.button, button, kbd)[disabled] {
+      --button-background-color: var(--color-cool-5, #0b0a13);
+      --button-border-color: transparent;
+      --button-text-color: var(--color-light-5, #9f8475);
+      --button-hover-background-color: var(--button-background-color);
+      --button-hover-border-color: var(--button-border-color);
+      --button-hover-text-color: var(--button-text-color);
+    }
+
+    :is(input[type="checkbox"], input[type="radio"]) {
+      --checkbox-background-color: var(--color-cool-4, #302831);
+      --checkbox-checked-color: var(--color-warm-1, #ee9b3a);
+      --checkbox-checkmark-color: transparent;
+      --checkbox-disabled-color: var(--color-cool-3, #584a75);
+      --checkbox-font-weight: bold;
+    }
+
+    label.icon {
+      --input-background-color: var(--color-cool-4, #302831);
+      --input-border-color: transparent;
+      --input-text-color: var(--color-light-3, #e7d1b1);
+      --input-focus-outline-color: var(--color-cool-3, #584a75);
     }
   }
 
