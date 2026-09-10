@@ -59,11 +59,6 @@ body.dscp-dark-chat .theme-dark {
       color: var(--color-light-1, #f7f3e8);
     }
 
-    
-    &.draw-steel > section:not(:last-of-type) {
-      border-bottom: 1px solid var(--color-cool-4, #302831);
-    }
-
     :is(a.button, button, kbd) {
       --button-background-color: var(--color-cool-5-50, rgba(11, 10, 19, 0.5));
       --button-border-color: var(--color-light-5, #9f8475);
@@ -138,6 +133,13 @@ body.dscp-collapse [data-message-part].dscp-part-collapsed > footer.message-part
   display: none;
 }
 
-body.dscp-collapse .chat-message.dscp-hide-panels > section.draw-steel-target-damage-panel {
+body.dscp-collapse .chat-message.dscp-hide-panels > section.draw-steel-target-damage-panel,
+body.dscp-collapse .chat-message.dscp-hide-panels > :is(button, a.button, .message-part-buttons) {
   display: none;
+}
+
+body.dscp-collapse .chat-message.dscp-hide-panels [data-message-part].dscp-part-collapsed.dscp-part-trailing {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
