@@ -1,7 +1,9 @@
 import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './collapse.mjs';
-import { compactAbilityMetadata } from './compact.mjs';
+import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
+import { collapsePowerRolls } from './power-roll.mjs';
+import { MODULE_ID } from './collapse.mjs';
 
-export const MODULE_ID = 'draw-steel-chat-polish';
+export { MODULE_ID };
 
 const setting = key => game.settings.get(MODULE_ID, key);
 
@@ -26,6 +28,16 @@ Hooks.once('init', () => {
     onChange: syncBodyClasses,
   });
 
+  game.settings.register(MODULE_ID, 'powerRollResults', {
+    name: 'DSCP.Settings.powerRollResults.name',
+    hint: 'DSCP.Settings.powerRollResults.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: syncBodyClasses,
+  });
+
   game.settings.register(MODULE_ID, 'collapsibleAbilities', {
     name: 'DSCP.Settings.collapsibleAbilities.name',
     hint: 'DSCP.Settings.collapsibleAbilities.hint',
@@ -43,7 +55,11 @@ Hooks.once('ready', () => {
 });
 
 Hooks.on('renderChatMessageHTML', (message, html) => {
-  if (setting('compactAbilities')) compactAbilityMetadata(html);
+  if (setting('compactAbilities')) {
+    inlineEffectLabels(html);
+    compactAbilityMetadata(html);
+  }
+  if (setting('powerRollResults')) collapsePowerRolls(message, html);
   if (!setting('collapsibleAbilities')) return;
   makeAbilitiesCollapsible(message, html);
 });
@@ -54,4 +70,5 @@ function syncBodyClasses() {
   document.body.classList.toggle('dscp-dark-chat', setting('darkChat'));
   document.body.classList.toggle('dscp-collapse', setting('collapsibleAbilities'));
   document.body.classList.toggle('dscp-compact', setting('compactAbilities'));
+  document.body.classList.toggle('dscp-power-roll', setting('powerRollResults'));
 }

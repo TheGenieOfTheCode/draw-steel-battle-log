@@ -12,7 +12,14 @@
       "collapsibleAbilities": {
         "name": "Click Ability Name to Collapse",
         "hint": "Clicking the name of an ability in chat collapses the card down to just its name. Remembered between reloads."
+      },
+      "powerRollResults": {
+        "name": "Collapsible Power Roll Results",
+        "hint": "Replace the \"Power Roll + Characteristic\" line with a Power Roll Results toggle holding the dice, the bonus and the tier list. Starts closed and remembers. Per client."
       }
+    },
+    "powerRoll": {
+      "heading": "Power Roll Results"
     }
   }
 }

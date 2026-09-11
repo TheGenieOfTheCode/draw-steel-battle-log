@@ -70,3 +70,30 @@ export function compactAbilityMetadata(html) {
     });
   }
 }
+
+export function inlineEffectLabels(html) {
+  for (const dl of html.querySelectorAll('document-embed.draw-steel.ability section.effect dl')) {
+    if (dl.dataset.dscpInline) continue;
+
+    const term = dl.querySelector('dt.effect');
+    const body = dl.querySelector('dd.effect');
+    if (!term || !body) continue;
+
+    const label = term.textContent.trim();
+    if (!label) continue;
+
+    dl.dataset.dscpInline = '1';
+
+    
+    
+    const hasBody = !!body.textContent.trim();
+
+    const lead = document.createElement('strong');
+    lead.className = 'dscp-effect-label';
+    lead.textContent = hasBody ? `${label}:` : label;
+
+    const first = body.querySelector(':scope > p') ?? body;
+    first.prepend(lead, document.createTextNode(' '));
+    term.remove();
+  }
+}

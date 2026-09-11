@@ -1,4 +1,6 @@
-const STORE_KEY = 'draw-steel-chat-polish.collapsed';
+export const MODULE_ID = 'draw-steel-chat-polish';
+
+const STORE_KEY = `${MODULE_ID}.collapsed`;
 
 let _store = null;
 
@@ -122,4 +124,12 @@ export function pruneCollapsedState() {
     }
   }
   if (changed) persist();
+}
+
+export const isStored = key => store().has(key);
+
+export function setStored(key, on) {
+  if (on) store().add(key);
+  else store().delete(key);
+  persist();
 }

@@ -196,7 +196,8 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dsc
   white-space: nowrap;
 }
 
-body.dscp-compact.dscp-dark-chat .chat-message document-embed.draw-steel.ability .metadata .dscp-kw {
+body.dscp-compact.dscp-dark-chat.theme-dark .chat-message document-embed.draw-steel.ability .metadata .dscp-kw,
+body.dscp-compact.dscp-dark-chat .theme-dark .chat-message document-embed.draw-steel.ability .metadata .dscp-kw {
   --dscp-kw-fill: #101220;
   border-color: rgba(184, 146, 46, 0.35);
 }
@@ -221,3 +222,122 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.t
 
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.trigger { grid-area: 3 / 1 / 4 / 2; font-weight: bold; }
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.trigger { grid-area: 3 / 2 / 4 / 5; }
+
+body.dscp-power-roll .chat-message section.powerResult .dscp-pr-toggle {
+  margin: 0;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+
+body.dscp-power-roll .chat-message section.powerResult .dscp-pr-toggle .dscp-caret {
+  margin-right: 0.3em;
+  opacity: 0.6;
+  transform: rotate(-90deg);
+  transition: transform 0.12s ease-out;
+}
+
+body.dscp-power-roll .chat-message section.powerResult.dscp-pr-open .dscp-pr-toggle .dscp-caret {
+  transform: none;
+}
+
+body.dscp-power-roll .chat-message section.powerResult:not(.dscp-pr-open) .dscp-pr-body {
+  display: none;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-rolls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  margin: 0.4em 0 0.5em;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-who {
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-box {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 4px;
+  background: rgba(128, 128, 128, 0.1);
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-formula {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.15em 0.45em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-die {
+  width: 2.1em;
+  height: 2.1em;
+  border: none;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-face {
+  flex: 0 0 auto;
+  font-weight: bold;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-mod {
+  flex: 0 0 auto;
+  margin-left: 0.1em;
+  cursor: help;
+  font-family: var(--font-monospace, monospace);
+  opacity: 0.9;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-total {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 2.2em;
+  padding: 0.15em 0;
+  border-left: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  font-weight: 700;
+}
+
+body.dscp-power-roll .chat-message .dscp-pr-dropped {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability section.effect dl {
+  display: block;
+  margin: 0.4em 0 0;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability section.effect dd.effect {
+  margin: 0;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .dscp-effect-label {
+  font-weight: bold;
+}
+
+body.dscp-power-roll:not(.theme-dark) .chat-message .dscp-pr-die {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+body.dscp-power-roll .theme-dark .chat-message .dscp-pr-die {
+  filter: none;
+}
