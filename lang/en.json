@@ -5,6 +5,10 @@
         "name": "Dark Theme Chat Cards",
         "hint": "Recolours the default Draw Steel chat cards, buttons and embeds to match the Foundry dark theme."
       },
+      "compactAbilities": {
+        "name": "Compact Ability Details",
+        "hint": "Lay an ability’s details out the way the book does: keywords and action type on one bold row, distance and target beneath. Drops the Keywords and Type labels and shrinks the text to fit. Per client."
+      },
       "collapsibleAbilities": {
         "name": "Click Ability Name to Collapse",
         "hint": "Clicking the name of an ability in chat collapses the card down to just its name. Remembered between reloads."

@@ -143,3 +143,81 @@ body.dscp-collapse .chat-message.dscp-hide-panels [data-message-part].dscp-part-
   padding-bottom: 0;
   margin-bottom: 0;
 }
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability {
+  font-size: var(--dscp-meta-size, 0.85rem);
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability *:not(h5):not(h5 *) {
+  font-size: inherit;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability dl.power-roll-display > :is(dt.tier1, dt.tier2, dt.tier3) {
+  font-size: 1.5em;
+  line-height: 0.9;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dl {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  column-gap: 6px;
+  row-gap: 6px;
+  align-items: baseline;
+  margin: 0;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dl > :is(dt, dd) {
+  margin: 0;
+  padding: 0;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata :is(dt.keywords, dt.type) {
+  display: none;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.keywords {
+  grid-area: 1 / 1 / 2 / 3;
+  font-weight: bold;
+  
+  text-wrap: balance;
+  line-height: 1.6;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dscp-kw {
+  display: inline-block;
+  
+  font-size: 1em;
+  line-height: 1.35;
+  margin-right: 0.25em;
+  padding: 0.05em 0.5em;
+  border: 1px solid rgba(184, 146, 46, 0.45);
+  border-radius: 0.8em;
+  background: var(--dscp-kw-fill, rgba(184, 146, 46, 0.1));
+  white-space: nowrap;
+}
+
+body.dscp-compact.dscp-dark-chat .chat-message document-embed.draw-steel.ability .metadata .dscp-kw {
+  --dscp-kw-fill: #101220;
+  border-color: rgba(184, 146, 46, 0.35);
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.type {
+  grid-area: 1 / 3 / 2 / 5;
+  justify-self: end;
+  text-align: right;
+  font-weight: bold;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.distance { grid-area: 2 / 1 / 3 / 2; }
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.distance { grid-area: 2 / 2 / 3 / 3; }
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.target {
+  grid-area: 2 / 3 / 3 / 4;
+  justify-self: end;
+  text-align: right;
+}
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.target { grid-area: 2 / 4 / 3 / 5; }
+
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.trigger { grid-area: 3 / 1 / 4 / 2; font-weight: bold; }
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.trigger { grid-area: 3 / 2 / 4 / 5; }
