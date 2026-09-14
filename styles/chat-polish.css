@@ -94,7 +94,6 @@ body.dscp-dark-chat .theme-dark {
     }
   }
 
-  
   .chat-message document-embed div.actor.npc.no-role {
     --color-statblock: rgb(70, 70, 70);
   }
@@ -175,17 +174,24 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata :is(
   display: none;
 }
 
+body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dscp-kw-row {
+  grid-area: 1 / 1 / 2 / 5;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.keywords {
-  grid-area: 1 / 1 / 2 / 3;
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: bold;
-  
-  text-wrap: balance;
   line-height: 1.6;
 }
 
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dscp-kw {
   display: inline-block;
-  
+
   font-size: 1em;
   line-height: 1.35;
   margin-right: 0.25em;
@@ -203,10 +209,11 @@ body.dscp-compact.dscp-dark-chat .theme-dark .chat-message document-embed.draw-s
 }
 
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.type {
-  grid-area: 1 / 3 / 2 / 5;
-  justify-self: end;
+  flex: 0 0 auto;
+  margin-left: auto;
   text-align: right;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.distance { grid-area: 2 / 1 / 3 / 2; }
