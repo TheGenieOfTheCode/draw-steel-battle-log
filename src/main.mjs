@@ -1,6 +1,7 @@
 import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './collapse.mjs';
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
+import { flexMessageButtons } from './buttons.mjs';
 import { MODULE_ID } from './collapse.mjs';
 
 export { MODULE_ID };
@@ -38,6 +39,16 @@ Hooks.once('init', () => {
     onChange: syncBodyClasses,
   });
 
+  game.settings.register(MODULE_ID, 'flexButtons', {
+    name: 'DSCP.Settings.flexButtons.name',
+    hint: 'DSCP.Settings.flexButtons.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: syncBodyClasses,
+  });
+
   game.settings.register(MODULE_ID, 'collapsibleAbilities', {
     name: 'DSCP.Settings.collapsibleAbilities.name',
     hint: 'DSCP.Settings.collapsibleAbilities.hint',
@@ -60,6 +71,7 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
     compactAbilityMetadata(html);
   }
   if (setting('powerRollResults')) collapsePowerRolls(message, html);
+  if (setting('flexButtons')) flexMessageButtons(html);
   if (!setting('collapsibleAbilities')) return;
   makeAbilitiesCollapsible(message, html);
 });
@@ -71,4 +83,5 @@ function syncBodyClasses() {
   document.body.classList.toggle('dscp-collapse', setting('collapsibleAbilities'));
   document.body.classList.toggle('dscp-compact', setting('compactAbilities'));
   document.body.classList.toggle('dscp-power-roll', setting('powerRollResults'));
+  document.body.classList.toggle('dscp-flex-buttons', setting('flexButtons'));
 }

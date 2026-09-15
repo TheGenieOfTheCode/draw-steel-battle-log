@@ -230,6 +230,26 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.t
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.trigger { grid-area: 3 / 1 / 4 / 2; font-weight: bold; }
 body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.trigger { grid-area: 3 / 2 / 4 / 5; }
 
+body.dscp-flex-buttons .chat-message .message-part-buttons {
+  margin-top: 6px;
+}
+
+body.dscp-flex-buttons .chat-message .message-part-buttons .dscp-btn-row {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+body.dscp-flex-buttons .chat-message .message-part-buttons .dscp-btn-row + .dscp-btn-row {
+  margin-top: 4px;
+}
+
+body.dscp-flex-buttons .chat-message .message-part-buttons .dscp-btn-row > :is(button, a.button) {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
 body.dscp-power-roll .chat-message section.powerResult .dscp-pr-toggle {
   margin: 0;
   font-weight: bold;
