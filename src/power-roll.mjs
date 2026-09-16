@@ -2,8 +2,13 @@ import { isStored, setStored, MODULE_ID } from './collapse.mjs';
 
 const DIE = (face) => `modules/${MODULE_ID}/icons/dice/die-${face}.png`;
 
-function buildRolls(html, characteristic) {
-  const sources = [...html.querySelectorAll('.dice-roll')];
+const hasTargetPanel = (message, html) =>
+  !!html.querySelector('[class*="draw-steel-target-damage"]')
+  || !!message?.flags?.['draw-steel-target-damage']?.state;
+
+function buildRolls(html, characteristic, message) {
+  let sources = [...html.querySelectorAll('.dice-roll')];
+  if (hasTargetPanel(message, html)) sources = sources.filter(s => s.querySelector('.tier'));
   if (!sources.length) return null;
 
   const wrap = document.createElement('div');
@@ -101,7 +106,7 @@ export function collapsePowerRolls(message, html) {
 
     const body = document.createElement('div');
     body.className = 'dscp-pr-body';
-    const rolls = buildRolls(html, characteristic);
+    const rolls = buildRolls(html, characteristic, message);
     if (rolls) body.append(rolls);
     body.append(tiers);
     section.append(body);
