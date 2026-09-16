@@ -98,13 +98,11 @@ function watch(container) {
 }
 
 export function flexMessageButtons(html) {
-  for (const container of html.querySelectorAll(SEL)) {
-    if (foreign(container) || container.dataset.dscpFlex) continue;
-    container.dataset.dscpFlex = '1';
-    requestAnimationFrame(() => {
-      if (!container.isConnected) return;
-      layout(container);
+  queueMicrotask(() => {
+    for (const container of html.querySelectorAll(SEL)) {
+      if (foreign(container) || container.dataset.dscpFlex) continue;
+      container.dataset.dscpFlex = '1';
       watch(container);
-    });
-  }
+    }
+  });
 }
