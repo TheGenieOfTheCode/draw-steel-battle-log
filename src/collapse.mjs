@@ -1,8 +1,12 @@
 export const MODULE_ID = 'draw-steel-chat-polish';
 
 const STORE_KEY = `${MODULE_ID}.collapsed`;
+const AUTO_KEY = `${MODULE_ID}.autocollapsed`;
+
+const AUTOMATED_FLAGS = ['draw-steel-triggers'];
 
 let _store = null;
+let _auto = null;
 
 function store() {
   if (_store) return _store;
@@ -14,18 +18,32 @@ function store() {
   return _store;
 }
 
+function autoStore() {
+  if (_auto) return _auto;
+  try {
+    _auto = new Set(JSON.parse(localStorage.getItem(AUTO_KEY) ?? '[]'));
+  } catch {
+    _auto = new Set();
+  }
+  return _auto;
+}
+
 function persist() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify([...store()]));
+    if (_auto) localStorage.setItem(AUTO_KEY, JSON.stringify([...autoStore()]));
   } catch {
-    
+
   }
 }
+
+const isAutomated = message => AUTOMATED_FLAGS.some(id => message?.getFlag?.(id, 'automated'));
 
 const keyFor = (messageId, index) => `${messageId}:${index}`;
 
 export function makeAbilitiesCollapsible(message, html) {
   const embeds = html.querySelectorAll('document-embed.draw-steel.ability');
+  const automated = isAutomated(message);
 
   embeds.forEach((embed, index) => {
     const name = embed.querySelector(':scope > h5');
@@ -39,6 +57,12 @@ export function makeAbilitiesCollapsible(message, html) {
       caret.className = 'fa-solid fa-caret-down dscp-caret';
       caret.setAttribute('inert', '');
       name.prepend(caret);
+    }
+
+    if (automated && !autoStore().has(key)) {
+      autoStore().add(key);
+      store().add(key);
+      persist();
     }
 
     setCollapsed(embed, store().has(key));
@@ -103,10 +127,10 @@ function markTrailingPart(root) {
 }
 
 export function forgetMessage(messageId) {
-  const s = store();
   let changed = false;
-  for (const key of [...s]) {
-    if (key.startsWith(`${messageId}:`)) {
+  for (const s of [store(), autoStore()]) {
+    for (const key of [...s]) {
+      if (!key.startsWith(`${messageId}:`)) continue;
       s.delete(key);
       changed = true;
     }
@@ -115,10 +139,10 @@ export function forgetMessage(messageId) {
 }
 
 export function pruneCollapsedState() {
-  const s = store();
   let changed = false;
-  for (const key of [...s]) {
-    if (!game.messages.has(key.split(':')[0])) {
+  for (const s of [store(), autoStore()]) {
+    for (const key of [...s]) {
+      if (game.messages.has(key.split(':')[0])) continue;
       s.delete(key);
       changed = true;
     }
