@@ -175,7 +175,10 @@ export const registerTurnRecording = () => {
   Hooks.on('updateCombat', (combat, changes) => {
     if (changes.round !== undefined && combat.started && changes.round > 1) round(`Round ${changes.round}`, 'round');
   });
-  Hooks.on('deleteCombat', () => round('Combat Ends', 'end'));
+  Hooks.on('deleteCombat', async () => {
+    await round('Combat Ends', 'end');
+    await pruneEmptySections();
+  });
 };
 
 const pingToken = (face) => {
@@ -504,6 +507,38 @@ const survivingAnchor = (after) => {
     at = _movedTo.get(at);
   }
   return at;
+};
+
+export const pruneEmptySections = async () => {
+  if (!isDirector()) return;
+  const entries = readBoundaries();
+  const drop = new Set();
+
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    if (e.kind !== 'round') continue;
+    const depth = depthOf(e);
+    if (depth === 0) continue;
+
+    const closerAt = entries.findIndex((x, j) => j > i && x.kind === 'round' && depthOf(x) <= depth);
+    if (closerAt < 0) continue;
+    if (entries[closerAt].after !== e.after) continue;
+    drop.add(i);
+  }
+
+  
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].kind !== 'round' || depthOf(entries[i]) !== 0) continue;
+    let ownerAt = -1;
+    for (let j = i - 1; j >= 0; j--) {
+      if (entries[j].kind === 'round' && depthOf(entries[j]) === 1) { ownerAt = j; break; }
+    }
+    if (ownerAt < 0 || drop.has(ownerAt)) drop.add(i);
+  }
+
+  if (!drop.size) return;
+  const kept = entries.filter((_, i) => !drop.has(i));
+  await game.settings.set(MODULE_ID, BOUNDARIES, kept);
 };
 
 export const pruneBoundaries = async () => {

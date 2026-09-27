@@ -2,7 +2,7 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
-import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, schedulePrune, noteDeletion } from './turn-markers.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion } from './turn-markers.mjs';
 import { MODULE_ID } from './collapse.mjs';
 
 export { MODULE_ID };
@@ -85,6 +85,7 @@ Hooks.once('ready', () => {
   pruneCollapsedState();
   registerTurnRecording();
   pruneBoundaries();
+  pruneEmptySections();
   scheduleDraw();
 });
 
