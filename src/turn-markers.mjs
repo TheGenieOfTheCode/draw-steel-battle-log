@@ -339,8 +339,8 @@ export const draw = () => {
     }
     if (!setting('turnMarkers')) return;
 
+    
     const rows = [...log.querySelectorAll(':scope > .chat-message[data-message-id]')];
-    if (!rows.length) return;
     const at = new Map(rows.map((li, i) => [li.dataset.messageId, i]));
 
     const entries = readBoundaries();
@@ -360,6 +360,7 @@ export const draw = () => {
         const depth = depthOf(entry);
         
         const isOpen = !placed.slice(i + 1).some((p) => p.entry.kind === 'round' && depthOf(p.entry) <= depth);
+
         const line = marker(entry, 'round', isOpen);
         line.classList.toggle('dscp-turn-shut', depth > 0 && isShut(entry, isOpen));
         if (first) log.insertBefore(line, first);
