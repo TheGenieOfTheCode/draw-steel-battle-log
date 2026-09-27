@@ -20,6 +20,10 @@
       "powerRollResults": {
         "name": "Collapsible Power Roll Results",
         "hint": "Replace the \"Power Roll + Characteristic\" line with a Power Roll Results toggle holding the dice, the bonus and the tier list. Starts closed and remembers. Per client."
+      },
+      "turnMarkers": {
+        "name": "Mark Where Turns Start and End",
+        "hint": "Rule off each turn, each round and each encounter in chat, with the name of whoever is acting stroked in their own colour and their token beside it, which you can click to ping. Anything finished folds away to a single line you can click to open again, and whatever is still going always stays open."
       }
     },
     "powerRoll": {

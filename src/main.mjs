@@ -2,6 +2,7 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, schedulePrune, noteDeletion } from './turn-markers.mjs';
 import { MODULE_ID } from './collapse.mjs';
 
 export { MODULE_ID };
@@ -49,6 +50,25 @@ Hooks.once('init', () => {
     onChange: syncBodyClasses,
   });
 
+  game.settings.register(MODULE_ID, 'turnMarkers', {
+    name: 'DSCP.Settings.turnMarkers.name',
+    hint: 'DSCP.Settings.turnMarkers.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => { syncBodyClasses(); draw(); },
+  });
+
+  
+  game.settings.register(MODULE_ID, 'turnBoundaries', {
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: scheduleDraw,
+  });
+
   game.settings.register(MODULE_ID, 'collapsibleAbilities', {
     name: 'DSCP.Settings.collapsibleAbilities.name',
     hint: 'DSCP.Settings.collapsibleAbilities.hint',
@@ -63,7 +83,17 @@ Hooks.once('init', () => {
 Hooks.once('ready', () => {
   syncBodyClasses();
   pruneCollapsedState();
+  registerTurnRecording();
+  pruneBoundaries();
+  scheduleDraw();
 });
+
+Hooks.on('renderChatLog', scheduleDraw);
+
+Hooks.on('canvasReady', scheduleDraw);
+
+Hooks.on('preDeleteChatMessage', noteDeletion);
+Hooks.on('deleteChatMessage', () => { scheduleDraw(); schedulePrune(); });
 
 Hooks.on('renderChatMessageHTML', (message, html) => {
   if (setting('compactAbilities')) {
@@ -76,6 +106,8 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
   makeAbilitiesCollapsible(message, html);
 });
 
+Hooks.on('renderChatMessageHTML', scheduleDraw);
+
 Hooks.on('deleteChatMessage', message => forgetMessage(message.id));
 
 function syncBodyClasses() {
@@ -84,4 +116,5 @@ function syncBodyClasses() {
   document.body.classList.toggle('dscp-compact', setting('compactAbilities'));
   document.body.classList.toggle('dscp-power-roll', setting('powerRollResults'));
   document.body.classList.toggle('dscp-flex-buttons', setting('flexButtons'));
+  document.body.classList.toggle('dscp-turn-markers', setting('turnMarkers'));
 }

@@ -368,3 +368,317 @@ body.dscp-power-roll:not(.theme-dark) .chat-message .dscp-pr-die {
 body.dscp-power-roll .theme-dark .chat-message .dscp-pr-die {
   filter: none;
 }
+
+.dscp-turn-marker {
+  --dscp-turn-ink: #5d5566;
+  --dscp-turn-ink-lit: #241f2b;
+  --dscp-turn-wash: rgba(0, 0, 0, 0.05);
+
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0.35em 0.25em;
+  padding: 0.15em 0.3em;
+  border-radius: 4px;
+  pointer-events: all;
+  font-family: 'Draw Steel Book', var(--font-primary), sans-serif;
+  color: var(--dscp-turn-ink);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--font-size-12, 0.75rem);
+  line-height: 1;
+  user-select: none;
+  cursor: pointer;
+  transition: color 90ms ease-out, background-color 90ms ease-out;
+}
+
+body.theme-dark .dscp-turn-marker,
+body .theme-dark .dscp-turn-marker {
+  --dscp-turn-ink: #b0a7bd;
+  --dscp-turn-ink-lit: #f2ecf8;
+  --dscp-turn-wash: rgba(255, 255, 255, 0.07);
+}
+
+.dscp-turn-rule {
+  flex: 1 1 auto;
+  min-width: 1.5em;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.35;
+  transition: opacity 90ms ease-out;
+}
+
+.dscp-turn-marker:hover {
+  color: var(--dscp-turn-ink-lit);
+  background-color: var(--dscp-turn-wash);
+}
+
+.dscp-turn-marker:hover .dscp-turn-rule {
+  opacity: 0.6;
+}
+
+.dscp-turn-marker:focus-visible {
+  outline: 2px solid var(--dscp-turn-ink-lit);
+  outline-offset: 1px;
+}
+
+.dscp-turn-start {
+  margin-top: 0.8em;
+}
+
+.dscp-turn-end {
+  margin-bottom: 0.8em;
+  opacity: 0.6;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.dscp-turn-end:hover {
+  opacity: 0.9;
+}
+
+.dscp-turn-end .dscp-turn-faces {
+  display: none;
+}
+
+.dscp-turn-round {
+  margin: 1em 0.25em;
+  font-size: var(--font-size-16, 1rem);
+  letter-spacing: 0.12em;
+  color: var(--dscp-turn-ink-lit);
+}
+
+.dscp-turn-round .dscp-turn-label {
+  flex: 0 0 auto;
+}
+
+.dscp-turn-faces {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  flex: 0 0 auto;
+}
+
+.dscp-turn-face {
+  width: 1.8em;
+  height: 1.8em;
+  border: none;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.25);
+  outline: 1px solid transparent;
+  transition: transform 90ms ease-out, outline-color 90ms ease-out, margin-left 90ms ease-out;
+}
+
+.dscp-turn-face:hover {
+  transform: scale(1.2);
+  outline-color: var(--dscp-turn-ink-lit);
+  z-index: 1;
+}
+
+.dscp-turn-faces .dscp-turn-face-wrap:not(:first-child) {
+  margin-left: -0.55em;
+}
+
+.dscp-turn-marker:hover .dscp-turn-face-wrap:not(:first-child) {
+  margin-left: 0.2em;
+}
+
+.dscp-turn-label {
+  flex: 0 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dscp-turn-caret {
+  flex: 0 0 auto;
+  font-size: 0.9em;
+  transition: transform 100ms ease-out;
+}
+
+.dscp-turn-shut .dscp-turn-caret {
+  transform: rotate(-90deg);
+}
+
+.dscp-turn-count {
+  flex: 0 0 auto;
+  padding: 0.05em 0.35em;
+  border-radius: 999px;
+  background: var(--dscp-turn-wash);
+  border: 1px solid currentColor;
+  opacity: 0.6;
+  font-size: 0.7em;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.dscp-turn-marker:hover .dscp-turn-count {
+  opacity: 0.9;
+}
+
+.dscp-turn-hidden {
+  display: none !important;
+}
+
+.dscp-turn-marker.dscp-turn-live {
+  cursor: default;
+  color: var(--dscp-turn-ink-lit);
+}
+
+.dscp-turn-marker.dscp-turn-live:hover {
+  background-color: transparent;
+}
+
+.dscp-turn-marker.dscp-turn-live .dscp-turn-rule {
+  opacity: 0.5;
+}
+
+.dscp-round-hidden {
+  display: none !important;
+}
+
+.dscp-round-begin {
+  margin: 1.2em 0.25em;
+}
+
+.dscp-turn-crest {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  flex: 0 0 auto;
+  padding: 0.3em 0.9em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: var(--dscp-turn-wash);
+  box-shadow: inset 0 0 0.6em rgba(0, 0, 0, 0.18);
+}
+
+.dscp-turn-crest .dscp-turn-label {
+  letter-spacing: 0.16em;
+  font-weight: bold;
+}
+
+.dscp-turn-sword {
+  font-size: 1.05em;
+  opacity: 0.85;
+}
+
+.dscp-turn-sword-right {
+  transform: scaleX(-1);
+}
+
+.dscp-round-begin:hover .dscp-turn-sword {
+  opacity: 1;
+}
+
+.dscp-turn-round.dscp-turn-live {
+  cursor: default;
+}
+
+.dscp-turn-played {
+  -webkit-text-stroke-width: 0.5px;
+  paint-order: stroke fill;
+}
+
+.dscp-turn-marker:hover .dscp-turn-played {
+  -webkit-text-stroke-width: 0.7px;
+}
+
+.dscp-turn-round {
+  padding-left: 0.3em;
+  padding-right: 0.3em;
+}
+
+.dscp-turn-count-twin {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.dscp-turn-crest {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.dscp-turn-crest .dscp-turn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dscp-turn-round .dscp-turn-rule {
+  min-width: 0;
+}
+
+.dscp-round-end {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.dscp-round-begin,
+.dscp-round-end {
+  font-size: var(--font-size-18, 1.125rem);
+}
+
+.dscp-round-closing {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0.6;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  margin-top: 0.2em;
+}
+
+.dscp-round-closing:hover {
+  opacity: 0.9;
+}
+
+.dscp-round-closing .dscp-turn-crest {
+  padding: 0.2em 0.75em;
+}
+
+.dscp-round-closing .dscp-turn-label {
+  font-weight: normal;
+  letter-spacing: 0.04em;
+  
+  padding-left: 0.34em;
+  padding-right: 0.46em;
+}
+
+.dscp-round-end {
+  cursor: pointer;
+}
+
+.dscp-turn-face-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  transition: margin-left 90ms ease-out;
+}
+
+.dscp-turn-face-captain {
+  z-index: 2;
+}
+
+.dscp-turn-face-minion {
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.dscp-turn-captain-mark {
+  position: absolute;
+  top: -0.35em;
+  left: -0.3em;
+  font-size: 0.62em;
+  line-height: 1;
+  pointer-events: none;
+  background: linear-gradient(170deg, #fff3cd 0%, #f0c657 45%, #b8862b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 2px rgba(60, 40, 0, 0.9));
+}
