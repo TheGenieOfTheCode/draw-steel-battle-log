@@ -22,6 +22,13 @@
     }
   ],
   "relationships": {
+    "conflicts": [
+      {
+        "id": "draw-steel-plus",
+        "type": "module",
+        "reason": "Both restyle the same chat cards. They run side by side, but the two looks can fight, and matching them is not planned."
+      }
+    ],
     "systems": [
       {
         "id": "draw-steel",
