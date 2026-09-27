@@ -1,6 +1,6 @@
 
 
-export const MODULE_ID = 'draw-steel-chat-polish';
+export const MODULE_ID = 'draw-steel-battle-log';
 
 const BOUNDARIES = 'turnBoundaries';
 const FOLD_KEY = `${MODULE_ID}.turnFolds`;
@@ -194,9 +194,9 @@ const portrait = (face) => {
   if (!face?.src) return null;
 
   const img = document.createElement('img');
-  img.className = 'dscp-turn-face';
+  img.className = 'dsbl-turn-face';
   
-  if (face.minion && !face.captain) img.classList.add('dscp-turn-face-minion');
+  if (face.minion && !face.captain) img.classList.add('dsbl-turn-face-minion');
   img.src = face.src;
   img.alt = face.name ?? '';
   img.title = face.name ?? '';
@@ -206,14 +206,14 @@ const portrait = (face) => {
 
   
   const wrap = document.createElement('span');
-  wrap.className = 'dscp-turn-face-wrap';
+  wrap.className = 'dsbl-turn-face-wrap';
   wrap.append(img);
 
   if (face.captain) {
-    wrap.classList.add('dscp-turn-face-captain');
+    wrap.classList.add('dsbl-turn-face-captain');
     
     const mark = document.createElement('i');
-    mark.className = 'fa-solid fa-helmet-battle dscp-turn-captain-mark';
+    mark.className = 'fa-solid fa-helmet-battle dsbl-turn-captain-mark';
     mark.setAttribute('inert', '');
     wrap.append(mark);
   }
@@ -222,34 +222,34 @@ const portrait = (face) => {
 
 const rule = () => {
   const r = document.createElement('span');
-  r.className = 'dscp-turn-rule';
+  r.className = 'dsbl-turn-rule';
   return r;
 };
 
 const marker = (entry, kind, isCurrent) => {
   
   const el = document.createElement('li');
-  el.className = `message dscp-turn-marker dscp-turn-${kind}`;
+  el.className = `message dsbl-turn-marker dsbl-turn-${kind}`;
   el.dataset.dscpTurn = entry.id;
 
   const label = document.createElement('span');
-  label.className = 'dscp-turn-label';
+  label.className = 'dsbl-turn-label';
 
   if (entry.kind === 'round') {
     const closing = kind === 'roundend';
-    el.classList.add('dscp-turn-round');
-    if (closing) el.classList.add('dscp-round-closing');
-    if (entry.mark) el.classList.add(`dscp-round-${entry.mark}`);
+    el.classList.add('dsbl-turn-round');
+    if (closing) el.classList.add('dsbl-round-closing');
+    if (entry.mark) el.classList.add(`dsbl-round-${entry.mark}`);
     label.textContent = closing ? `${entry.label} Ends` : entry.label;
 
     
     const crest = document.createElement('span');
-    crest.className = 'dscp-turn-crest';
+    crest.className = 'dsbl-turn-crest';
 
     if (entry.mark === 'begin' && !closing) {
       const sword = (side) => {
         const i = document.createElement('i');
-        i.className = `fa-solid fa-swords dscp-turn-sword dscp-turn-sword-${side}`;
+        i.className = `fa-solid fa-swords dsbl-turn-sword dsbl-turn-sword-${side}`;
         i.setAttribute('inert', '');
         return i;
       };
@@ -264,7 +264,7 @@ const marker = (entry, kind, isCurrent) => {
 
     
     if (isCurrent || entry.mark === 'end') {
-      el.classList.add('dscp-turn-live');
+      el.classList.add('dsbl-turn-live');
       return el;
     }
 
@@ -277,12 +277,12 @@ const marker = (entry, kind, isCurrent) => {
 
   label.textContent = kind === 'end' ? entry.label + ' ended' : entry.label;
   if (entry.colour) {
-    label.classList.add('dscp-turn-played');
+    label.classList.add('dsbl-turn-played');
     label.style.webkitTextStrokeColor = entry.colour;
   }
 
   const faces = document.createElement('span');
-  faces.className = 'dscp-turn-faces';
+  faces.className = 'dsbl-turn-faces';
   for (const face of entry.faces ?? []) {
     const img = portrait(face);
     if (img) faces.append(img);
@@ -291,14 +291,14 @@ const marker = (entry, kind, isCurrent) => {
   
   if (kind === 'start' && !isCurrent) {
     const caret = document.createElement('i');
-    caret.className = 'fa-solid fa-caret-down dscp-turn-caret';
+    caret.className = 'fa-solid fa-caret-down dsbl-turn-caret';
     caret.setAttribute('inert', '');
     el.append(caret);
   }
   el.append(label, rule(), faces);
 
   if (isCurrent) {
-    el.classList.add('dscp-turn-live');
+    el.classList.add('dsbl-turn-live');
     return el;
   }
 
@@ -335,9 +335,9 @@ export const draw = () => {
 
   _drawing = true;
   try {
-    for (const old of log.querySelectorAll('.dscp-turn-marker')) old.remove();
+    for (const old of log.querySelectorAll('.dsbl-turn-marker')) old.remove();
     for (const li of log.querySelectorAll('.chat-message')) {
-      li.classList.remove('dscp-in-turn', 'dscp-turn-hidden', 'dscp-round-hidden');
+      li.classList.remove('dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden');
       delete li.dataset.dscpTurn;
     }
     if (!setting('turnMarkers')) return;
@@ -365,7 +365,7 @@ export const draw = () => {
         const isOpen = !placed.slice(i + 1).some((p) => p.entry.kind === 'round' && depthOf(p.entry) <= depth);
 
         const line = marker(entry, 'round', isOpen);
-        line.classList.toggle('dscp-turn-shut', depth > 0 && isShut(entry, isOpen));
+        line.classList.toggle('dsbl-turn-shut', depth > 0 && isShut(entry, isOpen));
         if (first) log.insertBefore(line, first);
         else log.append(line);
         sections.push({ entry, depth, start, line, isOpen });
@@ -380,20 +380,20 @@ export const draw = () => {
 
       const hidden = isShut(entry, isCurrent);
       const head = marker(entry, 'start', isCurrent);
-      head.classList.toggle('dscp-turn-shut', hidden);
+      head.classList.toggle('dsbl-turn-shut', hidden);
 
       if (first) log.insertBefore(head, first);
       else log.append(head);
 
       for (let r = start; r < end; r++) {
-        rows[r].classList.add('dscp-in-turn');
+        rows[r].classList.add('dsbl-in-turn');
         rows[r].dataset.dscpTurn = entry.id;
-        rows[r].classList.toggle('dscp-turn-hidden', hidden);
+        rows[r].classList.toggle('dsbl-turn-hidden', hidden);
       }
 
       if (hidden && end > start) {
         const count = document.createElement('span');
-        count.className = 'dscp-turn-count';
+        count.className = 'dsbl-turn-count';
         count.textContent = String(end - start);
         count.title = (end - start) + (end - start === 1 ? ' message' : ' messages') + ' folded away';
         head.append(count);
@@ -402,7 +402,7 @@ export const draw = () => {
       
       if (i + 1 < placed.length && end > start) {
         const foot = marker(entry, 'end', false);
-        foot.classList.toggle('dscp-turn-hidden', hidden);
+        foot.classList.toggle('dsbl-turn-hidden', hidden);
         const after = rows[end - 1];
         after.parentNode.insertBefore(foot, after.nextSibling);
       }
@@ -413,7 +413,7 @@ export const draw = () => {
       const owner = sections.slice(0, i).reverse().find((x) => x.depth === 1);
       if (!owner || owner.isOpen) continue;
       const line = sections[i].line;
-      line.classList.remove('dscp-turn-live');
+      line.classList.remove('dsbl-turn-live');
       line.addEventListener('click', () => {
         setFold(owner.entry, !isShut(owner.entry, false));
         draw();
@@ -443,33 +443,33 @@ export const draw = () => {
       if (!isShut(entry, isOpen)) continue;
 
       let hiddenCount = 0;
-      for (let r = start; r < end; r++) { rows[r].classList.add('dscp-round-hidden'); hiddenCount++; }
+      for (let r = start; r < end; r++) { rows[r].classList.add('dsbl-round-hidden'); hiddenCount++; }
 
       
       let n = line.nextElementSibling;
       const stop = closer ? closer.line : null;
       while (n && n !== stop) {
-        if (n.classList.contains('dscp-turn-marker')) n.classList.add('dscp-round-hidden');
+        if (n.classList.contains('dsbl-turn-marker')) n.classList.add('dsbl-round-hidden');
         n = n.nextElementSibling;
       }
 
       
-      if (depth === 1 && closer?.depth === 0) closer.line.classList.add('dscp-round-hidden');
+      if (depth === 1 && closer?.depth === 0) closer.line.classList.add('dsbl-round-hidden');
 
       
-      sections[i].foot?.classList.add('dscp-round-hidden');
+      sections[i].foot?.classList.add('dsbl-round-hidden');
 
       
       if (hiddenCount && entry.mark !== 'begin') {
         const count = document.createElement('span');
-        count.className = 'dscp-turn-count';
+        count.className = 'dsbl-turn-count';
         count.textContent = String(hiddenCount);
         count.title = hiddenCount + (hiddenCount === 1 ? ' message' : ' messages') + ' folded away';
         line.append(count);
 
         
         const twin = count.cloneNode(true);
-        twin.classList.add('dscp-turn-count-twin');
+        twin.classList.add('dsbl-turn-count-twin');
         twin.removeAttribute('title');
         line.prepend(twin);
       }

@@ -1,13 +1,13 @@
 {
-  "id": "draw-steel-chat-polish",
-  "title": "Draw Steel: Chat Polish",
-  "description": "Fits the default Draw Steel chat cards to the Foundry dark theme, and lets you collapse an ability card down to its name by clicking it.",
+  "id": "draw-steel-battle-log",
+  "title": "Draw Steel: Battle Log",
+  "description": "Draws the shape of a fight into the chat log: every turn, round and encounter bracketed by a marker you can fold away. Fits the default Draw Steel chat cards to the Foundry dark theme, and lets you collapse an ability card down to its name by clicking it.",
   "version": "0.1.0",
   "esmodules": [
     "src/main.mjs"
   ],
   "styles": [
-    "styles/chat-polish.css"
+    "styles/battle-log.css"
   ],
   "languages": [
     {

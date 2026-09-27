@@ -20,25 +20,25 @@ function pillify(dl) {
   cell.dataset.dscpPills = '1';
   cell.replaceChildren(...words.map(word => {
     const pill = document.createElement('span');
-    pill.className = 'dscp-kw';
+    pill.className = 'dsbl-kw';
     pill.textContent = word;
     return pill;
   }));
 }
 
 function rowify(dl) {
-  if (dl.querySelector(':scope > .dscp-kw-row')) return;
+  if (dl.querySelector(':scope > .dsbl-kw-row')) return;
   const keywords = dl.querySelector(':scope > dd.keywords');
   const type = dl.querySelector(':scope > dd.type');
   if (!keywords || !type) return;
   const row = document.createElement('div');
-  row.className = 'dscp-kw-row';
+  row.className = 'dsbl-kw-row';
   keywords.before(row);
   row.append(keywords, type);
 }
 
 function balanceKeywords(cell) {
-  const pills = [...cell.querySelectorAll('.dscp-kw')];
+  const pills = [...cell.querySelectorAll('.dsbl-kw')];
   for (const br of cell.querySelectorAll('br')) br.remove();
   cell.style.whiteSpace = 'normal';
   if (pills.length < 2) return;
@@ -111,11 +111,11 @@ function fit(dl) {
 
   pillify(dl);
   rowify(dl);
-  embed.style.removeProperty('--dscp-meta-size');
+  embed.style.removeProperty('--dsbl-meta-size');
 
   const keywords = dl.querySelector('dd.keywords');
-  const cells = [...dl.children].filter(cell => !cell.classList.contains('keywords') && !cell.classList.contains('dscp-kw-row'));
-  const type = dl.querySelector('.dscp-kw-row > dd.type');
+  const cells = [...dl.children].filter(cell => !cell.classList.contains('keywords') && !cell.classList.contains('dsbl-kw-row'));
+  const type = dl.querySelector('.dsbl-kw-row > dd.type');
   if (type) cells.push(type);
   const wrapped = () => cells.some(wraps);
 
@@ -123,7 +123,7 @@ function fit(dl) {
 
   const base = parseFloat(getComputedStyle(dl).fontSize) || 13;
   for (let size = base - STEP; size >= MIN_SIZE; size -= STEP) {
-    embed.style.setProperty('--dscp-meta-size', `${size}px`);
+    embed.style.setProperty('--dsbl-meta-size', `${size}px`);
     if (!wrapped()) break;
   }
   if (keywords) balanceKeywords(keywords);
@@ -170,7 +170,7 @@ export function inlineEffectLabels(html) {
     const hasBody = !!body.textContent.trim();
 
     const lead = document.createElement('strong');
-    lead.className = 'dscp-effect-label';
+    lead.className = 'dsbl-effect-label';
     lead.textContent = hasBody ? `${label}:` : label;
 
     const first = body.querySelector(':scope > p') ?? body;

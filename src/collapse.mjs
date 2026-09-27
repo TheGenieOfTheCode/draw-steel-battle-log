@@ -1,4 +1,4 @@
-export const MODULE_ID = 'draw-steel-chat-polish';
+export const MODULE_ID = 'draw-steel-battle-log';
 
 const STORE_KEY = `${MODULE_ID}.collapsed`;
 const AUTO_KEY = `${MODULE_ID}.autocollapsed`;
@@ -51,10 +51,10 @@ export function makeAbilitiesCollapsible(message, html) {
 
     const key = keyFor(message.id, index);
 
-    name.classList.add('dscp-ability-name');
-    if (!name.querySelector('.dscp-caret')) {
+    name.classList.add('dsbl-ability-name');
+    if (!name.querySelector('.dsbl-caret')) {
       const caret = document.createElement('i');
-      caret.className = 'fa-solid fa-caret-down dscp-caret';
+      caret.className = 'fa-solid fa-caret-down dsbl-caret';
       caret.setAttribute('inert', '');
       name.prepend(caret);
     }
@@ -69,7 +69,7 @@ export function makeAbilitiesCollapsible(message, html) {
 
     name.addEventListener('click', event => {
       if (event.target.closest('a')) return;
-      const collapsed = !embed.classList.contains('dscp-collapsed');
+      const collapsed = !embed.classList.contains('dsbl-collapsed');
       setCollapsed(embed, collapsed);
       if (collapsed) store().add(key);
       else store().delete(key);
@@ -79,12 +79,12 @@ export function makeAbilitiesCollapsible(message, html) {
 }
 
 function setCollapsed(embed, collapsed) {
-  embed.classList.toggle('dscp-collapsed', collapsed);
+  embed.classList.toggle('dsbl-collapsed', collapsed);
 
   
   
   if (!embed.parentElement?.classList.contains('message-part-html')) return;
-  embed.closest('[data-message-part]')?.classList.toggle('dscp-part-collapsed', collapsed);
+  embed.closest('[data-message-part]')?.classList.toggle('dsbl-part-collapsed', collapsed);
 
   syncSiblingPanels(embed.closest('[data-message-id]'));
 }
@@ -92,8 +92,8 @@ function setCollapsed(embed, collapsed) {
 function syncSiblingPanels(root) {
   if (!root) return;
   const cards = root.querySelectorAll('.message-part-html > document-embed.draw-steel.ability');
-  const hide = cards.length > 0 && [...cards].every(card => card.classList.contains('dscp-collapsed'));
-  root.classList.toggle('dscp-hide-panels', hide);
+  const hide = cards.length > 0 && [...cards].every(card => card.classList.contains('dsbl-collapsed'));
+  root.classList.toggle('dsbl-hide-panels', hide);
   scheduleTrailingPart(root);
   watchRoot(root, hide);
 }
@@ -121,9 +121,9 @@ function watchRoot(root, active) {
 }
 
 function markTrailingPart(root) {
-  for (const marked of root.querySelectorAll('.dscp-part-trailing')) marked.classList.remove('dscp-part-trailing');
+  for (const marked of root.querySelectorAll('.dsbl-part-trailing')) marked.classList.remove('dsbl-part-trailing');
   const last = [...root.children].filter(child => child.getClientRects().length > 0).at(-1);
-  if (last?.classList.contains('dscp-part-collapsed')) last.classList.add('dscp-part-trailing');
+  if (last?.classList.contains('dsbl-part-collapsed')) last.classList.add('dsbl-part-trailing');
 }
 
 export function forgetMessage(messageId) {

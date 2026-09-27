@@ -4,15 +4,19 @@ import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
 import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion } from './turn-markers.mjs';
 import { MODULE_ID } from './collapse.mjs';
+import { migrateLocalStorage, migrateWorldSettings } from './migrate.mjs';
 
 export { MODULE_ID };
+
+
+migrateLocalStorage(MODULE_ID);
 
 const setting = key => game.settings.get(MODULE_ID, key);
 
 Hooks.once('init', () => {
   game.settings.register(MODULE_ID, 'darkChat', {
-    name: 'DSCP.Settings.darkChat.name',
-    hint: 'DSCP.Settings.darkChat.hint',
+    name: 'DSBL.Settings.darkChat.name',
+    hint: 'DSBL.Settings.darkChat.hint',
     scope: 'client',
     config: true,
     type: Boolean,
@@ -21,8 +25,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register(MODULE_ID, 'compactAbilities', {
-    name: 'DSCP.Settings.compactAbilities.name',
-    hint: 'DSCP.Settings.compactAbilities.hint',
+    name: 'DSBL.Settings.compactAbilities.name',
+    hint: 'DSBL.Settings.compactAbilities.hint',
     scope: 'client',
     config: true,
     type: Boolean,
@@ -31,8 +35,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register(MODULE_ID, 'powerRollResults', {
-    name: 'DSCP.Settings.powerRollResults.name',
-    hint: 'DSCP.Settings.powerRollResults.hint',
+    name: 'DSBL.Settings.powerRollResults.name',
+    hint: 'DSBL.Settings.powerRollResults.hint',
     scope: 'client',
     config: true,
     type: Boolean,
@@ -41,8 +45,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register(MODULE_ID, 'flexButtons', {
-    name: 'DSCP.Settings.flexButtons.name',
-    hint: 'DSCP.Settings.flexButtons.hint',
+    name: 'DSBL.Settings.flexButtons.name',
+    hint: 'DSBL.Settings.flexButtons.hint',
     scope: 'client',
     config: true,
     type: Boolean,
@@ -51,8 +55,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register(MODULE_ID, 'turnMarkers', {
-    name: 'DSCP.Settings.turnMarkers.name',
-    hint: 'DSCP.Settings.turnMarkers.hint',
+    name: 'DSBL.Settings.turnMarkers.name',
+    hint: 'DSBL.Settings.turnMarkers.hint',
     scope: 'client',
     config: true,
     type: Boolean,
@@ -70,8 +74,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register(MODULE_ID, 'collapsibleAbilities', {
-    name: 'DSCP.Settings.collapsibleAbilities.name',
-    hint: 'DSCP.Settings.collapsibleAbilities.hint',
+    name: 'DSBL.Settings.collapsibleAbilities.name',
+    hint: 'DSBL.Settings.collapsibleAbilities.hint',
     scope: 'client',
     config: true,
     type: Boolean,
@@ -80,10 +84,12 @@ Hooks.once('init', () => {
   });
 });
 
-Hooks.once('ready', () => {
+Hooks.once('ready', async () => {
   syncBodyClasses();
   pruneCollapsedState();
   registerTurnRecording();
+  
+  await migrateWorldSettings(MODULE_ID, 'turnBoundaries');
   pruneBoundaries();
   pruneEmptySections();
   scheduleDraw();
@@ -112,10 +118,10 @@ Hooks.on('renderChatMessageHTML', scheduleDraw);
 Hooks.on('deleteChatMessage', message => forgetMessage(message.id));
 
 function syncBodyClasses() {
-  document.body.classList.toggle('dscp-dark-chat', setting('darkChat'));
-  document.body.classList.toggle('dscp-collapse', setting('collapsibleAbilities'));
-  document.body.classList.toggle('dscp-compact', setting('compactAbilities'));
-  document.body.classList.toggle('dscp-power-roll', setting('powerRollResults'));
-  document.body.classList.toggle('dscp-flex-buttons', setting('flexButtons'));
-  document.body.classList.toggle('dscp-turn-markers', setting('turnMarkers'));
+  document.body.classList.toggle('dsbl-dark-chat', setting('darkChat'));
+  document.body.classList.toggle('dsbl-collapse', setting('collapsibleAbilities'));
+  document.body.classList.toggle('dsbl-compact', setting('compactAbilities'));
+  document.body.classList.toggle('dsbl-power-roll', setting('powerRollResults'));
+  document.body.classList.toggle('dsbl-flex-buttons', setting('flexButtons'));
+  document.body.classList.toggle('dsbl-turn-markers', setting('turnMarkers'));
 }

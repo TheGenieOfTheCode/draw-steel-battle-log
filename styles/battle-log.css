@@ -1,7 +1,7 @@
 
 
-body.dscp-dark-chat.theme-dark,
-body.dscp-dark-chat .theme-dark {
+body.dsbl-dark-chat.theme-dark,
+body.dsbl-dark-chat .theme-dark {
 
   .chat-message {
     --chat-message-background: #17151f;
@@ -99,16 +99,16 @@ body.dscp-dark-chat .theme-dark {
   }
 }
 
-body.dscp-collapse .dscp-ability-name {
+body.dsbl-collapse .dsbl-ability-name {
   cursor: pointer;
   user-select: none;
 }
 
-body.dscp-collapse .dscp-ability-name:hover {
+body.dsbl-collapse .dsbl-ability-name:hover {
   color: var(--draw-steel-c-laserline);
 }
 
-.dscp-caret {
+.dsbl-caret {
   display: inline-block;
   width: 0.75em;
   margin-right: 0.35em;
@@ -116,47 +116,47 @@ body.dscp-collapse .dscp-ability-name:hover {
   transition: transform 0.12s ease-out;
 }
 
-body:not(.dscp-collapse) .dscp-caret {
+body:not(.dsbl-collapse) .dsbl-caret {
   display: none;
 }
 
-body.dscp-collapse .dscp-collapsed > .dscp-ability-name .dscp-caret {
+body.dsbl-collapse .dsbl-collapsed > .dsbl-ability-name .dsbl-caret {
   transform: rotate(-90deg);
 }
 
-body.dscp-collapse document-embed.draw-steel.ability.dscp-collapsed > *:not(h5) {
+body.dsbl-collapse document-embed.draw-steel.ability.dsbl-collapsed > *:not(h5) {
   display: none;
 }
 
-body.dscp-collapse [data-message-part].dscp-part-collapsed > footer.message-part-buttons {
+body.dsbl-collapse [data-message-part].dsbl-part-collapsed > footer.message-part-buttons {
   display: none;
 }
 
-body.dscp-collapse .chat-message.dscp-hide-panels > section.draw-steel-target-damage-panel,
-body.dscp-collapse .chat-message.dscp-hide-panels > :is(button, a.button, .message-part-buttons) {
+body.dsbl-collapse .chat-message.dsbl-hide-panels > section.draw-steel-target-damage-panel,
+body.dsbl-collapse .chat-message.dsbl-hide-panels > :is(button, a.button, .message-part-buttons) {
   display: none;
 }
 
-body.dscp-collapse .chat-message.dscp-hide-panels [data-message-part].dscp-part-collapsed.dscp-part-trailing {
+body.dsbl-collapse .chat-message.dsbl-hide-panels [data-message-part].dsbl-part-collapsed.dsbl-part-trailing {
   border-bottom: none;
   padding-bottom: 0;
   margin-bottom: 0;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability {
-  font-size: var(--dscp-meta-size, 0.85rem);
+body.dsbl-compact .chat-message document-embed.draw-steel.ability {
+  font-size: var(--dsbl-meta-size, 0.85rem);
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability *:not(h5):not(h5 *) {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability *:not(h5):not(h5 *) {
   font-size: inherit;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability dl.power-roll-display > :is(dt.tier1, dt.tier2, dt.tier3) {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability dl.power-roll-display > :is(dt.tier1, dt.tier2, dt.tier3) {
   font-size: 1.5em;
   line-height: 0.9;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dl {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dl {
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   column-gap: 6px;
@@ -165,16 +165,16 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dl {
   margin: 0;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dl > :is(dt, dd) {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dl > :is(dt, dd) {
   margin: 0;
   padding: 0;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata :is(dt.keywords, dt.type) {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata :is(dt.keywords, dt.type) {
   display: none;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dscp-kw-row {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata .dsbl-kw-row {
   grid-area: 1 / 1 / 2 / 5;
   display: flex;
   align-items: baseline;
@@ -182,14 +182,14 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dsc
   min-width: 0;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.keywords {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dd.keywords {
   flex: 1 1 auto;
   min-width: 0;
   font-weight: bold;
   line-height: 1.6;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dscp-kw {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata .dsbl-kw {
   display: inline-block;
 
   font-size: 1em;
@@ -198,17 +198,17 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata .dsc
   padding: 0.05em 0.5em;
   border: 1px solid rgba(184, 146, 46, 0.45);
   border-radius: 0.8em;
-  background: var(--dscp-kw-fill, rgba(184, 146, 46, 0.1));
+  background: var(--dsbl-kw-fill, rgba(184, 146, 46, 0.1));
   white-space: nowrap;
 }
 
-body.dscp-compact.dscp-dark-chat.theme-dark .chat-message document-embed.draw-steel.ability .metadata .dscp-kw,
-body.dscp-compact.dscp-dark-chat .theme-dark .chat-message document-embed.draw-steel.ability .metadata .dscp-kw {
-  --dscp-kw-fill: #101220;
+body.dsbl-compact.dsbl-dark-chat.theme-dark .chat-message document-embed.draw-steel.ability .metadata .dsbl-kw,
+body.dsbl-compact.dsbl-dark-chat .theme-dark .chat-message document-embed.draw-steel.ability .metadata .dsbl-kw {
+  --dsbl-kw-fill: #101220;
   border-color: rgba(184, 146, 46, 0.35);
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.type {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dd.type {
   flex: 0 0 auto;
   margin-left: auto;
   text-align: right;
@@ -216,82 +216,82 @@ body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.t
   white-space: nowrap;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.distance { grid-area: 2 / 1 / 3 / 2; }
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.distance { grid-area: 2 / 2 / 3 / 3; }
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dt.distance { grid-area: 2 / 1 / 3 / 2; }
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dd.distance { grid-area: 2 / 2 / 3 / 3; }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.target {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dt.target {
   grid-area: 2 / 3 / 3 / 4;
   justify-self: end;
   text-align: right;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.target { grid-area: 2 / 4 / 3 / 5; }
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dd.target { grid-area: 2 / 4 / 3 / 5; }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dt.trigger { grid-area: 3 / 1 / 4 / 2; font-weight: bold; }
-body.dscp-compact .chat-message document-embed.draw-steel.ability .metadata dd.trigger { grid-area: 3 / 2 / 4 / 5; }
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dt.trigger { grid-area: 3 / 1 / 4 / 2; font-weight: bold; }
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dd.trigger { grid-area: 3 / 2 / 4 / 5; }
 
-body.dscp-flex-buttons .chat-message .message-part-buttons {
+body.dsbl-flex-buttons .chat-message .message-part-buttons {
   margin-top: 6px;
 }
 
-body.dscp-flex-buttons .chat-message .message-part-buttons .dscp-btn-row {
+body.dsbl-flex-buttons .chat-message .message-part-buttons .dsbl-btn-row {
   display: flex;
   gap: 4px;
   width: 100%;
 }
 
-body.dscp-flex-buttons .chat-message .message-part-buttons .dscp-btn-row + .dscp-btn-row {
+body.dsbl-flex-buttons .chat-message .message-part-buttons .dsbl-btn-row + .dsbl-btn-row {
   margin-top: 4px;
 }
 
-body.dscp-flex-buttons .chat-message .message-part-buttons .dscp-btn-row > :is(button, a.button) {
+body.dsbl-flex-buttons .chat-message .message-part-buttons .dsbl-btn-row > :is(button, a.button) {
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
 }
 
-body.dscp-power-roll .chat-message section.powerResult .dscp-pr-toggle {
+body.dsbl-power-roll .chat-message section.powerResult .dsbl-pr-toggle {
   margin: 0;
   font-weight: bold;
   cursor: pointer;
   user-select: none;
 }
 
-body.dscp-power-roll .chat-message section.powerResult .dscp-pr-toggle .dscp-caret {
+body.dsbl-power-roll .chat-message section.powerResult .dsbl-pr-toggle .dsbl-caret {
   margin-right: 0.3em;
   opacity: 0.6;
   transform: rotate(-90deg);
   transition: transform 0.12s ease-out;
 }
 
-body.dscp-power-roll .chat-message section.powerResult.dscp-pr-open .dscp-pr-toggle .dscp-caret {
+body.dsbl-power-roll .chat-message section.powerResult.dsbl-pr-open .dsbl-pr-toggle .dsbl-caret {
   transform: none;
 }
 
-body.dscp-power-roll .chat-message section.powerResult:not(.dscp-pr-open) .dscp-pr-body {
+body.dsbl-power-roll .chat-message section.powerResult:not(.dsbl-pr-open) .dsbl-pr-body {
   display: none;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-rolls {
+body.dsbl-power-roll .chat-message .dsbl-pr-rolls {
   display: flex;
   flex-direction: column;
   gap: 0.25em;
   margin: 0.4em 0 0.5em;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-row {
+body.dsbl-power-roll .chat-message .dsbl-pr-row {
   display: flex;
   align-items: center;
   gap: 0.4em;
   min-width: 0;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-who {
+body.dsbl-power-roll .chat-message .dsbl-pr-who {
   flex: 0 0 auto;
   opacity: 0.75;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-box {
+body.dsbl-power-roll .chat-message .dsbl-pr-box {
   display: flex;
   align-items: stretch;
   flex: 1 1 auto;
@@ -301,7 +301,7 @@ body.dscp-power-roll .chat-message .dscp-pr-box {
   background: rgba(128, 128, 128, 0.1);
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-formula {
+body.dsbl-power-roll .chat-message .dsbl-pr-formula {
   display: inline-flex;
   align-items: center;
   gap: 0.25em;
@@ -312,7 +312,7 @@ body.dscp-power-roll .chat-message .dscp-pr-formula {
   white-space: nowrap;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-die {
+body.dsbl-power-roll .chat-message .dsbl-pr-die {
   width: 2.1em;
   height: 2.1em;
   border: none;
@@ -320,12 +320,12 @@ body.dscp-power-roll .chat-message .dscp-pr-die {
   vertical-align: middle;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-face {
+body.dsbl-power-roll .chat-message .dsbl-pr-face {
   flex: 0 0 auto;
   font-weight: bold;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-mod {
+body.dsbl-power-roll .chat-message .dsbl-pr-mod {
   flex: 0 0 auto;
   margin-left: 0.1em;
   cursor: help;
@@ -333,7 +333,7 @@ body.dscp-power-roll .chat-message .dscp-pr-mod {
   opacity: 0.9;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-total {
+body.dsbl-power-roll .chat-message .dsbl-pr-total {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -343,36 +343,36 @@ body.dscp-power-roll .chat-message .dscp-pr-total {
   font-weight: 700;
 }
 
-body.dscp-power-roll .chat-message .dscp-pr-dropped {
+body.dsbl-power-roll .chat-message .dsbl-pr-dropped {
   opacity: 0.4;
   filter: grayscale(1);
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability section.effect dl {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability section.effect dl {
   display: block;
   margin: 0.4em 0 0;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability section.effect dd.effect {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability section.effect dd.effect {
   margin: 0;
 }
 
-body.dscp-compact .chat-message document-embed.draw-steel.ability .dscp-effect-label {
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .dsbl-effect-label {
   font-weight: bold;
 }
 
-body.dscp-power-roll:not(.theme-dark) .chat-message .dscp-pr-die {
+body.dsbl-power-roll:not(.theme-dark) .chat-message .dsbl-pr-die {
   filter: invert(1) hue-rotate(180deg);
 }
 
-body.dscp-power-roll .theme-dark .chat-message .dscp-pr-die {
+body.dsbl-power-roll .theme-dark .chat-message .dsbl-pr-die {
   filter: none;
 }
 
-.dscp-turn-marker {
-  --dscp-turn-ink: #5d5566;
-  --dscp-turn-ink-lit: #241f2b;
-  --dscp-turn-wash: rgba(0, 0, 0, 0.05);
+.dsbl-turn-marker {
+  --dsbl-turn-ink: #5d5566;
+  --dsbl-turn-ink-lit: #241f2b;
+  --dsbl-turn-wash: rgba(0, 0, 0, 0.05);
 
   display: flex;
   align-items: center;
@@ -382,7 +382,7 @@ body.dscp-power-roll .theme-dark .chat-message .dscp-pr-die {
   border-radius: 4px;
   pointer-events: all;
   font-family: 'Draw Steel Book', var(--font-primary), sans-serif;
-  color: var(--dscp-turn-ink);
+  color: var(--dsbl-turn-ink);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: var(--font-size-12, 0.75rem);
@@ -392,14 +392,14 @@ body.dscp-power-roll .theme-dark .chat-message .dscp-pr-die {
   transition: color 90ms ease-out, background-color 90ms ease-out;
 }
 
-body.theme-dark .dscp-turn-marker,
-body .theme-dark .dscp-turn-marker {
-  --dscp-turn-ink: #b0a7bd;
-  --dscp-turn-ink-lit: #f2ecf8;
-  --dscp-turn-wash: rgba(255, 255, 255, 0.07);
+body.theme-dark .dsbl-turn-marker,
+body .theme-dark .dsbl-turn-marker {
+  --dsbl-turn-ink: #b0a7bd;
+  --dsbl-turn-ink-lit: #f2ecf8;
+  --dsbl-turn-wash: rgba(255, 255, 255, 0.07);
 }
 
-.dscp-turn-rule {
+.dsbl-turn-rule {
   flex: 1 1 auto;
   min-width: 1.5em;
   height: 1px;
@@ -408,25 +408,25 @@ body .theme-dark .dscp-turn-marker {
   transition: opacity 90ms ease-out;
 }
 
-.dscp-turn-marker:hover {
-  color: var(--dscp-turn-ink-lit);
-  background-color: var(--dscp-turn-wash);
+.dsbl-turn-marker:hover {
+  color: var(--dsbl-turn-ink-lit);
+  background-color: var(--dsbl-turn-wash);
 }
 
-.dscp-turn-marker:hover .dscp-turn-rule {
+.dsbl-turn-marker:hover .dsbl-turn-rule {
   opacity: 0.6;
 }
 
-.dscp-turn-marker:focus-visible {
-  outline: 2px solid var(--dscp-turn-ink-lit);
+.dsbl-turn-marker:focus-visible {
+  outline: 2px solid var(--dsbl-turn-ink-lit);
   outline-offset: 1px;
 }
 
-.dscp-turn-start {
+.dsbl-turn-start {
   margin-top: 0.8em;
 }
 
-.dscp-turn-end {
+.dsbl-turn-end {
   margin-bottom: 0.8em;
   opacity: 0.6;
   font-style: italic;
@@ -434,33 +434,33 @@ body .theme-dark .dscp-turn-marker {
   letter-spacing: 0.02em;
 }
 
-.dscp-turn-end:hover {
+.dsbl-turn-end:hover {
   opacity: 0.9;
 }
 
-.dscp-turn-end .dscp-turn-faces {
+.dsbl-turn-end .dsbl-turn-faces {
   display: none;
 }
 
-.dscp-turn-round {
+.dsbl-turn-round {
   margin: 1em 0.25em;
   font-size: var(--font-size-16, 1rem);
   letter-spacing: 0.12em;
-  color: var(--dscp-turn-ink-lit);
+  color: var(--dsbl-turn-ink-lit);
 }
 
-.dscp-turn-round .dscp-turn-label {
+.dsbl-turn-round .dsbl-turn-label {
   flex: 0 0 auto;
 }
 
-.dscp-turn-faces {
+.dsbl-turn-faces {
   display: flex;
   align-items: center;
   gap: 0.2em;
   flex: 0 0 auto;
 }
 
-.dscp-turn-face {
+.dsbl-turn-face {
   width: 1.8em;
   height: 1.8em;
   border: none;
@@ -472,42 +472,42 @@ body .theme-dark .dscp-turn-marker {
   transition: transform 90ms ease-out, outline-color 90ms ease-out, margin-left 90ms ease-out;
 }
 
-.dscp-turn-face:hover {
+.dsbl-turn-face:hover {
   transform: scale(1.2);
-  outline-color: var(--dscp-turn-ink-lit);
+  outline-color: var(--dsbl-turn-ink-lit);
   z-index: 1;
 }
 
-.dscp-turn-faces .dscp-turn-face-wrap:not(:first-child) {
+.dsbl-turn-faces .dsbl-turn-face-wrap:not(:first-child) {
   margin-left: -0.55em;
 }
 
-.dscp-turn-marker:hover .dscp-turn-face-wrap:not(:first-child) {
+.dsbl-turn-marker:hover .dsbl-turn-face-wrap:not(:first-child) {
   margin-left: 0.2em;
 }
 
-.dscp-turn-label {
+.dsbl-turn-label {
   flex: 0 1 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.dscp-turn-caret {
+.dsbl-turn-caret {
   flex: 0 0 auto;
   font-size: 0.9em;
   transition: transform 100ms ease-out;
 }
 
-.dscp-turn-shut .dscp-turn-caret {
+.dsbl-turn-shut .dsbl-turn-caret {
   transform: rotate(-90deg);
 }
 
-.dscp-turn-count {
+.dsbl-turn-count {
   flex: 0 0 auto;
   padding: 0.05em 0.35em;
   border-radius: 999px;
-  background: var(--dscp-turn-wash);
+  background: var(--dsbl-turn-wash);
   border: 1px solid currentColor;
   opacity: 0.6;
   font-size: 0.7em;
@@ -515,36 +515,36 @@ body .theme-dark .dscp-turn-marker {
   letter-spacing: 0;
 }
 
-.dscp-turn-marker:hover .dscp-turn-count {
+.dsbl-turn-marker:hover .dsbl-turn-count {
   opacity: 0.9;
 }
 
-.dscp-turn-hidden {
+.dsbl-turn-hidden {
   display: none !important;
 }
 
-.dscp-turn-marker.dscp-turn-live {
+.dsbl-turn-marker.dsbl-turn-live {
   cursor: default;
-  color: var(--dscp-turn-ink-lit);
+  color: var(--dsbl-turn-ink-lit);
 }
 
-.dscp-turn-marker.dscp-turn-live:hover {
+.dsbl-turn-marker.dsbl-turn-live:hover {
   background-color: transparent;
 }
 
-.dscp-turn-marker.dscp-turn-live .dscp-turn-rule {
+.dsbl-turn-marker.dsbl-turn-live .dsbl-turn-rule {
   opacity: 0.5;
 }
 
-.dscp-round-hidden {
+.dsbl-round-hidden {
   display: none !important;
 }
 
-.dscp-round-begin {
+.dsbl-round-begin {
   margin: 1.2em 0.25em;
 }
 
-.dscp-turn-crest {
+.dsbl-turn-crest {
   display: flex;
   align-items: center;
   gap: 0.55em;
@@ -552,77 +552,77 @@ body .theme-dark .dscp-turn-marker {
   padding: 0.3em 0.9em;
   border: 1px solid currentColor;
   border-radius: 999px;
-  background: var(--dscp-turn-wash);
+  background: var(--dsbl-turn-wash);
   box-shadow: inset 0 0 0.6em rgba(0, 0, 0, 0.18);
 }
 
-.dscp-turn-crest .dscp-turn-label {
+.dsbl-turn-crest .dsbl-turn-label {
   letter-spacing: 0.16em;
   font-weight: bold;
 }
 
-.dscp-turn-sword {
+.dsbl-turn-sword {
   font-size: 1.05em;
   opacity: 0.85;
 }
 
-.dscp-turn-sword-right {
+.dsbl-turn-sword-right {
   transform: scaleX(-1);
 }
 
-.dscp-round-begin:hover .dscp-turn-sword {
+.dsbl-round-begin:hover .dsbl-turn-sword {
   opacity: 1;
 }
 
-.dscp-turn-round.dscp-turn-live {
+.dsbl-turn-round.dsbl-turn-live {
   cursor: default;
 }
 
-.dscp-turn-played {
+.dsbl-turn-played {
   -webkit-text-stroke-width: 0.5px;
   paint-order: stroke fill;
 }
 
-.dscp-turn-marker:hover .dscp-turn-played {
+.dsbl-turn-marker:hover .dsbl-turn-played {
   -webkit-text-stroke-width: 0.7px;
 }
 
-.dscp-turn-round {
+.dsbl-turn-round {
   padding-left: 0.3em;
   padding-right: 0.3em;
 }
 
-.dscp-turn-count-twin {
+.dsbl-turn-count-twin {
   visibility: hidden;
   pointer-events: none;
 }
 
-.dscp-turn-crest {
+.dsbl-turn-crest {
   flex: 0 1 auto;
   min-width: 0;
 }
 
-.dscp-turn-crest .dscp-turn-label {
+.dsbl-turn-crest .dsbl-turn-label {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.dscp-turn-round .dscp-turn-rule {
+.dsbl-turn-round .dsbl-turn-rule {
   min-width: 0;
 }
 
-.dscp-round-end {
+.dsbl-round-end {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
 }
 
-.dscp-round-begin,
-.dscp-round-end {
+.dsbl-round-begin,
+.dsbl-round-end {
   font-size: var(--font-size-18, 1.125rem);
 }
 
-.dscp-round-closing {
+.dsbl-round-closing {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
@@ -633,15 +633,15 @@ body .theme-dark .dscp-turn-marker {
   margin-top: 0.2em;
 }
 
-.dscp-round-closing:hover {
+.dsbl-round-closing:hover {
   opacity: 0.9;
 }
 
-.dscp-round-closing .dscp-turn-crest {
+.dsbl-round-closing .dsbl-turn-crest {
   padding: 0.2em 0.75em;
 }
 
-.dscp-round-closing .dscp-turn-label {
+.dsbl-round-closing .dsbl-turn-label {
   font-weight: normal;
   letter-spacing: 0.04em;
   
@@ -649,27 +649,27 @@ body .theme-dark .dscp-turn-marker {
   padding-right: 0.46em;
 }
 
-.dscp-round-end {
+.dsbl-round-end {
   cursor: pointer;
 }
 
-.dscp-turn-face-wrap {
+.dsbl-turn-face-wrap {
   position: relative;
   display: inline-flex;
   flex: 0 0 auto;
   transition: margin-left 90ms ease-out;
 }
 
-.dscp-turn-face-captain {
+.dsbl-turn-face-captain {
   z-index: 2;
 }
 
-.dscp-turn-face-minion {
+.dsbl-turn-face-minion {
   width: 1.3em;
   height: 1.3em;
 }
 
-.dscp-turn-captain-mark {
+.dsbl-turn-captain-mark {
   position: absolute;
   top: -0.35em;
   left: -0.3em;

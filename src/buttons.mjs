@@ -1,5 +1,5 @@
 const SEL = '.chat-message .message-part-buttons';
-const ROW = 'dscp-btn-row';
+const ROW = 'dsbl-btn-row';
 const GAP = 4;
 
 const foreign = (container) => !!container.closest('[class*="draw-steel-target-damage"]');

@@ -12,17 +12,17 @@ function buildRolls(html, characteristic, message) {
   if (!sources.length) return null;
 
   const wrap = document.createElement('div');
-  wrap.className = 'dscp-pr-rolls';
+  wrap.className = 'dsbl-pr-rolls';
 
   for (const source of sources) {
     const row = document.createElement('div');
-    row.className = 'dscp-pr-row';
+    row.className = 'dsbl-pr-row';
 
     if (sources.length > 1) {
       const who = source.querySelector('.header')?.textContent?.trim();
       if (who) {
         const label = document.createElement('span');
-        label.className = 'dscp-pr-who';
+        label.className = 'dsbl-pr-who';
         label.textContent = who;
         row.append(label);
       }
@@ -31,10 +31,10 @@ function buildRolls(html, characteristic, message) {
     
     
     const box = document.createElement('div');
-    box.className = 'dscp-pr-box';
+    box.className = 'dsbl-pr-box';
 
     const left = document.createElement('span');
-    left.className = 'dscp-pr-formula';
+    left.className = 'dsbl-pr-formula';
 
     for (const die of source.querySelectorAll('ol.dice-rolls li.roll')) {
       const face = die.textContent.trim();
@@ -42,16 +42,16 @@ function buildRolls(html, characteristic, message) {
 
       if (/^([1-9]|10)$/.test(face)) {
         const img = document.createElement('img');
-        img.className = 'dscp-pr-die';
+        img.className = 'dsbl-pr-die';
         img.src = DIE(face);
         img.alt = face;
-        if (dropped) img.classList.add('dscp-pr-dropped');
+        if (dropped) img.classList.add('dsbl-pr-dropped');
         left.append(img);
       } else {
         const chip = document.createElement('span');
-        chip.className = 'dscp-pr-face';
+        chip.className = 'dsbl-pr-face';
         chip.textContent = face;
-        if (dropped) chip.classList.add('dscp-pr-dropped');
+        if (dropped) chip.classList.add('dsbl-pr-dropped');
         left.append(chip);
       }
     }
@@ -61,7 +61,7 @@ function buildRolls(html, characteristic, message) {
     const bonus = formula.replace(/^\s*\d*d\d+/i, '').trim();
     if (bonus) {
       const chip = document.createElement('span');
-      chip.className = 'dscp-pr-mod';
+      chip.className = 'dsbl-pr-mod';
       chip.textContent = bonus;
       if (characteristic) chip.dataset.tooltip = characteristic;
       left.append(chip);
@@ -70,7 +70,7 @@ function buildRolls(html, characteristic, message) {
     box.append(left);
 
     const total = document.createElement('span');
-    total.className = 'dscp-pr-total';
+    total.className = 'dsbl-pr-total';
     total.textContent = source.querySelector('.dice-total')?.textContent?.trim() ?? '';
     box.append(total);
 
@@ -97,15 +97,15 @@ export function collapsePowerRolls(message, html) {
     const characteristic = heading.querySelector('em')?.textContent?.trim() ?? '';
 
     const toggle = document.createElement('p');
-    toggle.className = 'dscp-pr-toggle';
+    toggle.className = 'dsbl-pr-toggle';
     const caret = document.createElement('i');
-    caret.className = 'fa-solid fa-caret-down dscp-caret';
+    caret.className = 'fa-solid fa-caret-down dsbl-caret';
     caret.setAttribute('inert', '');
-    toggle.append(caret, document.createTextNode(game.i18n.localize('DSCP.powerRoll.heading')));
+    toggle.append(caret, document.createTextNode(game.i18n.localize('DSBL.powerRoll.heading')));
     heading.replaceWith(toggle);
 
     const body = document.createElement('div');
-    body.className = 'dscp-pr-body';
+    body.className = 'dsbl-pr-body';
     const rolls = buildRolls(html, characteristic, message);
     if (rolls) body.append(rolls);
     body.append(tiers);
@@ -113,11 +113,11 @@ export function collapsePowerRolls(message, html) {
 
     
     const key = `pr-open:${message.id}:${index}`;
-    const apply = open => section.classList.toggle('dscp-pr-open', open);
+    const apply = open => section.classList.toggle('dsbl-pr-open', open);
     apply(isStored(key));
 
     toggle.addEventListener('click', () => {
-      const open = !section.classList.contains('dscp-pr-open');
+      const open = !section.classList.contains('dsbl-pr-open');
       apply(open);
       setStored(key, open);
     });
