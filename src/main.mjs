@@ -2,7 +2,7 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
-import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion } from './turn-markers.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs } from './turn-markers.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 
@@ -89,7 +89,9 @@ Hooks.once('init', () => {
 Hooks.once('ready', async () => {
   syncBodyClasses();
   pruneCollapsedState();
-  registerTurnRecording();
+  if (olderCombatToolsLogs()) {
+    if (game.user.isGM) ui.notifications.warn(game.i18n.format('DSBL.notice.olderCombatTools', { version: game.modules.get('draw-steel-combat-tools')?.version ?? '' }), { permanent: true });
+  } else registerTurnRecording();
   
   await migrateWorldSettings(MODULE_ID, 'turnBoundaries');
   pruneBoundaries();

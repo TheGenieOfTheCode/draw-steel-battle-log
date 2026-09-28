@@ -9,6 +9,13 @@ const MAX_BOUNDARIES = 300;
 const setting = (key) => game.settings.get(MODULE_ID, key);
 const isDirector = () => game.users.activeGM?.isSelf === true;
 
+const LEGACY = 'draw-steel-combat-tools';
+export const olderCombatToolsLogs = () => game.modules.get(LEGACY)?.active === true
+  && ['combatRoundLog', 'combatTurnLog'].some((key) => {
+    if (!game.settings.settings.has(`${LEGACY}.${key}`)) return false;
+    try { return game.settings.get(LEGACY, key) !== false; } catch { return true; }
+  });
+
 let _folds = null;
 
 const folds = () => {
@@ -340,7 +347,7 @@ export const draw = () => {
       li.classList.remove('dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden');
       delete li.dataset.dscpTurn;
     }
-    if (!setting('turnMarkers')) return;
+    if (!setting('turnMarkers') || olderCombatToolsLogs()) return;
 
     
     const rows = [...log.querySelectorAll(':scope > .chat-message[data-message-id]')];

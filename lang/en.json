@@ -28,6 +28,9 @@
     },
     "powerRoll": {
       "heading": "Power Roll Results"
+    },
+    "notice": {
+      "olderCombatTools": "Draw Steel: Combat Tools {version} still posts its own Combat Round Log and Combat Turn Log, so Battle Log's turn markers are off to avoid logging every turn twice. Update Combat Tools, or turn those logs off under its Combat Logs settings, and reload."
     }
   }
 }
