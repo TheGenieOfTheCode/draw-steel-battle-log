@@ -1,6 +1,7 @@
 
 
 export const OLD_ID = 'draw-steel-chat-polish';
+export const MIGRATED = 'migratedFromChatPolish';
 
 export const migrateLocalStorage = (newId) => {
   let moved = 0;
@@ -18,20 +19,24 @@ export const migrateLocalStorage = (newId) => {
 };
 
 export const migrateWorldSettings = async (newId, key) => {
-  if (!game.user.isGM) return false;
+  if (!game.users.activeGM?.isSelf) return false;
+  const done = game.settings.get(newId, MIGRATED) ?? [];
+  if (done.includes(key)) return false;
+  let copied = false;
   try {
     const current = game.settings.get(newId, key);
-    if (Array.isArray(current) ? current.length : current) return false;
-
     const old = game.settings.storage.get('world')?.getSetting(`${OLD_ID}.${key}`);
     const value = old?.value;
-    if (!value || (Array.isArray(value) && !value.length)) return false;
-
-    await game.settings.set(newId, key, value);
-    console.log(`${newId} | carried ${Array.isArray(value) ? value.length : 1} record(s) of ${key} over from the old module name`);
-    return true;
+    const has = (v) => (Array.isArray(v) ? v.length : v);
+    if (!has(current) && has(value)) {
+      await game.settings.set(newId, key, value);
+      console.log(`${newId} | carried ${Array.isArray(value) ? value.length : 1} record(s) of ${key} over from the old module name`);
+      copied = true;
+    }
   } catch (err) {
     console.warn(`${newId} | could not carry ${key} over from the old module name:`, err);
     return false;
   }
+  await game.settings.set(newId, MIGRATED, [...done, key]);
+  return copied;
 };

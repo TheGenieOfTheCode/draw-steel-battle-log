@@ -4,7 +4,7 @@ import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
 import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion } from './turn-markers.mjs';
 import { MODULE_ID } from './collapse.mjs';
-import { migrateLocalStorage, migrateWorldSettings } from './migrate.mjs';
+import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 
 export { MODULE_ID };
 
@@ -72,6 +72,8 @@ Hooks.once('init', () => {
     default: [],
     onChange: scheduleDraw,
   });
+
+  game.settings.register(MODULE_ID, MIGRATED, { scope: 'world', config: false, type: Array, default: [] });
 
   game.settings.register(MODULE_ID, 'collapsibleAbilities', {
     name: 'DSBL.Settings.collapsibleAbilities.name',
