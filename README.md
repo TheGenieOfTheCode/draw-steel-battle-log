@@ -30,8 +30,8 @@ The system's dark palette does not cover the chat cards. This module fixes that,
 <div align="center">
   <table>
     <tr>
-      <td><img src="docs/images/ability-dark.png" alt="An ability card in the dark theme" width="300"></td>
-      <td><img src="docs/images/ability-light.png" alt="The same ability card in the light theme" width="300"></td>
+      <td><img src="images/ability-dark.png" alt="An ability card in the dark theme" width="300"></td>
+      <td><img src="images/ability-light.png" alt="The same ability card in the light theme" width="300"></td>
     </tr>
   </table>
 </div>
@@ -41,7 +41,7 @@ The system's dark palette does not cover the chat cards. This module fixes that,
 Click an ability's name and the card folds down to just that name.
 
 <p align="center">
-  <img src="docs/images/ability-collapsed.png" alt="The same ability card folded down to a single line showing only its name" width="300">
+  <img src="images/ability-collapsed.png" alt="The same ability card folded down to a single line showing only its name" width="300">
 </p>
 
 
@@ -52,7 +52,7 @@ Every turn gets a line across the chat log with the name and token of whoever is
 A turn folds away once it is over, leaving one line and a count of what is hidden. Rounds and whole fights fold the same way, so a long session collapses to a handful of lines. Nothing folds while it is still active.
 
 <p align="center">
-  <img src="docs/images/turn-markers.png" alt="Two rounds of a fight in the chat log. Round 1 is folded to a single line with a count of four, Round 2 is open, and inside it one turn is open showing an ability card." width="330">
+  <img src="images/turn-markers.png" alt="Two rounds of a fight in the chat log. Round 1 is folded to a single line with a count of four, Round 2 is open, and inside it one turn is open showing an ability card." width="330">
 </p>
 
 
