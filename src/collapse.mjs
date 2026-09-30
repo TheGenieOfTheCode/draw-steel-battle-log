@@ -37,7 +37,7 @@ function persist() {
   }
 }
 
-const isAutomated = message => AUTOMATED_FLAGS.some(id => message?.getFlag?.(id, 'automated'));
+const isAutomated = message => AUTOMATED_FLAGS.some(id => message?.flags?.[id]?.automated);
 
 const keyFor = (messageId, index) => `${messageId}:${index}`;
 
