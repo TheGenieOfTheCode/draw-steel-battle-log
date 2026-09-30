@@ -149,7 +149,7 @@ export const registerTurnRecording = () => {
     }
 
     const incoming = combatantOf(combat, current.combatantId);
-    if (!incoming) return;
+    if (!incoming || incoming.isDefeated) return;
 
     const group = groupOf(incoming);
     const open = readBoundaries().at(-1);
