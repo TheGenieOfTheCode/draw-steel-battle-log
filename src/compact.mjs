@@ -33,6 +33,8 @@ function rowifyTrigger(dl) {
   if (!term || !text) return;
   const row = document.createElement('div');
   row.className = 'dsbl-trigger-row';
+  const label = term.textContent.trim();
+  if (label && !label.endsWith(':')) term.textContent = `${label}:`;
   term.before(row);
   row.append(term, document.createTextNode(' '), text);
 }
