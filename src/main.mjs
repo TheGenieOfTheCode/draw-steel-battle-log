@@ -98,6 +98,16 @@ Hooks.once('init', () => {
     requiresReload: true,
   });
 
+  game.settings.register(MODULE_ID, 'mentionNames', {
+    name: 'DSBL.Settings.mentionNames.name',
+    hint: 'DSBL.Settings.mentionNames.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true,
+  });
+
   game.settings.register(MODULE_ID, 'blendSpeech', {
     name: 'DSBL.Settings.blendSpeech.name',
     hint: 'DSBL.Settings.blendSpeech.hint',

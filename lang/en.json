@@ -33,6 +33,10 @@
         "name": "Compact Chat Messages",
         "hint": "Typed messages fit on one line: the speaker's portrait, their name, and what they said. Emotes appear in italics."
       },
+      "mentionNames": {
+        "name": "Highlight Names",
+        "hint": "When a typed message names a character or a player, their name is bolded with their portrait in front. Click the portrait to find their token."
+      },
       "blendSpeech": {
         "name": "Join Back-to-Back Messages",
         "hint": "When the same speaker sends several messages in a row, only the first shows their name and portrait."

@@ -238,7 +238,79 @@ export function renderSpeech(message, html) {
   }
   const first = content.querySelector(':scope > p') ?? content;
   first.prepend(lead, document.createTextNode(' '));
+  if (setting('mentionNames')) markMentions(content);
   scheduleBlend();
+}
+
+function mentionTargets() {
+  const byName = new Map();
+  const add = (name, face) => {
+    const key = String(name ?? '').trim().toLowerCase();
+    if (key.length < 3) return;
+    const known = byName.get(key);
+    if (!known) byName.set(key, face);
+    else if (known.tokenUuid && known.tokenUuid !== face.tokenUuid) byName.set(key, { ...known, tokenUuid: null });
+  };
+  for (const user of game.users) add(user.name, faceFor({ user }));
+  for (const token of canvas.tokens?.placeables ?? []) {
+    if (token.actor && !token.document.hidden) add(token.name, faceFor({ token: token.document }));
+  }
+  for (const actor of game.actors) if (actor.type === 'hero') add(actor.name, faceFor({ actor }));
+
+  
+  const firstNames = new Map();
+  for (const token of canvas.tokens?.placeables ?? []) {
+    if (token.actor?.type !== 'hero' || token.document.hidden) continue;
+    const full = token.name.trim();
+    const first = full.split(/\s+/)[0].toLowerCase();
+    if (first === full.toLowerCase()) continue;
+    const seen = firstNames.get(first);
+    firstNames.set(first, seen && seen.full !== full ? { ambiguous: true } : { full, token });
+  }
+  for (const [first, hit] of firstNames) {
+    if (!hit.ambiguous && !byName.has(first)) add(first, faceFor({ token: hit.token.document }));
+  }
+  return byName;
+}
+
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+Hooks.on('canvasReady', () => {
+  if (!setting('compactSpeech') || !setting('mentionNames')) return;
+  for (const content of document.querySelectorAll('.chat-message.dsbl-speech .message-content')) markMentions(content);
+});
+
+function markMentions(content) {
+  const targets = mentionTargets();
+  if (!targets.size) return;
+  const names = [...targets.keys()].sort((a, b) => b.length - a.length).map(escapeRegExp);
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(${names.join('|')})(?![\\p{L}\\p{N}])`, 'giu');
+
+  const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+    acceptNode: node => node.parentElement.closest('.dsbl-speech-lead, .dsbl-mention, a, strong, b, code')
+      ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+
+  for (const node of nodes) {
+    const text = node.nodeValue;
+    pattern.lastIndex = 0;
+    if (!pattern.test(text)) continue;
+    pattern.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let at = 0;
+    for (const match of text.matchAll(pattern)) {
+      frag.append(text.slice(at, match.index));
+      const mention = document.createElement('span');
+      mention.className = 'dsbl-mention';
+      mention.innerHTML = `${faceHTML(targets.get(match[0].toLowerCase()))}<strong>${esc(match[0])}</strong>`;
+      frag.append(mention);
+      at = match.index + match[0].length;
+    }
+    frag.append(text.slice(at));
+    node.replaceWith(frag);
+  }
 }
 
 function blend() {
