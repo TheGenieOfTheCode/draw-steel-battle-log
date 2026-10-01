@@ -58,11 +58,11 @@ Typed messages fit on one line with the speaker's portrait, outlined in their pl
   </table>
 </div>
 
-## The battle log
+## Turn Markers
 
-Every turn gets a line across the chat log with the name and token of whoever is acting. Click it to ping that token. The name is drawn in the colour of the player running it.
+Every turn gets a line across the chat log with the name and token of whoever is acting. Click it to ping that token. The name is drawn in the colour of the player running it. 
 
-A turn folds away once it is over, leaving one line and a count of what is hidden. Rounds and whole fights fold the same way, so a long session collapses to a handful of lines. Nothing folds while it is still active.
+A turn marker folds away the messages during it once it ends, leaving one line and a count of how many messages are hidden. Rounds and whole fights fold the same way, so a long session collapses to a handful of lines. None of the markers can be collapsed while what they contain is still active (turn, round, combat).
 
 <p align="center">
   <img src="images/turn-markers.png" alt="Two rounds of a fight in the chat log. Round 1 is folded to a single line with a count of four, Round 2 is open, and inside it one turn is open showing an ability card." width="330">
