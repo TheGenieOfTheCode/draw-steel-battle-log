@@ -228,6 +228,9 @@ body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dd.t
 body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dt.trigger { grid-area: 3 / 1 / 4 / 2; font-weight: bold; }
 body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata dd.trigger { grid-area: 3 / 2 / 4 / 5; }
 
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata .dsbl-trigger-row { grid-area: 3 / 1 / 4 / 5; }
+body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata .dsbl-trigger-row > :is(dt, dd) { display: inline; }
+
 body.dsbl-flex-buttons .chat-message .message-part-buttons {
   margin-top: 6px;
 }

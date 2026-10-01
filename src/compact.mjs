@@ -26,7 +26,19 @@ function pillify(dl) {
   }));
 }
 
+function rowifyTrigger(dl) {
+  if (dl.querySelector(':scope > .dsbl-trigger-row')) return;
+  const term = dl.querySelector(':scope > dt.trigger');
+  const text = dl.querySelector(':scope > dd.trigger');
+  if (!term || !text) return;
+  const row = document.createElement('div');
+  row.className = 'dsbl-trigger-row';
+  term.before(row);
+  row.append(term, document.createTextNode(' '), text);
+}
+
 function rowify(dl) {
+  rowifyTrigger(dl);
   if (dl.querySelector(':scope > .dsbl-kw-row')) return;
   const keywords = dl.querySelector(':scope > dd.keywords');
   const type = dl.querySelector(':scope > dd.type');
@@ -114,7 +126,7 @@ function fit(dl) {
   embed.style.removeProperty('--dsbl-meta-size');
 
   const keywords = dl.querySelector('dd.keywords');
-  const cells = [...dl.children].filter(cell => !cell.classList.contains('keywords') && !cell.classList.contains('dsbl-kw-row'));
+  const cells = [...dl.children].filter(cell => !cell.classList.contains('keywords') && !cell.classList.contains('dsbl-kw-row') && !cell.classList.contains('dsbl-trigger-row'));
   const type = dl.querySelector('.dsbl-kw-row > dd.type');
   if (type) cells.push(type);
   const wrapped = () => cells.some(wraps);
