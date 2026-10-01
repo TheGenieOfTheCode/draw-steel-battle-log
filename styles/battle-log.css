@@ -1,6 +1,5 @@
 
 
-body.dsbl-dark-chat.theme-dark,
 body.dsbl-dark-chat .theme-dark {
 
   .chat-message {
@@ -202,7 +201,6 @@ body.dsbl-compact .chat-message document-embed.draw-steel.ability .metadata .dsb
   white-space: nowrap;
 }
 
-body.dsbl-compact.dsbl-dark-chat.theme-dark .chat-message document-embed.draw-steel.ability .metadata .dsbl-kw,
 body.dsbl-compact.dsbl-dark-chat .theme-dark .chat-message document-embed.draw-steel.ability .metadata .dsbl-kw {
   --dsbl-kw-fill: #101220;
   border-color: rgba(184, 146, 46, 0.35);
@@ -361,7 +359,7 @@ body.dsbl-compact .chat-message document-embed.draw-steel.ability .dsbl-effect-l
   font-weight: bold;
 }
 
-body.dsbl-power-roll:not(.theme-dark) .chat-message .dsbl-pr-die {
+body.dsbl-power-roll .chat-message .dsbl-pr-die {
   filter: invert(1) hue-rotate(180deg);
 }
 
@@ -392,7 +390,6 @@ body.dsbl-power-roll .theme-dark .chat-message .dsbl-pr-die {
   transition: color 90ms ease-out, background-color 90ms ease-out;
 }
 
-body.theme-dark .dsbl-turn-marker,
 body .theme-dark .dsbl-turn-marker {
   --dsbl-turn-ink: #b0a7bd;
   --dsbl-turn-ink-lit: #f2ecf8;
