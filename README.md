@@ -23,9 +23,9 @@ Full documentation is available on the **[Wiki](https://github.com/TheGenieOfThe
 
 ---
 
-## Cards that match your theme
+## Dark Theme 
 
-The system's dark palette does not cover the chat cards. This module fixes that, so the chat is now dark in dark mode.
+The system's dark palette does not cover the chat, now interface includes the chat as well.
 
 <div align="center">
   <table>
@@ -36,9 +36,9 @@ The system's dark palette does not cover the chat cards. This module fixes that,
   </table>
 </div>
 
-## Cards you can fold away
+## Compact Abilities
 
-Click an ability's name and the card folds down to just that name.
+Click an ability's name and the card folds down to just that name, good for when you're done with an ability. The message format is also restructured so it fits the basic details in less space like in the books while preserving the default Draw Steel Foundry aesthetic.
 
 <p align="center">
   <img src="images/ability-collapsed.png" alt="The same ability card folded down to a single line showing only its name" width="300">
