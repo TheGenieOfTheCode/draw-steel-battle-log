@@ -5,6 +5,7 @@ import { flexMessageButtons } from './buttons.mjs';
 import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs } from './turn-markers.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
+import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
 
 export { MODULE_ID };
 
@@ -75,6 +76,38 @@ Hooks.once('init', () => {
 
   game.settings.register(MODULE_ID, MIGRATED, { scope: 'world', config: false, type: Array, default: [] });
 
+  game.settings.register(MODULE_ID, 'speakerPicker', {
+    name: 'DSBL.Settings.speakerPicker.name',
+    hint: 'DSBL.Settings.speakerPicker.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true,
+  });
+
+  game.settings.register(MODULE_ID, 'speakAs', { scope: 'client', config: false, type: Object, default: { kind: 'selected' }, onChange: scheduleSpeakerRefresh });
+
+  game.settings.register(MODULE_ID, 'compactSpeech', {
+    name: 'DSBL.Settings.compactSpeech.name',
+    hint: 'DSBL.Settings.compactSpeech.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true,
+  });
+
+  game.settings.register(MODULE_ID, 'blendSpeech', {
+    name: 'DSBL.Settings.blendSpeech.name',
+    hint: 'DSBL.Settings.blendSpeech.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: scheduleBlend,
+  });
+
   game.settings.register(MODULE_ID, 'collapsibleAbilities', {
     name: 'DSBL.Settings.collapsibleAbilities.name',
     hint: 'DSBL.Settings.collapsibleAbilities.hint',
@@ -100,6 +133,7 @@ Hooks.once('ready', async () => {
 });
 
 Hooks.on('renderChatLog', scheduleDraw);
+Hooks.on('renderChatLog', () => { addSpeakerRow(); watchChatLogs(); scheduleBlend(); });
 
 Hooks.on('canvasReady', scheduleDraw);
 
@@ -113,6 +147,7 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
   }
   if (setting('powerRollResults')) collapsePowerRolls(message, html);
   if (setting('flexButtons')) flexMessageButtons(html);
+  if (setting('compactSpeech')) renderSpeech(message, html);
   if (!setting('collapsibleAbilities')) return;
   makeAbilitiesCollapsible(message, html);
 });

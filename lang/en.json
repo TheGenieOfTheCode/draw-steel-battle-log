@@ -24,6 +24,18 @@
       "turnMarkers": {
         "name": "Mark Where Turns Start and End",
         "hint": "Rule off each turn, each round and each encounter in chat, with the name of whoever is acting stroked in their own colour and their token beside it, which you can click to ping. Anything finished folds away to a single line you can click to open again, and whatever is still going always stays open."
+      },
+      "speakerPicker": {
+        "name": "Speaking As Row",
+        "hint": "A row above the chat buttons shows who your messages come from: your selected token, or you when nothing is selected. Click it to speak as yourself or another character."
+      },
+      "compactSpeech": {
+        "name": "Compact Chat Messages",
+        "hint": "Typed messages fit on one line: the speaker's portrait, their name, and what they said. Emotes appear in italics."
+      },
+      "blendSpeech": {
+        "name": "Join Back-to-Back Messages",
+        "hint": "When the same speaker sends several messages in a row, only the first shows their name and portrait."
       }
     },
     "powerRoll": {
@@ -31,6 +43,15 @@
     },
     "notice": {
       "olderCombatTools": "Draw Steel: Combat Tools {version} still posts its own Combat Round Log and Combat Turn Log, so Battle Log's turn markers are off to avoid logging every turn twice. Update Combat Tools, or turn those logs off under its Combat Logs settings, and reload."
+    },
+    "Speech": {
+      "says": "says:",
+      "whispers": "whispers:",
+      "speakingAs": "Speaking as",
+      "selected": "Selected",
+      "selectedHint": "follows your selection",
+      "yourself": "Yourself",
+      "changeTooltip": "Choose who your messages come from"
     }
   }
 }
