@@ -35,6 +35,16 @@ Hooks.once('init', () => {
     onChange: syncBodyClasses,
   });
 
+  game.settings.register(MODULE_ID, 'collapsibleAbilities', {
+    name: 'DSBL.Settings.collapsibleAbilities.name',
+    hint: 'DSBL.Settings.collapsibleAbilities.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: syncBodyClasses,
+  });
+
   game.settings.register(MODULE_ID, 'powerRollResults', {
     name: 'DSBL.Settings.powerRollResults.name',
     hint: 'DSBL.Settings.powerRollResults.hint',
@@ -55,27 +65,6 @@ Hooks.once('init', () => {
     onChange: syncBodyClasses,
   });
 
-  game.settings.register(MODULE_ID, 'turnMarkers', {
-    name: 'DSBL.Settings.turnMarkers.name',
-    hint: 'DSBL.Settings.turnMarkers.hint',
-    scope: 'client',
-    config: true,
-    type: Boolean,
-    default: true,
-    onChange: () => { syncBodyClasses(); draw(); },
-  });
-
-  
-  game.settings.register(MODULE_ID, 'turnBoundaries', {
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: scheduleDraw,
-  });
-
-  game.settings.register(MODULE_ID, MIGRATED, { scope: 'world', config: false, type: Array, default: [] });
-
   game.settings.register(MODULE_ID, 'speakerPicker', {
     name: 'DSBL.Settings.speakerPicker.name',
     hint: 'DSBL.Settings.speakerPicker.hint',
@@ -86,21 +75,9 @@ Hooks.once('init', () => {
     requiresReload: true,
   });
 
-  game.settings.register(MODULE_ID, 'speakAs', { scope: 'client', config: false, type: Object, default: { kind: 'selected' }, onChange: scheduleSpeakerRefresh });
-
   game.settings.register(MODULE_ID, 'compactSpeech', {
     name: 'DSBL.Settings.compactSpeech.name',
     hint: 'DSBL.Settings.compactSpeech.hint',
-    scope: 'client',
-    config: true,
-    type: Boolean,
-    default: true,
-    requiresReload: true,
-  });
-
-  game.settings.register(MODULE_ID, 'mentionNames', {
-    name: 'DSBL.Settings.mentionNames.name',
-    hint: 'DSBL.Settings.mentionNames.hint',
     scope: 'client',
     config: true,
     type: Boolean,
@@ -118,15 +95,37 @@ Hooks.once('init', () => {
     onChange: scheduleBlend,
   });
 
-  game.settings.register(MODULE_ID, 'collapsibleAbilities', {
-    name: 'DSBL.Settings.collapsibleAbilities.name',
-    hint: 'DSBL.Settings.collapsibleAbilities.hint',
+  game.settings.register(MODULE_ID, 'mentionNames', {
+    name: 'DSBL.Settings.mentionNames.name',
+    hint: 'DSBL.Settings.mentionNames.hint',
     scope: 'client',
     config: true,
     type: Boolean,
     default: true,
-    onChange: syncBodyClasses,
+    requiresReload: true,
   });
+
+  game.settings.register(MODULE_ID, 'turnMarkers', {
+    name: 'DSBL.Settings.turnMarkers.name',
+    hint: 'DSBL.Settings.turnMarkers.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => { syncBodyClasses(); draw(); },
+  });
+
+  game.settings.register(MODULE_ID, 'turnBoundaries', {
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: scheduleDraw,
+  });
+
+  game.settings.register(MODULE_ID, MIGRATED, { scope: 'world', config: false, type: Array, default: [] });
+
+  game.settings.register(MODULE_ID, 'speakAs', { scope: 'client', config: false, type: Object, default: { kind: 'selected' }, onChange: scheduleSpeakerRefresh });
 });
 
 Hooks.once('ready', async () => {
@@ -140,6 +139,26 @@ Hooks.once('ready', async () => {
   pruneBoundaries();
   pruneEmptySections();
   scheduleDraw();
+});
+
+const SETTING_HEADERS = {
+  darkChat: 'chatCards',
+  speakerPicker: 'typedChat',
+  turnMarkers: 'turnMarkers',
+};
+
+Hooks.on('renderSettingsConfig', (_app, html) => {
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!root) return;
+  for (const [key, header] of Object.entries(SETTING_HEADERS)) {
+    const el = root.querySelector(`[name="${MODULE_ID}.${key}"]`)?.closest('.form-group')
+      ?? root.querySelector(`[data-setting-id="${MODULE_ID}.${key}"]`);
+    if (!el || el.previousElementSibling?.classList?.contains('dsbl-settings-header')) continue;
+    const h = document.createElement('h3');
+    h.className = 'dsbl-settings-header';
+    h.textContent = game.i18n.localize(`DSBL.Settings.Headers.${header}`);
+    el.insertAdjacentElement('beforebegin', h);
+  }
 });
 
 Hooks.on('renderChatLog', scheduleDraw);

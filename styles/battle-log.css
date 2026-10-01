@@ -844,3 +844,13 @@ body .theme-dark .dsbl-turn-marker {
   height: 1.25em;
   margin-right: 0.2em;
 }
+
+.dsbl-settings-header {
+  margin: 14px 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid light-dark(rgba(122, 90, 20, 0.45), rgba(217, 166, 63, 0.45));
+  color: light-dark(#7a5a14, #d9a63f);
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}

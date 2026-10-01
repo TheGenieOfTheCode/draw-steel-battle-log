@@ -1,6 +1,11 @@
 {
   "DSBL": {
     "Settings": {
+      "Headers": {
+        "chatCards": "Compact Abilities",
+        "typedChat": "Clean Comms",
+        "turnMarkers": "Turn Markers"
+      },
       "darkChat": {
         "name": "Dark Theme Chat Cards",
         "hint": "Recolours the default Draw Steel chat cards, buttons and embeds to match the Foundry dark theme."
