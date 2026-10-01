@@ -47,7 +47,7 @@ Click an ability's name and the card folds down to just that name, good for when
 
 ## Clean Comms
 
-Typed messages fit on one line with the speaker's portrait, outlined in their player's colour. Messages sent back to back join into one box, and names people mention get their portrait too. A row above the chat buttons shows who you're speaking as, and you can click it to switch.
+OOC or IC messages can fit on one line (as long as you're not playing a high elf with a canon name) and should overall take less space. They also carry a little portrait of the speaker, which is clickable if the speaker is a token. Finally, messages blend together if they're from the same speaker.
 
 <div align="center">
   <table>
