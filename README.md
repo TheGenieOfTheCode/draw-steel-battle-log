@@ -45,6 +45,19 @@ Click an ability's name and the card folds down to just that name.
 </p>
 
 
+## Clean Comms
+
+Typed messages fit on one line with the speaker's portrait, outlined in their player's colour. Messages sent back to back join into one box, and names people mention get their portrait too. A row above the chat buttons shows who you're speaking as, and you can click it to switch.
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="images/clean-comms-dark.png" alt="A conversation in the chat log in the dark theme. Each line shows the speaker's portrait and name, two emotes are in italics, a whisper from the Director is at the bottom, and the row above the chat buttons reads Speaking as Agatha Pinwhistle." width="300"></td>
+      <td><img src="images/clean-comms-light.png" alt="The same conversation in the light theme" width="300"></td>
+    </tr>
+  </table>
+</div>
+
 ## The battle log
 
 Every turn gets a line across the chat log with the name and token of whoever is acting. Click it to ping that token. The name is drawn in the colour of the player running it.
