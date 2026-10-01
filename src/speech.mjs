@@ -88,10 +88,11 @@ function resolveChoice(pick = choice()) {
 let _pending = null;
 const ROLL_COMMAND = /^\/(r|roll|gmr|gmroll|br|broll|blindroll|sr|selfroll|pr|publicroll|macro|m)\b/i;
 
-Hooks.on('chatMessage', (_log, text) => {
+Hooks.on('chatMessage', (_log, text, chatData) => {
   _pending = null;
   if (!setting('speakerPicker') || ROLL_COMMAND.test(String(text).trim())) return;
   _pending = { ...resolveChoice(), at: Date.now() };
+  if (chatData) chatData.speaker = _pending.speaker;
 });
 
 Hooks.on('preCreateChatMessage', (doc, _data, _options, userId) => {
@@ -203,6 +204,17 @@ function speakerOf(message) {
   return faceFor({ token, actor, user: message.author });
 }
 
+function playerOf(message) {
+  const s = message.speaker ?? {};
+  const token = s.token ? game.scenes.get(s.scene)?.tokens?.get(s.token) ?? null : null;
+  const actor = token?.actor ?? (s.actor ? game.actors.get(s.actor) ?? null : null);
+  if (!actor) return message.author;
+  const id = actor.isToken ? actor.baseActor?.id : actor.id;
+  return game.users.find(u => u.character?.id === id)
+    ?? game.users.find(u => !u.isGM && actor.testUserPermission(u, 'OWNER'))
+    ?? message.author;
+}
+
 function isSpeech(message, root) {
   const styles = STYLES();
   if (![styles.OOC, styles.IC, styles.EMOTE].includes(message.style)) return false;
@@ -225,6 +237,10 @@ export function renderSpeech(message, html) {
   root.dataset.dsblSpeaker = [message.author?.id, message.speaker?.token, message.speaker?.actor, name, kind].join('|');
   root.dataset.dsblTime = String(message.timestamp ?? 0);
   root.classList.add('dsbl-speech', `dsbl-speech-${kind}`);
+  if (message.style !== styles.OOC) {
+    const color = playerOf(message)?.color;
+    if (color) root.style.borderColor = color.css ?? String(color);
+  }
 
   const lead = document.createElement('span');
   lead.className = 'dsbl-speech-lead';
@@ -232,7 +248,8 @@ export function renderSpeech(message, html) {
     lead.innerHTML = faceHTML(face);
     const first = content.querySelector(':scope > p') ?? content;
     const text = first.innerHTML;
-    if (name && text.startsWith(esc(name))) first.innerHTML = `<strong>${esc(name)}</strong>${text.slice(esc(name).length)}`;
+    const gap = text.match(/^\s*/)[0];
+    if (name && text.startsWith(esc(name), gap.length)) first.innerHTML = `${gap}<strong>${esc(name)}</strong>${text.slice(gap.length + esc(name).length)}`;
   } else {
     lead.innerHTML = `${faceHTML(face)}<strong>${esc(name)}</strong> ${esc(L(kind === 'whisper' ? 'whispers' : 'says'))}`;
   }

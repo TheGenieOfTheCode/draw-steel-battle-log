@@ -837,8 +837,6 @@ body .theme-dark .dsbl-turn-marker {
 
 .chat-message.dsbl-speech-cont .dsbl-speech-lead { display: none; }
 
-.chat-message.dsbl-speech-cont .message-content { padding-left: 1.8em; }
-
 .dsbl-mention { white-space: nowrap; }
 
 .dsbl-mention .dsbl-speech-face {
