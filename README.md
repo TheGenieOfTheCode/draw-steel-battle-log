@@ -69,9 +69,28 @@ A turn marker folds away the messages during it once it ends, leaving one line a
 </p>
 
 
+## Resource Log
+
+During combat, every change to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens gets a one line entry in chat, right where it happened, so you can tell who took what, who spent what, and where all that Malice went. Damage shows its type, and what immunity or weakness did to it. Hover a Malice or Heroic Resource gain to see how the system worked it out.
+
+Quick changes to the same thing merge into one line, so you don't get spammed with a message for every change. Players only see how much a monster's Stamina changed, not how much it has left, unless the Director allows it. The heart beside Export Chat Log hides the log for you, and the Director can hide or delete any line.
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="images/resource-log-heroic-dark.png" alt="A round in the chat log in the dark theme. Malice rises from 0 to 6 at the start of combat, Khorisa gains 3 Piety at the start of her turn, then spends 3 on Judgment's Hammer, and the Goblin Underboss loses 11 Stamina to holy damage." width="300"></td>
+      <td><img src="images/resource-log-heroic-light.png" alt="The same round in the light theme" width="300"></td>
+    </tr>
+    <tr>
+      <td><img src="images/resource-log-malice-dark.png" alt="A goblin squad's turn in the dark theme. The Director spends 5 Malice on Tiny Stabs, and three heroes lose 2, 1 and 1 Stamina." width="300"></td>
+      <td><img src="images/resource-log-malice-light.png" alt="The same turn in the light theme" width="300"></td>
+    </tr>
+  </table>
+</div>
+
 ## Settings
 
-Every feature can be turned off on its own, and each person chooses what they see. The one exception is the record of where the turns fell, which the Director keeps on everybody's behalf.
+Every feature can be turned off on its own, and each person chooses what they see. The exceptions are the record of where the turns fell and the Resource Log itself, which the Director keeps on everybody's behalf.
 
 ---
 
