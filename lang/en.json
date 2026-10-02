@@ -62,6 +62,10 @@
       "resourceLogTokenCards": {
         "name": "Replace Hero Token Cards",
         "hint": "When Hero Tokens are given or spent, only the Resource Log shows it, with who spent them and why, instead of the system's chat card."
+      },
+      "resourceLogTurnGainCards": {
+        "name": "Hide Start of Turn Rolls",
+        "hint": "Hides the roll for a hero's Heroic Resource at the start of their turn, since the Resource Log shows the gain. Hover the number to see the roll. The messages are kept, so turning this off shows them again."
       }
     },
     "powerRoll": {
@@ -105,7 +109,15 @@
       "weakness": "{type} weakness {n}",
       "immune": "Immune",
       "recoveries": "Recoveries {from} → {to}",
-      "recoveryHeal": "Regained {n} Stamina"
+      "recoveryHeal": "Regained {n} Stamina",
+      "why": {
+        "avgVictories": "Average Victories: {sum} ÷ {count}, rounded down = {value}",
+        "noHeroes": "No heroes in the fight, so no Victories to average",
+        "round": "Round {round}: +{round}",
+        "heroes": "Heroes still standing: +{count}",
+        "combatEnd": "The fight ended",
+        "turnGain": "Start of turn: {formula} = {total}"
+      }
     }
   }
 }

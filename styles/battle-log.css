@@ -889,6 +889,8 @@ body .theme-dark .dsbl-res-row {
 
 body.dsbl-res-off .dsbl-res-row { display: none !important; }
 
+body.dsbl-hide-turn-gain .chat-message.dsbl-turn-gain { display: none !important; }
+
 .dsbl-res-face {
   flex: 0 0 auto;
   width: 1.4em;

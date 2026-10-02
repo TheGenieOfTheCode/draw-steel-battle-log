@@ -3,13 +3,12 @@ import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
 import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs, currentTurn, watchClearAll } from './turn-markers.mjs';
-import { registerResourceRecording, addResourceToggle, syncResourceToggle } from './resource-log.mjs';
+import { registerResourceRecording, addResourceToggle, syncResourceToggle, markTurnGain } from './resource-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
 
 export { MODULE_ID };
-
 
 migrateLocalStorage(MODULE_ID);
 
@@ -123,7 +122,7 @@ Hooks.once('init', () => {
     config: true,
     type: Boolean,
     default: true,
-    onChange: () => { addResourceToggle(); scheduleDraw(); },
+    onChange: () => { addResourceToggle(); syncBodyClasses(); scheduleDraw(); },
   });
 
   game.settings.register(MODULE_ID, 'resourceLogFullInfo', {
@@ -152,6 +151,16 @@ Hooks.once('init', () => {
     config: true,
     type: Boolean,
     default: true,
+  });
+
+  game.settings.register(MODULE_ID, 'resourceLogTurnGainCards', {
+    name: 'DSBL.Settings.resourceLogTurnGainCards.name',
+    hint: 'DSBL.Settings.resourceLogTurnGainCards.hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => { syncBodyClasses(); scheduleDraw(); },
   });
 
   game.settings.register(MODULE_ID, 'resourceLogEntries', { scope: 'world', config: false, type: Array, default: [], onChange: scheduleDraw });
@@ -226,6 +235,7 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
   if (setting('powerRollResults')) collapsePowerRolls(message, html);
   if (setting('flexButtons')) flexMessageButtons(html);
   if (setting('compactSpeech')) renderSpeech(message, html);
+  markTurnGain(message, html);
   if (!setting('collapsibleAbilities')) return;
   makeAbilitiesCollapsible(message, html);
 });
@@ -241,4 +251,5 @@ function syncBodyClasses() {
   document.body.classList.toggle('dsbl-power-roll', setting('powerRollResults'));
   document.body.classList.toggle('dsbl-flex-buttons', setting('flexButtons'));
   document.body.classList.toggle('dsbl-turn-markers', setting('turnMarkers'));
+  document.body.classList.toggle('dsbl-hide-turn-gain', setting('resourceLog') && setting('resourceLogTurnGainCards'));
 }

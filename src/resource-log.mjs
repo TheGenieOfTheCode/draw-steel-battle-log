@@ -19,6 +19,19 @@ const _groups = new Map();
 const _world = new Map();
 const _incoming = new Map();
 const RECOVERY_HEAL_MS = 4000;
+
+const COMBAT_START_MS = 5000;
+let _combatStartAt = 0;
+const _why = new Map();
+const takeWhy = (key, res) => {
+  const why = _why.get(`${key}|${res}`) ?? null;
+  _why.delete(`${key}|${res}`);
+  return why;
+};
+const explaining = async (id, parts, run) => {
+  _why.set(id, parts);
+  try { return await run(); } finally { _why.delete(id); }
+};
 let _currentTurn = () => null;
 
 const numberAt = (path) => (actor) => {
@@ -132,6 +145,7 @@ const lossOf = (e) => (e.from - e.to) + (e.temp ? e.temp.from - e.temp.to : 0);
 
 const note = (change) => {
   const { key, res, from, to } = change;
+  const why = takeWhy(key, res)?.map((part) => (part.k === 'turnGain' ? { ...part, total: to - from } : part)) ?? null;
   if (window._stageManagerResetting) return;
   if (from === null || to === null) return;
   if (from === to && !change.immune) return;
@@ -159,11 +173,12 @@ const note = (change) => {
   for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
     const e = list[i];
     if (e.key !== key || e.res !== res || e.user !== change.userId) continue;
-    if (now - e.at > MERGE_MS || e.turn !== turn) break;
+    if (now - e.at > MERGE_MS || (e.turn !== turn && !change.acrossTurns)) break;
     if (res === 'heroTokens' && (_tokenCall?.kind === 'spendToken' || e.reasons?.length)) break;
     const before = lossOf(e);
     e.to = to;
     e.at = now;
+    e.turn = turn;
     if (e.after !== after) {
       list.splice(i, 1);
       e.after = after;
@@ -178,6 +193,7 @@ const note = (change) => {
     if (change.imm) e.imm = change.imm;
     if (change.weak) e.weak = change.weak;
     if (change.immune) e.immune = true;
+    e.why = e.why && why ? [...e.why, ...why] : null;
     if (e.to === e.from && !e.temp && !e.immune && !e.incoming) list.splice(list.indexOf(e), 1);
     scheduleFlush();
     return;
@@ -201,6 +217,7 @@ const note = (change) => {
     weak: change.weak || 0,
     immune: !!change.immune,
     label: change.label ?? null,
+    why,
   });
   scheduleFlush();
 };
@@ -247,6 +264,77 @@ const wrapTakeDamage = () => {
 
 let _tokenCall = null;
 
+const wrapCombatStart = () => {
+  const wrapper = function (wrapped, ...args) {
+    _combatStartAt = Date.now();
+    return wrapped(...args);
+  };
+  if (globalThis.libWrapper) {
+    libWrapper.register(MODULE_ID, 'CONFIG.Combat.documentClass.prototype.startCombat', wrapper, 'WRAPPER');
+    return;
+  }
+  const proto = CONFIG.Combat.documentClass.prototype;
+  const original = proto.startCombat;
+  proto.startCombat = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
+};
+
+const wrapMalice = () => {
+  const proto = game.actors.malice ? Object.getPrototypeOf(game.actors.malice) : null;
+  const explain = {
+    startCombat: (heroes = []) => {
+      const victories = heroes.map((h) => foundry.utils.getProperty(h, 'system.hero.victories') ?? 0);
+      const value = Math.floor(victories.reduce((a, b) => a + b, 0) / victories.length) || 0;
+      return [{ k: 'avgVictories', victories, value }];
+    },
+    _onStartRound: (combat, heroes = []) => [{ k: 'round', round: combat?.round ?? 0 }, { k: 'heroes', count: heroes.length }],
+    resetMalice: () => [{ k: 'combatEnd' }],
+  };
+  for (const [name, parts] of Object.entries(explain)) {
+    const original = proto?.[name];
+    if (typeof original !== 'function') continue;
+    proto[name] = function (...args) {
+      let why = null;
+      try { why = parts(...args); } catch { why = null; }
+      return why ? explaining('world.malice|malice', why, () => original.apply(this, args)) : original.apply(this, args);
+    };
+  }
+};
+
+let _turnGainFor = null;
+
+const wrapTurnGain = () => {
+  const target = 'ds.data.Actor.HeroModel.prototype._onStartTurn';
+  const wrapper = function (wrapped, ...args) {
+    const formula = this.class?.system?.turnGain;
+    const actor = this.parent;
+    if (!formula || !actor?.uuid) return wrapped(...args);
+    _turnGainFor = actor.uuid;
+    return explaining(`${actor.uuid}|heroic`, [{ k: 'turnGain', formula: String(formula) }], () => wrapped(...args))
+      .finally(() => { if (_turnGainFor === actor.uuid) _turnGainFor = null; });
+  };
+  if (globalThis.libWrapper) {
+    libWrapper.register(MODULE_ID, target, wrapper, 'WRAPPER');
+    return;
+  }
+  const proto = globalThis.ds?.data?.Actor?.HeroModel?.prototype;
+  const original = proto?._onStartTurn;
+  if (!original) return;
+  proto._onStartTurn = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
+};
+
+const whyLine = (part) => {
+  switch (part.k) {
+    case 'avgVictories': return part.victories.length
+      ? L('why.avgVictories', { sum: `(${part.victories.join(' + ')})`, count: part.victories.length, value: part.value })
+      : L('why.noHeroes');
+    case 'round': return L('why.round', { round: part.round });
+    case 'heroes': return L('why.heroes', { count: part.count });
+    case 'combatEnd': return L('why.combatEnd');
+    case 'turnGain': return L('why.turnGain', { formula: part.formula, total: part.total ?? '?' });
+    default: return null;
+  }
+};
+
 const wrapHeroTokens = () => {
   const proto = game.actors.heroTokens ? Object.getPrototypeOf(game.actors.heroTokens) : null;
   for (const name of ['spendToken', 'giveToken']) {
@@ -281,12 +369,18 @@ export const registerResourceRecording = ({ currentTurn }) => {
   seedKnown();
   wrapTakeDamage();
   wrapHeroTokens();
+  wrapCombatStart();
+  wrapMalice();
+  wrapTurnGain();
 
   Hooks.on('preCreateChatMessage', (doc) => {
     const call = _tokenCall;
     if (!call || call.messageId || !game.user.isGM || !replacesTokenCards()) return;
     if (call.kind === 'spendToken') noteTokenSpend(call.spendType, doc.flavor || null);
     return false;
+  });
+  Hooks.on('preCreateChatMessage', (doc) => {
+    if (_turnGainFor && doc.rolls?.length) doc.updateSource({ [`flags.${MODULE_ID}.turnGain`]: true });
   });
   Hooks.on('createToken', (token) => { if (token.actor) remember(token.actor); });
   Hooks.on('createActor', remember);
@@ -368,6 +462,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
     const to = worldValue(key);
     _world.set(key, to);
     if (!isDirector() || !game.settings.get(MODULE_ID, 'resourceLog')) return;
+    const starting = key === 'malice' && Date.now() - _combatStartAt < COMBAT_START_MS;
     note({
       key: `world.${key}`,
       res: key,
@@ -375,7 +470,8 @@ export const registerResourceRecording = ({ currentTurn }) => {
       to,
       userId,
       who: { tokenId: null, sceneId: null, src: null, name: L(`who.${key}`), party: key === 'heroTokens', whoIcon: key },
-      inCombat: anyCombat(),
+      inCombat: anyCombat() || starting,
+      acrossTurns: starting,
     });
   };
   Hooks.on('updateSetting', (setting, _changes, _options, userId) => onWorld(setting, userId));
@@ -476,6 +572,10 @@ export const resourceRow = (e) => {
   if (e.temp) notes.push(L('split', { temp: e.temp.from - e.temp.to, stamina: e.from - e.to }));
   if (e.imm) notes.push(L('immunity', { type: typeName, n: e.imm }));
   if (e.weak) notes.push(L('weakness', { type: typeName, n: e.weak }));
+  for (const part of e.why ?? []) {
+    const line = whyLine(part);
+    if (line) notes.push(esc(line));
+  }
   const loss = -delta;
   const struck = e.incoming != null && e.incoming !== loss && delta <= 0 && e.incoming > 0
     ? `<s class="dsbl-res-incoming">${esc(e.incoming)}</s>`
@@ -526,6 +626,15 @@ export const resourceRow = (e) => {
     + icon + deltaCell + type + `<span class="dsbl-res-totals">${totals}</span>`;
   if (e.hidden) li.classList.add('is-concealed');
   return li;
+};
+
+
+export const markTurnGain = (message, html) => {
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!root) return;
+  const gain = message.getFlag(MODULE_ID, 'turnGain')
+    || (message.rolls?.length && message.flavor === game.i18n.localize('DRAW_STEEL.Actor.hero.HeroicResourceGain'));
+  root.classList.toggle('dsbl-turn-gain', !!gain);
 };
 
 export const visibleEntry = (e) => game.user.isGM || !e.hidden;
