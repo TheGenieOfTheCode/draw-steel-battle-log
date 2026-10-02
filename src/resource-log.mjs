@@ -470,7 +470,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
       to,
       userId,
       who: { tokenId: null, sceneId: null, src: null, name: L(`who.${key}`), party: key === 'heroTokens', whoIcon: key },
-      inCombat: anyCombat() || starting,
+      inCombat: anyCombat() || starting || _why.has(`world.${key}|${key}`),
       acrossTurns: starting,
     });
   };
