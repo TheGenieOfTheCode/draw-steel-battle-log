@@ -106,6 +106,17 @@ Hooks.on('preCreateChatMessage', (doc, _data, _options, userId) => {
   doc.updateSource(update);
 });
 
+const TARGETS_WORD = /@targets\b/gi;
+
+Hooks.on('preCreateChatMessage', (doc, _data, _options, userId) => {
+  if (userId !== game.user.id || !setting('mentionNames')) return;
+  const content = doc.content ?? '';
+  if (!content.match(TARGETS_WORD)) return;
+  const links = targetLinks();
+  if (!links) { ui.notifications.warn(L('targetsNone')); return; }
+  doc.updateSource({ content: content.replace(TARGETS_WORD, links) });
+});
+
 function rowInner() {
   const now = resolveChoice();
   const pick = choice();
@@ -114,7 +125,21 @@ function rowInner() {
       ${faceHTML(now.face)}
       <span class="dsbl-speaker-label">${esc(L('speakingAs'))} <strong>${esc(now.name)}</strong>${mode}</span>
       <i class="fa-solid fa-caret-up dsbl-speaker-caret" inert></i>
+    </button>${setting('mentionNames') ? targetsButton() : ''}`;
+}
+
+function targetsButton() {
+  const none = !game.user.targets.size;
+  return `<button type="button" class="dsbl-targets"${none ? ' disabled' : ''} data-tooltip="${esc(L(none ? 'targetsNone' : 'targetsTooltip'))}">
+      <i class="fa-solid fa-crosshairs" inert></i>
     </button>`;
+}
+
+function targetLinks() {
+  return [...game.user.targets]
+    .filter(t => t.document)
+    .map(t => `@UUID[${t.document.uuid}]{${t.document.name.replace(/[{}[\]]/g, '')}}`)
+    .join(', ');
 }
 
 function refreshRows() {
@@ -169,7 +194,21 @@ function openMenu(row) {
   row.append(menu);
 }
 
+document.addEventListener('mousedown', event => {
+  if (event.target.closest?.('.dsbl-targets')) event.preventDefault();
+});
+
 document.addEventListener('click', event => {
+  const targets = event.target.closest?.('.dsbl-targets');
+  if (targets) {
+    event.preventDefault();
+    const links = targetLinks();
+    const input = document.querySelector('#chat-message .ProseMirror') ?? document.querySelector('#chat-message');
+    if (!links || !input) return;
+    input.focus();
+    document.execCommand('insertText', false, `${links} `);
+    return;
+  }
   const button = event.target.closest?.('.dsbl-speaker');
   if (button) {
     event.preventDefault();
@@ -194,6 +233,7 @@ export function addSpeakerRow(controls = document.getElementById('chat-controls'
 Hooks.on('renderChatInput', (_app, elements) => addSpeakerRow(elements?.['#chat-controls']));
 
 Hooks.on('controlToken', scheduleSpeakerRefresh);
+Hooks.on('targetToken', (user) => { if (user === game.user) scheduleSpeakerRefresh(); });
 Hooks.on('canvasReady', scheduleSpeakerRefresh);
 Hooks.on('updateUser', scheduleSpeakerRefresh);
 
@@ -270,7 +310,8 @@ function mentionTargets() {
   };
   for (const user of game.users) add(user.name, faceFor({ user }));
   for (const token of canvas.tokens?.placeables ?? []) {
-    if (token.actor && !token.document.hidden) add(token.name, faceFor({ token: token.document }));
+    if (!token.actor || token.document.hidden) continue;
+    if (token.actor.type === 'hero' || token.actor.hasPlayerOwner) add(token.name, faceFor({ token: token.document }));
   }
   for (const actor of game.actors) if (actor.type === 'hero') add(actor.name, faceFor({ actor }));
 
@@ -297,7 +338,19 @@ Hooks.on('canvasReady', () => {
   for (const content of document.querySelectorAll('.chat-message.dsbl-speech .message-content')) markMentions(content);
 });
 
+function markTokenLinks(content) {
+  for (const link of content.querySelectorAll('a.content-link[data-uuid]')) {
+    const doc = fromUuidSync(link.dataset.uuid);
+    if (!(doc instanceof foundry.documents.TokenDocument)) continue;
+    const mention = document.createElement('span');
+    mention.className = 'dsbl-mention';
+    mention.innerHTML = `${faceHTML(faceFor({ token: doc }))}<strong>${esc(link.textContent.trim() || doc.name)}</strong>`;
+    link.replaceWith(mention);
+  }
+}
+
 function markMentions(content) {
+  markTokenLinks(content);
   const targets = mentionTargets();
   if (!targets.size) return;
   const names = [...targets.keys()].sort((a, b) => b.length - a.length).map(escapeRegExp);

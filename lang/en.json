@@ -40,7 +40,7 @@
       },
       "mentionNames": {
         "name": "Highlight Names",
-        "hint": "When a typed message names a character or a player, their name is bolded with their portrait in front. Click the portrait to find their token."
+        "hint": "When a typed message names a hero or a player, their name is bolded with their portrait in front. To mention monsters, target them and press the crosshair beside Speaking As, or type @targets. Click a portrait to find its token."
       },
       "blendSpeech": {
         "name": "Join Back-to-Back Messages",
@@ -60,7 +60,9 @@
       "selected": "Selected",
       "selectedHint": "follows your selection",
       "yourself": "Yourself",
-      "changeTooltip": "Choose who your messages come from"
+      "changeTooltip": "Choose who your messages come from",
+      "targetsTooltip": "Mention your targets. You can also type @targets in a message.",
+      "targetsNone": "Target a token to mention it."
     }
   }
 }
