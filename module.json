@@ -25,6 +25,16 @@
   ],
   "authors": [{ "name": "Ady", "discord": "AdyGenie" }],
   "relationships": {
+    "requires": [
+      {
+        "id": "draw-steel-ctlib",
+        "type": "module",
+        "manifest": "https://github.com/TheGenieOfTheCode/draw-steel-ctlib/releases/latest/download/module.json",
+        "compatibility": {
+          "minimum": "1.1.0"
+        }
+      }
+    ],
     "conflicts": [
       {
         "id": "draw-steel-plus",

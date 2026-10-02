@@ -7,7 +7,7 @@
 
 A module for the Draw Steel system in Foundry VTT. It tidies the chat to be organized in battle and makes a few tweaks the look of abilities in the chat.
 
-**Requires Foundry v14 and the Draw Steel system.**
+**Requires Foundry v14, the Draw Steel system, and [Draw Steel: CTLib](https://github.com/TheGenieOfTheCode/draw-steel-ctlib).**
 
 ---
 
@@ -83,7 +83,7 @@ Install via the Foundry module browser, or paste this manifest URL directly:
 https://github.com/TheGenieOfTheCode/draw-steel-battle-log/releases/latest/download/module.json
 ```
 
-No dependencies. It runs on its own.
+Requires [Draw Steel: CTLib](https://github.com/TheGenieOfTheCode/draw-steel-ctlib), the shared library behind these modules. Foundry offers to install it alongside.
 
 ---
 
