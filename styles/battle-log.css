@@ -893,7 +893,7 @@ body .theme-dark .dsbl-turn-marker {
 
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1.2em 3.6em 1.2em 5.2em;
+  grid-template-columns: minmax(0, 1fr) 1.6em 3.6em 1.2em 5.2em;
   align-items: center;
   column-gap: 4px;
   margin: 2px 0.25em;
@@ -1039,3 +1039,14 @@ body.dsbl-res-off .dsbl-res-row { display: none !important; }
 .dsbl-res-delta.is-none { color: var(--dsbl-res-subtle); font-weight: 600; }
 
 .dsbl-res-heal { color: var(--dsbl-res-gain); font-weight: 700; }
+
+.dsbl-res-icon-token { display: inline-flex; justify-content: center; }
+.dsbl-res-icon-token .ctlib-res-token,
+.dsbl-res-icon-stack > .ctlib-res-token { width: 1.55em; height: 1.55em; vertical-align: middle; }
+.dsbl-res-icon-stack > img.dsbl-res-icon-badge {
+  width: 0.85em;
+  height: 0.85em;
+  right: -0.4em;
+  bottom: -0.3em;
+  filter: none;
+}

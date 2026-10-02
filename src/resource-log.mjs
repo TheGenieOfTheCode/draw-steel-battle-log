@@ -486,9 +486,18 @@ export const resourceRow = (e) => {
 
   const resName = e.res === 'heroic' && e.label ? e.label : L(`res.${e.res}`);
   const iconTip = e.res === 'recovery' ? L('recoveries', { from: e.from, to: e.to }) : resName;
-  const icon = e.temp
-    ? `<span class="dsbl-res-icon dsbl-res-icon-stack" data-tooltip="${esc(L('res.stamina'))}"><i class="${ICONS.stamina}"></i><i class="${ICONS.temporary} dsbl-res-icon-badge"></i></span>`
-    : `<i class="${ICONS[e.res] ?? 'fa-solid fa-circle'} dsbl-res-icon" data-tooltip="${esc(iconTip)}"></i>`;
+  const token = (key, className = '') => ctlib()?.resourceTokenHTML?.(key, { className }) ?? '';
+  let icon;
+  if (e.temp) {
+    const heart = token('stamina') || `<i class="${ICONS.stamina}"></i>`;
+    const badge = token('temporary', 'dsbl-res-icon-badge') || `<i class="${ICONS.temporary} dsbl-res-icon-badge"></i>`;
+    icon = `<span class="dsbl-res-icon dsbl-res-icon-stack" data-tooltip="${esc(L('res.stamina'))}">${heart}${badge}</span>`;
+  } else {
+    const drawn = token(e.res);
+    icon = drawn
+      ? `<span class="dsbl-res-icon dsbl-res-icon-token" data-tooltip="${esc(iconTip)}">${drawn}</span>`
+      : `<i class="${ICONS[e.res] ?? 'fa-solid fa-circle'} dsbl-res-icon" data-tooltip="${esc(iconTip)}"></i>`;
+  }
 
   const type = `<span class="dsbl-res-type">${dtype && stamina ? damageTypeHTML(dtype) : ''}</span>`;
 
