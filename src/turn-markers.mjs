@@ -324,7 +324,18 @@ export const draw = () => {
     const rows = [...log.querySelectorAll(':scope > .chat-message[data-message-id], :scope > .dsbl-res-row')];
     const at = new Map(rows.filter((li) => li.dataset.messageId).map((li) => [li.dataset.messageId, rows.indexOf(li)]));
     const isRes = (r) => r.classList.contains('dsbl-res-row');
-    const messagesIn = (s, e) => rows.slice(s, e).filter((r) => !isRes(r)).length;
+    const hidesGain = document.body.classList.contains('dsbl-hide-turn-gain');
+    const logsShown = !document.body.classList.contains('dsbl-res-off');
+    const counted = (r) => (isRes(r) ? logsShown : !(hidesGain && r.classList.contains('dsbl-turn-gain')));
+    const messagesIn = (s, e) => rows.slice(s, e).filter(counted).length;
+    const foldedTitle = (s, e) => {
+      const shown = rows.slice(s, e).filter(counted);
+      const logs = shown.filter(isRes).length;
+      const msgs = shown.length - logs;
+      const part = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+      const parts = [msgs ? part(msgs, 'message', 'messages') : null, logs ? part(logs, 'log line', 'log lines') : null].filter(Boolean);
+      return `${parts.join(' and ')} folded away`;
+    };
 
     const entries = readBoundaries();
     const order = new Map(entries.map((e, i) => [e.id, i]));
@@ -388,7 +399,7 @@ export const draw = () => {
         const count = document.createElement('span');
         count.className = 'dsbl-turn-count';
         count.textContent = String(folded);
-        count.title = folded + (folded === 1 ? ' message' : ' messages') + ' folded away';
+        count.title = foldedTitle(start, end);
         head.append(count);
       }
 
@@ -436,7 +447,7 @@ export const draw = () => {
       if (!isShut(entry, isOpen)) continue;
 
       let hiddenCount = 0;
-      for (let r = start; r < end; r++) { rows[r].classList.add('dsbl-round-hidden'); if (!isRes(rows[r])) hiddenCount++; }
+      for (let r = start; r < end; r++) { rows[r].classList.add('dsbl-round-hidden'); if (counted(rows[r])) hiddenCount++; }
 
       
       let n = line.nextElementSibling;
@@ -457,7 +468,7 @@ export const draw = () => {
         const count = document.createElement('span');
         count.className = 'dsbl-turn-count';
         count.textContent = String(hiddenCount);
-        count.title = hiddenCount + (hiddenCount === 1 ? ' message' : ' messages') + ' folded away';
+        count.title = foldedTitle(start, end);
         line.append(count);
 
         
@@ -506,6 +517,7 @@ export const pruneEmptySections = async () => {
   if (!isDirector()) return;
   const entries = readBoundaries();
   const drop = new Set();
+  const logged = new Set(readResourceLog().map((e) => e.turn).filter(Boolean));
 
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
@@ -516,6 +528,7 @@ export const pruneEmptySections = async () => {
     const closerAt = entries.findIndex((x, j) => j > i && x.kind === 'round' && depthOf(x) <= depth);
     if (closerAt < 0) continue;
     if (entries[closerAt].after !== e.after) continue;
+    if (entries.slice(i, closerAt).some((x) => logged.has(x.id))) continue;
     drop.add(i);
   }
 
@@ -534,10 +547,10 @@ export const pruneEmptySections = async () => {
   await game.settings.set(MODULE_ID, BOUNDARIES, kept);
 };
 
-export const pruneBoundaries = async () => {
+export const pruneBoundaries = async ({ cleared = false } = {}) => {
   if (!isDirector()) return;
   const entries = readBoundaries();
-  const empty = game.messages.size === 0;
+  const empty = cleared && game.messages.size === 0;
 
   const kept = [];
   let changed = false;
@@ -554,6 +567,21 @@ export const pruneBoundaries = async () => {
   await pruneResourceLog(survivingAnchor, empty);
   _movedTo.clear();
   if (changed) await game.settings.set(MODULE_ID, BOUNDARIES, kept);
+};
+
+export const watchClearAll = () => {
+  const wrapper = async function (wrapped, ids = [], operation = {}) {
+    const result = await wrapped(ids, operation);
+    if (operation?.deleteAll) await pruneBoundaries({ cleared: true });
+    return result;
+  };
+  if (globalThis.libWrapper) {
+    libWrapper.register(MODULE_ID, 'CONFIG.ChatMessage.documentClass.deleteDocuments', wrapper, 'WRAPPER');
+    return;
+  }
+  const cls = CONFIG.ChatMessage.documentClass;
+  const original = cls.deleteDocuments;
+  cls.deleteDocuments = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
 };
 
 let _pruning = null;

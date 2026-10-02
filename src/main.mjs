@@ -2,7 +2,7 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
-import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs, currentTurn } from './turn-markers.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs, currentTurn, watchClearAll } from './turn-markers.mjs';
 import { registerResourceRecording, addResourceToggle, syncResourceToggle } from './resource-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
@@ -156,7 +156,7 @@ Hooks.once('init', () => {
 
   game.settings.register(MODULE_ID, 'resourceLogEntries', { scope: 'world', config: false, type: Array, default: [], onChange: scheduleDraw });
 
-  game.settings.register(MODULE_ID, 'resourceLogShown', { scope: 'client', config: false, type: Boolean, default: true, onChange: syncResourceToggle });
+  game.settings.register(MODULE_ID, 'resourceLogShown', { scope: 'client', config: false, type: Boolean, default: true, onChange: () => { syncResourceToggle(); scheduleDraw(); } });
 
   game.settings.register(MODULE_ID, 'turnBoundaries', {
     scope: 'world',
@@ -179,6 +179,7 @@ Hooks.once('ready', async () => {
   } else registerTurnRecording();
   registerResourceRecording({ currentTurn });
   addResourceToggle();
+  watchClearAll();
 
   await migrateWorldSettings(MODULE_ID, 'turnBoundaries');
   pruneBoundaries();
