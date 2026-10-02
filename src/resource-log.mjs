@@ -87,6 +87,13 @@ const combatOf = (token) => {
     && c.combatants.some((cb) => cb.tokenId === token.id && cb.sceneId === token.parent?.id)) ?? null;
 };
 
+const hiddenFromPlayers = (token) => {
+  if (!token) return false;
+  if (token.hidden) return true;
+  return game.combats.contents.some((c) => c.combatants.some((cb) => cb.hidden
+    && cb.tokenId === token.id && cb.sceneId === token.parent?.id));
+};
+
 const anyCombat = () => game.combats.contents.some((c) => c.started);
 
 const isParty = (actor) => actor.type === 'hero' || !!actor.hasPlayerOwner;
@@ -193,6 +200,7 @@ const note = (change) => {
     if (change.imm) e.imm = change.imm;
     if (change.weak) e.weak = change.weak;
     if (change.immune) e.immune = true;
+    if (change.hidden) e.hidden = true;
     e.why = e.why && why ? [...e.why, ...why] : null;
     if (e.to === e.from && !e.temp && !e.immune && !e.incoming) list.splice(list.indexOf(e), 1);
     scheduleFlush();
@@ -218,6 +226,7 @@ const note = (change) => {
     immune: !!change.immune,
     label: change.label ?? null,
     why,
+    ...(change.hidden ? { hidden: true } : {}),
   });
   scheduleFlush();
 };
@@ -234,7 +243,7 @@ const noteImmune = (actor, ctx) => {
   const token = tokenOf(actor);
   const combat = combatOf(token);
   const v = actor.system?.stamina?.value ?? 0;
-  note({ key: actor.uuid, res: 'stamina', from: v, to: v, userId: game.user.id, who: whoFor(actor, token, combat), inCombat: !!combat, immune: true, ...detail });
+  note({ key: actor.uuid, res: 'stamina', from: v, to: v, userId: game.user.id, who: whoFor(actor, token, combat), inCombat: !!combat, hidden: hiddenFromPlayers(token), immune: true, ...detail });
 };
 
 const wrapTakeDamage = () => {
@@ -405,7 +414,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
 
     const token = tokenOf(actor);
     const combat = combatOf(token);
-    const base = { key: actor.uuid, userId, who: whoFor(actor, token, combat), inCombat: !!combat };
+    const base = { key: actor.uuid, userId, who: whoFor(actor, token, combat), inCombat: !!combat, hidden: hiddenFromPlayers(token) };
     const dmg = options?.dsblDamage ?? null;
     const type = dmg?.type ?? options?.ds?.damageType ?? null;
     const detail = type ? damageDetail(actor, type, dmg?.amount ?? null, dmg?.ignored) : {};
@@ -451,6 +460,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
       userId,
       who: whoFor(member.actor, member, combat?.started ? combat : null),
       inCombat: !!combat?.started,
+      hidden: hiddenFromPlayers(member),
       ...(type && from !== null && to < from ? damageDetail(member.actor, type, null) : {}),
     });
   });
