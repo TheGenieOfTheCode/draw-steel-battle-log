@@ -25,7 +25,7 @@ function faceFor({ token = null, actor = null, user = null } = {}) {
 }
 
 function faceHTML(face) {
-  const token = face.tokenUuid ? ` data-dsbl-token="${esc(face.tokenUuid)}"` : '';
+  const token = face.tokenUuid ? ` data-ctlib-face="${esc(face.tokenUuid)}" data-ctlib-face-name="${esc(face.name)}"` : '';
   if (face.tint) {
     const src = esc(foundry.utils.getRoute(face.src));
     return `<span class="dsbl-speech-face is-tinted"${token}><span style="background: ${esc(face.tint)}; -webkit-mask-image: url('${src}'); mask-image: url('${src}')"></span></span>`;
@@ -33,25 +33,7 @@ function faceHTML(face) {
   return `<img class="dsbl-speech-face"${token} src="${esc(face.src)}" alt="">`;
 }
 
-const faceToken = el => {
-  const doc = fromUuidSync(el?.dataset?.dsblToken ?? '');
-  return doc?.parent === canvas.scene ? doc.object : null;
-};
-
-document.addEventListener('click', event => {
-  const el = event.target.closest?.('.dsbl-speech-face[data-dsbl-token]');
-  if (!el) return;
-  const token = faceToken(el);
-  if (token) canvas.ping(token.center);
-});
-document.addEventListener('pointerover', event => {
-  const el = event.target.closest?.('.dsbl-speech-face[data-dsbl-token]');
-  if (el && !el.contains(event.relatedTarget)) faceToken(el)?._onHoverIn?.({});
-});
-document.addEventListener('pointerout', event => {
-  const el = event.target.closest?.('.dsbl-speech-face[data-dsbl-token]');
-  if (el && !el.contains(event.relatedTarget)) faceToken(el)?._onHoverOut?.({});
-});
+Hooks.once('ready', () => game.modules.get('draw-steel-ctlib')?.api?.activateFaces?.(document.body));
 
 const choice = () => setting('speakAs') ?? { kind: 'selected' };
 

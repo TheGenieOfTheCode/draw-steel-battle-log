@@ -465,7 +465,7 @@ export const resourceRow = (e) => {
   const face = e.whoIcon
     ? `<i class="${WHO_ICONS[e.whoIcon] ?? 'fa-solid fa-circle'} dsbl-res-who-icon dsbl-res-who-${esc(e.whoIcon)}"></i>`
     : e.src
-      ? `<img class="dsbl-res-face" src="${esc(e.src)}" alt=""${e.tokenId ? ` data-token-id="${esc(e.tokenId)}" data-scene-id="${esc(e.sceneId)}"` : ''}>`
+      ? `<img class="dsbl-res-face" src="${esc(e.src)}" alt=""${e.tokenId && e.sceneId ? ` data-ctlib-face="Scene.${esc(e.sceneId)}.Token.${esc(e.tokenId)}"` : ''}>`
       : '';
 
   const stamina = e.res === 'stamina' || e.res === 'temporary';
@@ -564,27 +564,6 @@ document.addEventListener('click', (event) => {
   event.stopPropagation();
   const id = control.closest('.dsbl-res-row')?.dataset.dsblRes;
   if (id) editEntry(id, control.dataset.dsblResAction);
-});
-
-const faceToken = (el) => {
-  if (el.dataset.sceneId !== canvas.scene?.id) return null;
-  return canvas.tokens?.get(el.dataset.tokenId) ?? null;
-};
-
-document.addEventListener('click', (event) => {
-  const el = event.target.closest?.('.dsbl-res-face[data-token-id]');
-  if (!el) return;
-  event.stopPropagation();
-  const token = faceToken(el);
-  if (token) canvas.ping(token.center);
-});
-document.addEventListener('pointerover', (event) => {
-  const el = event.target.closest?.('.dsbl-res-face[data-token-id]');
-  if (el && !el.contains(event.relatedTarget)) faceToken(el)?._onHoverIn?.({});
-});
-document.addEventListener('pointerout', (event) => {
-  const el = event.target.closest?.('.dsbl-res-face[data-token-id]');
-  if (el && !el.contains(event.relatedTarget)) faceToken(el)?._onHoverOut?.({});
 });
 
 export const syncResourceToggle = () => {

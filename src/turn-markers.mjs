@@ -74,6 +74,7 @@ const facesFor = (combatant) => {
     if (group && m.isDefeated) continue;
     out.push({
       id: m.tokenId,
+      tokenUuid: doc.uuid,
       src: doc.texture?.src ?? null,
       name: doc.name ?? m.name,
       captain: !!captainId && m.id === captainId,
@@ -192,44 +193,10 @@ export const registerTurnRecording = () => {
   });
 };
 
-const pingToken = (face) => {
-  const token = canvas.tokens?.get(face.id);
-  if (!token) {
-    ui.notifications.info((face.name ?? 'That token') + ' is not on this scene.');
-    return;
-  }
-  canvas.ping(token.center);
-};
-
-const portrait = (face) => {
-  if (!face?.src) return null;
-
-  const img = document.createElement('img');
-  img.className = 'dsbl-turn-face';
-  
-  if (face.minion && !face.captain) img.classList.add('dsbl-turn-face-minion');
-  img.src = face.src;
-  img.alt = face.name ?? '';
-  img.title = face.name ?? '';
-  img.addEventListener('click', (e) => { e.stopPropagation(); pingToken(face); });
-  img.addEventListener('mouseenter', () => canvas.tokens?.get(face.id)?._onHoverIn?.({}));
-  img.addEventListener('mouseleave', () => canvas.tokens?.get(face.id)?._onHoverOut?.({}));
-
-  
-  const wrap = document.createElement('span');
-  wrap.className = 'dsbl-turn-face-wrap';
-  wrap.append(img);
-
-  if (face.captain) {
-    wrap.classList.add('dsbl-turn-face-captain');
-    
-    const mark = document.createElement('i');
-    mark.className = 'fa-solid fa-helmet-battle dsbl-turn-captain-mark';
-    mark.setAttribute('inert', '');
-    wrap.append(mark);
-  }
-  return wrap;
-};
+const chainFace = (face) => ({
+  ...face,
+  tokenUuid: face.tokenUuid ?? canvas.scene?.tokens.get(face.id)?.uuid ?? null,
+});
 
 const rule = () => {
   const r = document.createElement('span');
@@ -294,10 +261,9 @@ const marker = (entry, kind, isCurrent) => {
 
   const faces = document.createElement('span');
   faces.className = 'dsbl-turn-faces';
-  for (const face of entry.faces ?? []) {
-    const img = portrait(face);
-    if (img) faces.append(img);
-  }
+  const ctlib = game.modules.get('draw-steel-ctlib')?.api;
+  faces.innerHTML = ctlib?.faceChainHTML?.((entry.faces ?? []).map(chainFace)) ?? '';
+  ctlib?.activateFaces?.(faces);
 
   
   if (kind === 'start' && !isCurrent) {
