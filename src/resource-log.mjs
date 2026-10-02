@@ -1,0 +1,610 @@
+import { MODULE_ID } from './collapse.mjs';
+
+const LOG = 'resourceLogEntries';
+const MAX_ENTRIES = 600;
+const MERGE_MS = 8000;
+
+const setting = (key) => game.settings.get(MODULE_ID, key);
+const isDirector = () => game.users.activeGM?.isSelf === true;
+const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
+const L = (key, data) => (data ? game.i18n.format(`DSBL.ResourceLog.${key}`, data) : game.i18n.localize(`DSBL.ResourceLog.${key}`));
+
+export const readResourceLog = () => {
+  const raw = setting(LOG);
+  return Array.isArray(raw) ? raw : [];
+};
+
+const _known = new Map();
+const _groups = new Map();
+const _world = new Map();
+const _incoming = new Map();
+const RECOVERY_HEAL_MS = 4000;
+let _currentTurn = () => null;
+
+const numberAt = (path) => (actor) => {
+  const v = foundry.utils.getProperty(actor, path);
+  return Number.isFinite(v) ? v : null;
+};
+
+const TRACKED = [
+  ['stamina', 'system.stamina.value', numberAt('system.stamina.value')],
+  ['temporary', 'system.stamina.temporary', numberAt('system.stamina.temporary')],
+  ['heroic', 'system.hero.primary.value', numberAt('system.hero.primary.value')],
+  ['surges', 'system.hero.surges', numberAt('system.hero.surges')],
+  ['recovery', 'system.recoveries.value', numberAt('system.recoveries.value')],
+];
+
+const WORLD_KEYS = ['malice', 'heroTokens'];
+
+const remember = (actor) => {
+  if (!actor?.uuid) return;
+  _known.set(actor.uuid, Object.fromEntries(TRACKED.map(([res, , read]) => [res, read(actor)])));
+};
+
+const rememberGroup = (group) => {
+  const v = group?.system?.staminaValue;
+  if (group?.uuid && Number.isFinite(v)) _groups.set(group.uuid, v);
+};
+
+const worldValue = (key) => {
+  try {
+    const v = game.settings.get('draw-steel', key)?.value;
+    return Number.isFinite(v) ? v : null;
+  } catch { return null; }
+};
+
+const seedKnown = () => {
+  for (const actor of game.actors) remember(actor);
+  for (const scene of game.scenes) {
+    for (const token of scene.tokens) if (token.actor && !token.actorLink) remember(token.actor);
+  }
+  for (const combat of game.combats) for (const group of combat.groups ?? []) rememberGroup(group);
+  for (const key of WORLD_KEYS) _world.set(key, worldValue(key));
+};
+
+const tokenOf = (actor) => {
+  if (actor.isToken) return actor.token;
+  const active = actor.getActiveTokens?.(false, true) ?? [];
+  return active.find((t) => t.parent === canvas.scene) ?? active[0] ?? null;
+};
+
+const combatOf = (token) => {
+  if (!token) return null;
+  return game.combats.contents.find((c) => c.started
+    && c.combatants.some((cb) => cb.tokenId === token.id && cb.sceneId === token.parent?.id)) ?? null;
+};
+
+const anyCombat = () => game.combats.contents.some((c) => c.started);
+
+const isParty = (actor) => actor.type === 'hero' || !!actor.hasPlayerOwner;
+
+const shortName = (actor, token, combat) => {
+  const full = String(token?.name ?? actor.name ?? '').trim();
+  const words = full.split(/\s+/).filter(Boolean);
+  if (actor.type === 'hero') return words[0] ?? full;
+  if (words.length < 2) return full;
+
+  const pool = combat
+    ? combat.combatants.contents.map((cb) => cb.actor && !isParty(cb.actor) ? (cb.token?.name ?? cb.name) : null)
+    : (token?.parent?.tokens.contents ?? []).map((t) => t.actor && !isParty(t.actor) ? t.name : null);
+  const names = [...new Set(pool.filter(Boolean).map((n) => n.trim().toLowerCase()))];
+  if (names.length < 2) return full;
+
+  const shared = new Set();
+  for (const word of new Set(words.map((w) => w.toLowerCase()))) {
+    const hits = names.filter((n) => n.split(/\s+/).includes(word)).length;
+    if (hits / names.length > 0.5) shared.add(word);
+  }
+  const kept = words.filter((w) => !shared.has(w.toLowerCase()));
+  return kept.length ? kept.join(' ') : full;
+};
+
+const whoFor = (actor, token, combat) => ({
+  tokenId: token?.id ?? null,
+  sceneId: token?.parent?.id ?? null,
+  src: token?.texture?.src ?? actor.img ?? null,
+  name: String(token?.name ?? actor.name ?? '').trim(),
+  short: shortName(actor, token, combat),
+  party: isParty(actor),
+});
+
+let _draft = null;
+let _flush = null;
+
+const draftList = () => {
+  if (!_draft) _draft = foundry.utils.deepClone(readResourceLog());
+  return _draft;
+};
+
+const scheduleFlush = () => {
+  if (_flush) return;
+  _flush = setTimeout(async () => {
+    _flush = null;
+    const list = _draft;
+    _draft = null;
+    if (!list) return;
+    while (list.length > MAX_ENTRIES) list.shift();
+    await game.settings.set(MODULE_ID, LOG, list);
+  }, 200);
+};
+
+const lossOf = (e) => (e.from - e.to) + (e.temp ? e.temp.from - e.temp.to : 0);
+
+const note = (change) => {
+  const { key, res, from, to } = change;
+  if (window._stageManagerResetting) return;
+  if (from === null || to === null) return;
+  if (from === to && !change.immune) return;
+  const list = draftList();
+  const now = Date.now();
+
+  if (res === 'stamina' && to > from) {
+    for (let i = list.length - 1; i >= Math.max(0, list.length - 20); i--) {
+      const e = list[i];
+      if (e.key !== key || e.res !== 'recovery') continue;
+      if (!e.heal && now - e.at < RECOVERY_HEAL_MS) {
+        e.heal = { from, to };
+        scheduleFlush();
+        return;
+      }
+      break;
+    }
+  }
+
+  if (!change.always && !change.inCombat && !setting('resourceLogOutOfCombat')) return;
+
+  const after = game.messages.contents.at(-1)?.id ?? null;
+  const turn = _currentTurn();
+
+  for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
+    const e = list[i];
+    if (e.key !== key || e.res !== res || e.user !== change.userId) continue;
+    if (now - e.at > MERGE_MS || e.turn !== turn) break;
+    if (res === 'heroTokens' && (_tokenCall?.kind === 'spendToken' || e.reasons?.length)) break;
+    const before = lossOf(e);
+    e.to = to;
+    e.at = now;
+    if (e.after !== after) {
+      list.splice(i, 1);
+      e.after = after;
+      list.push(e);
+    }
+    if (change.temp) e.temp = e.temp ? { from: e.temp.from, to: change.temp.to } : change.temp;
+    if (change.dtype) e.dtype = change.dtype;
+    if (change.incoming != null || e.incoming != null) {
+      const added = lossOf({ from, to, temp: change.temp });
+      e.incoming = (e.incoming ?? before) + (change.incoming ?? added);
+    }
+    if (change.imm) e.imm = change.imm;
+    if (change.weak) e.weak = change.weak;
+    if (change.immune) e.immune = true;
+    if (e.to === e.from && !e.temp && !e.immune && !e.incoming) list.splice(list.indexOf(e), 1);
+    scheduleFlush();
+    return;
+  }
+
+  list.push({
+    id: foundry.utils.randomID(),
+    after,
+    turn,
+    at: now,
+    user: change.userId,
+    key,
+    ...change.who,
+    res,
+    from,
+    to,
+    dtype: change.dtype ?? null,
+    temp: change.temp ?? null,
+    incoming: change.incoming ?? null,
+    imm: change.imm || 0,
+    weak: change.weak || 0,
+    immune: !!change.immune,
+    label: change.label ?? null,
+  });
+  scheduleFlush();
+};
+
+const damageDetail = (actor, type, incoming, ignored = []) => {
+  const iw = actor.system?.calculateImmunityAndWeakness?.({ type, ignoredImmunities: [...ignored] }) ?? {};
+  return { dtype: type, incoming, imm: iw.immunity ?? 0, weak: iw.weakness ?? 0 };
+};
+
+const noteImmune = (actor, ctx) => {
+  if (!isDirector() || !setting('resourceLog') || ctx.amount <= 0) return;
+  const detail = damageDetail(actor, ctx.type, ctx.amount, ctx.ignored);
+  if (Math.max(0, ctx.amount + detail.weak - detail.imm) !== 0) return;
+  const token = tokenOf(actor);
+  const combat = combatOf(token);
+  const v = actor.system?.stamina?.value ?? 0;
+  note({ key: actor.uuid, res: 'stamina', from: v, to: v, userId: game.user.id, who: whoFor(actor, token, combat), inCombat: !!combat, immune: true, ...detail });
+};
+
+const wrapTakeDamage = () => {
+  const target = 'ds.data.Actor.BaseActorModel.prototype.takeDamage';
+  const wrapper = async function (wrapped, damage, options = {}) {
+    const actor = this.parent;
+    if (!actor?.uuid || this.isMinion) return wrapped(damage, options);
+    const ctx = { type: options.type || 'untyped', amount: Number(damage) || 0, ignored: [...(options.ignoredImmunities ?? [])] };
+    _incoming.set(actor.uuid, ctx);
+    try {
+      const result = await wrapped(damage, options);
+      noteImmune(actor, ctx);
+      return result;
+    } finally {
+      _incoming.delete(actor.uuid);
+    }
+  };
+  if (globalThis.libWrapper) {
+    libWrapper.register(MODULE_ID, target, wrapper, 'WRAPPER');
+    return;
+  }
+  const proto = globalThis.ds?.data?.Actor?.BaseActorModel?.prototype;
+  const original = proto?.takeDamage;
+  if (!original) return;
+  proto.takeDamage = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
+};
+
+let _tokenCall = null;
+
+const wrapHeroTokens = () => {
+  const proto = game.actors.heroTokens ? Object.getPrototypeOf(game.actors.heroTokens) : null;
+  for (const name of ['spendToken', 'giveToken']) {
+    const original = proto?.[name];
+    if (typeof original !== 'function') continue;
+    proto[name] = async function (...args) {
+      const outer = _tokenCall;
+      _tokenCall = { kind: name, spendType: name === 'spendToken' ? args[0] : null, messageId: name === 'spendToken' ? args[1]?.messageId ?? null : null };
+      try { return await original.apply(this, args); } finally { _tokenCall = outer; }
+    };
+  }
+};
+
+const replacesTokenCards = () => setting('resourceLog') && setting('resourceLogTokenCards');
+
+const noteTokenSpend = (spendType, by) => {
+  const list = draftList();
+  const now = Date.now();
+  for (let i = list.length - 1; i >= Math.max(0, list.length - 20); i--) {
+    const e = list[i];
+    if (e.key !== 'world.heroTokens') continue;
+    if (now - e.at > 3000) break;
+    e.reasons = [...new Set([...(e.reasons ?? []), spendType])];
+    if (by) e.by = by;
+    scheduleFlush();
+    return;
+  }
+};
+
+export const registerResourceRecording = ({ currentTurn }) => {
+  _currentTurn = currentTurn;
+  seedKnown();
+  wrapTakeDamage();
+  wrapHeroTokens();
+
+  Hooks.on('preCreateChatMessage', (doc) => {
+    const call = _tokenCall;
+    if (!call || call.messageId || !game.user.isGM || !replacesTokenCards()) return;
+    if (call.kind === 'spendToken') noteTokenSpend(call.spendType, doc.flavor || null);
+    return false;
+  });
+  Hooks.on('createToken', (token) => { if (token.actor) remember(token.actor); });
+  Hooks.on('createActor', remember);
+  Hooks.on('createCombatantGroup', rememberGroup);
+
+  Hooks.on('preUpdateActor', (actor, _changes, options) => {
+    const ctx = _incoming.get(actor.uuid);
+    if (ctx) options.dsblDamage = { type: ctx.type, amount: ctx.amount, ignored: ctx.ignored };
+  });
+
+  Hooks.on('updateActor', (actor, changes, options, userId) => {
+    const before = _known.get(actor.uuid);
+    remember(actor);
+    if (!isDirector() || !setting('resourceLog')) return;
+
+    const changed = {};
+    for (const [res, path, read] of TRACKED) {
+      if (foundry.utils.getProperty(changes, path) === undefined) continue;
+      changed[res] = { from: before?.[res] ?? null, to: read(actor) };
+    }
+    if (!Object.keys(changed).length) return;
+
+    const token = tokenOf(actor);
+    const combat = combatOf(token);
+    const base = { key: actor.uuid, userId, who: whoFor(actor, token, combat), inCombat: !!combat };
+    const dmg = options?.dsblDamage ?? null;
+    const type = dmg?.type ?? options?.ds?.damageType ?? null;
+    const detail = type ? damageDetail(actor, type, dmg?.amount ?? null, dmg?.ignored) : {};
+
+    const st = changed.stamina;
+    const tp = changed.temporary;
+    if (st && tp && st.to < st.from && tp.to < tp.from) {
+      note({ ...base, ...detail, res: 'stamina', from: st.from, to: st.to, temp: { from: tp.from, to: tp.to } });
+      delete changed.stamina;
+      delete changed.temporary;
+    }
+    for (const [res, c] of Object.entries(changed)) {
+      const lost = c.from !== null && c.to !== null && c.to < c.from;
+      note({
+        ...base,
+        ...((res === 'stamina' || res === 'temporary') && lost ? detail : {}),
+        res,
+        from: c.from,
+        to: c.to,
+        label: res === 'heroic' ? actor.system?.hero?.primary?.label ?? null : null,
+        always: res === 'recovery' && lost,
+      });
+    }
+  });
+
+  Hooks.on('updateCombatantGroup', (group, changes, options, userId) => {
+    if (foundry.utils.getProperty(changes, 'system.staminaValue') === undefined) return;
+    const from = _groups.get(group.uuid) ?? null;
+    rememberGroup(group);
+    if (!isDirector() || !setting('resourceLog')) return;
+    const combat = group.parent;
+    const hitId = options?.dstd?.primaryTargetId ?? null;
+    const hit = hitId ? (canvas.tokens?.get(hitId)?.document ?? fromUuidSync(String(hitId).replace(/__/g, '.'))) : null;
+    const member = (hit?.actor ? hit : null) ?? [...group.members].find((m) => !m.isDefeated)?.token ?? [...group.members][0]?.token ?? null;
+    if (!member?.actor) return;
+    const type = options?.ds?.damageType ?? null;
+    const to = group.system.staminaValue;
+    note({
+      key: group.uuid,
+      res: 'stamina',
+      from,
+      to,
+      userId,
+      who: whoFor(member.actor, member, combat?.started ? combat : null),
+      inCombat: !!combat?.started,
+      ...(type && from !== null && to < from ? damageDetail(member.actor, type, null) : {}),
+    });
+  });
+
+  const onWorld = (setting, userId) => {
+    const key = WORLD_KEYS.find((k) => setting.key === `draw-steel.${k}`);
+    if (!key) return;
+    const from = _world.get(key) ?? null;
+    const to = worldValue(key);
+    _world.set(key, to);
+    if (!isDirector() || !game.settings.get(MODULE_ID, 'resourceLog')) return;
+    note({
+      key: `world.${key}`,
+      res: key,
+      from,
+      to,
+      userId,
+      who: { tokenId: null, sceneId: null, src: null, name: L(`who.${key}`), party: key === 'heroTokens', whoIcon: key },
+      inCombat: anyCombat(),
+    });
+  };
+  Hooks.on('updateSetting', (setting, _changes, _options, userId) => onWorld(setting, userId));
+  Hooks.on('createSetting', (setting, _options, userId) => onWorld(setting, userId));
+};
+
+export const pruneResourceLog = async (survivingAnchor, empty) => {
+  if (!isDirector()) return;
+  const entries = readResourceLog();
+  const kept = [];
+  let changed = false;
+  for (const e of entries) {
+    if (e.after !== null && !game.messages.has(e.after)) {
+      const moved = survivingAnchor(e.after);
+      if (moved === null && empty) { changed = true; continue; }
+      if (moved !== e.after) { kept.push({ ...e, after: moved }); changed = true; continue; }
+    }
+    if (e.after === null && empty) { changed = true; continue; }
+    kept.push(e);
+  }
+  if (changed) await game.settings.set(MODULE_ID, LOG, kept);
+};
+
+const showsTotals = (e) => game.user.isGM || e.party || setting('resourceLogFullInfo');
+
+const ICONS = {
+  stamina: 'fa-solid fa-heart',
+  temporary: 'fa-solid fa-shield-halved',
+  heroic: 'fa-solid fa-bolt',
+  surges: 'fa-solid fa-angles-up',
+  recovery: 'fa-solid fa-heart-circle-plus',
+  malice: 'fa-solid fa-skull',
+  heroTokens: 'fa-solid fa-coins',
+};
+
+const WHO_ICONS = {
+  malice: 'fa-solid fa-skull',
+  heroTokens: 'fa-solid fa-users',
+};
+
+const fitNames = (log) => {
+  for (const name of log.querySelectorAll('.dsbl-res-name[data-short]')) {
+    if (!name.offsetParent) continue;
+    name.textContent = name.dataset.full;
+    if (name.scrollWidth > name.clientWidth + 1) name.textContent = name.dataset.short;
+  }
+};
+
+const _fitted = new WeakSet();
+const watchWidth = (log) => {
+  if (_fitted.has(log)) return;
+  _fitted.add(log);
+  let last = log.clientWidth;
+  new ResizeObserver(() => {
+    if (Math.abs(log.clientWidth - last) < 2) return;
+    last = log.clientWidth;
+    fitNames(log);
+  }).observe(log);
+};
+
+const damageLabel = (type) => {
+  const label = globalThis.ds?.CONFIG?.damageTypes?.[type]?.label;
+  return label ? game.i18n.localize(label) : type;
+};
+
+const ctlib = () => {
+  const mod = game.modules.get('draw-steel-ctlib');
+  return mod?.active ? mod.api ?? null : null;
+};
+
+const damageTypeHTML = (type) => {
+  const icon = ctlib()?.damageTypeIconHTML?.(type);
+  if (icon || type === 'untyped') return icon ?? '';
+  return `<span class="dsbl-res-type-name">${esc(damageLabel(type))}</span>`;
+};
+
+export const resourceRow = (e) => {
+  const li = document.createElement('li');
+  li.className = `message dsbl-res-row dsbl-res-${e.res}`;
+  li.dataset.dsblRes = e.id;
+
+  const own = e.to - e.from;
+  const delta = own + (e.temp ? e.temp.to - e.temp.from : 0);
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '';
+  const shown = showsTotals(e);
+
+  const face = e.whoIcon
+    ? `<i class="${WHO_ICONS[e.whoIcon] ?? 'fa-solid fa-circle'} dsbl-res-who-icon dsbl-res-who-${esc(e.whoIcon)}"></i>`
+    : e.src
+      ? `<img class="dsbl-res-face" src="${esc(e.src)}" alt=""${e.tokenId ? ` data-token-id="${esc(e.tokenId)}" data-scene-id="${esc(e.sceneId)}"` : ''}>`
+      : '';
+
+  const stamina = e.res === 'stamina' || e.res === 'temporary';
+  const dtype = e.dtype || (stamina && delta < 0 ? 'untyped' : (e.res === 'stamina' && delta > 0 ? 'healing' : null));
+  const typeName = dtype ? (ctlib()?.damageTypeLabel?.(dtype) ?? damageLabel(dtype)) : '';
+
+  const notes = [];
+  if (e.temp) notes.push(L('split', { temp: e.temp.from - e.temp.to, stamina: e.from - e.to }));
+  if (e.imm) notes.push(L('immunity', { type: typeName, n: e.imm }));
+  if (e.weak) notes.push(L('weakness', { type: typeName, n: e.weak }));
+  const loss = -delta;
+  const struck = e.incoming != null && e.incoming !== loss && delta <= 0 && e.incoming > 0
+    ? `<s class="dsbl-res-incoming">${esc(e.incoming)}</s>`
+    : '';
+  if (e.immune && delta === 0) notes.unshift(L('immune'));
+  const amount = `${sign}${Math.abs(delta)}`;
+  const deltaCell = `<span class="dsbl-res-delta ${delta < 0 ? 'is-loss' : delta > 0 ? 'is-gain' : 'is-none'}"${notes.length ? ` data-tooltip="${esc(notes.join('<br>'))}"` : ''}>${struck}${amount}</span>`;
+
+  const resName = e.res === 'heroic' && e.label ? e.label : L(`res.${e.res}`);
+  const iconTip = e.res === 'recovery' ? L('recoveries', { from: e.from, to: e.to }) : resName;
+  const icon = e.temp
+    ? `<span class="dsbl-res-icon dsbl-res-icon-stack" data-tooltip="${esc(L('res.stamina'))}"><i class="${ICONS.stamina}"></i><i class="${ICONS.temporary} dsbl-res-icon-badge"></i></span>`
+    : `<i class="${ICONS[e.res] ?? 'fa-solid fa-circle'} dsbl-res-icon" data-tooltip="${esc(iconTip)}"></i>`;
+
+  const type = `<span class="dsbl-res-type">${dtype && stamina ? damageTypeHTML(dtype) : ''}</span>`;
+
+  let totals = '';
+  if (e.res === 'recovery' && e.heal) {
+    const healed = e.heal.to - e.heal.from;
+    totals = `<span class="dsbl-res-heal" data-tooltip="${esc(L('recoveryHeal', { n: healed }))}">${damageTypeHTML('healing')} +${esc(healed)}</span>`;
+  } else if (shown) {
+    totals = `${esc(e.from)} → ${esc(e.to)}`;
+  }
+
+  const controls = game.user.isGM
+    ? `<span class="dsbl-res-controls">`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" data-tooltip="${esc(L(e.hidden ? 'reveal' : 'conceal'))}"><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a>`
+      + `</span>`
+    : '';
+  const reasons = (e.reasons ?? []).map((k) => {
+    const label = globalThis.ds?.CONFIG?.hero?.tokenSpends?.[k]?.label;
+    return label ? game.i18n.localize(label) : k;
+  });
+  const fullName = [e.by ?? e.name, ...reasons].join(' · ');
+  const fitName = reasons.length ? (e.by ?? e.name) : e.short;
+  const nameTip = reasons.length ? ` data-tooltip="${esc(fullName)}"` : '';
+  li.innerHTML = `<span class="dsbl-res-who">${face}<strong class="dsbl-res-name"${nameTip}${fitName && fitName !== fullName ? ` data-full="${esc(fullName)}" data-short="${esc(fitName)}"` : ''}>${esc(fullName)}</strong>${controls}</span>`
+    + icon + deltaCell + type + `<span class="dsbl-res-totals">${totals}</span>`;
+  if (e.hidden) li.classList.add('is-concealed');
+  return li;
+};
+
+export const visibleEntry = (e) => game.user.isGM || !e.hidden;
+
+export const placeResourceRows = (log, entries) => {
+  if (!entries.length) return;
+  const messages = new Map([...log.querySelectorAll(':scope > .chat-message[data-message-id]')].map((li) => [li.dataset.messageId, li]));
+  const lastFor = new Map();
+  for (const e of entries) {
+    const anchor = e.after === null ? null : messages.get(e.after);
+    if (e.after !== null && !anchor) continue;
+    const row = resourceRow(e);
+    const prev = lastFor.get(e.after) ?? anchor;
+    if (prev) prev.after(row);
+    else log.prepend(row);
+    lastFor.set(e.after, row);
+  }
+  fitNames(log);
+  watchWidth(log);
+};
+
+const editEntry = async (id, change) => {
+  if (!game.user.isGM) return;
+  const list = foundry.utils.deepClone(readResourceLog());
+  const i = list.findIndex((e) => e.id === id);
+  if (i < 0) return;
+  if (change === 'delete') list.splice(i, 1);
+  else list[i].hidden = !list[i].hidden;
+  await game.settings.set(MODULE_ID, LOG, list);
+};
+
+document.addEventListener('click', (event) => {
+  const control = event.target.closest?.('[data-dsbl-res-action]');
+  if (!control) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const id = control.closest('.dsbl-res-row')?.dataset.dsblRes;
+  if (id) editEntry(id, control.dataset.dsblResAction);
+});
+
+const faceToken = (el) => {
+  if (el.dataset.sceneId !== canvas.scene?.id) return null;
+  return canvas.tokens?.get(el.dataset.tokenId) ?? null;
+};
+
+document.addEventListener('click', (event) => {
+  const el = event.target.closest?.('.dsbl-res-face[data-token-id]');
+  if (!el) return;
+  event.stopPropagation();
+  const token = faceToken(el);
+  if (token) canvas.ping(token.center);
+});
+document.addEventListener('pointerover', (event) => {
+  const el = event.target.closest?.('.dsbl-res-face[data-token-id]');
+  if (el && !el.contains(event.relatedTarget)) faceToken(el)?._onHoverIn?.({});
+});
+document.addEventListener('pointerout', (event) => {
+  const el = event.target.closest?.('.dsbl-res-face[data-token-id]');
+  if (el && !el.contains(event.relatedTarget)) faceToken(el)?._onHoverOut?.({});
+});
+
+export const syncResourceToggle = () => {
+  const shown = setting('resourceLogShown') !== false;
+  document.body.classList.toggle('dsbl-res-off', !shown);
+  if (shown) for (const log of document.querySelectorAll('.chat-log')) fitNames(log);
+  for (const btn of document.querySelectorAll('.dsbl-res-toggle')) {
+    btn.setAttribute('aria-pressed', String(!shown));
+    btn.dataset.tooltip = L('hide');
+    btn.setAttribute('aria-label', L('hide'));
+  }
+};
+
+export const addResourceToggle = (controls = document.getElementById('chat-controls')) => {
+  if (!controls || !setting('resourceLog')) return;
+  if (controls.querySelector('.dsbl-res-toggle')) return syncResourceToggle();
+  let group = controls.querySelector('.control-buttons');
+  if (!group) {
+    group = document.createElement('div');
+    group.className = 'control-buttons';
+    controls.append(group);
+  }
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ui-control icon toggle fa-solid fa-heart-pulse dsbl-res-toggle';
+  btn.addEventListener('click', async (event) => {
+    event.preventDefault();
+    await game.settings.set(MODULE_ID, 'resourceLogShown', !(setting('resourceLogShown') !== false));
+  });
+  group.prepend(btn);
+  syncResourceToggle();
+};

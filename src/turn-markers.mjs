@@ -1,5 +1,7 @@
 
 
+import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog } from './resource-log.mjs';
+
 export const MODULE_ID = 'draw-steel-battle-log';
 
 const BOUNDARIES = 'turnBoundaries';
@@ -136,6 +138,8 @@ const record = async (entry) => {
 };
 
 const lastAnchor = () => readBoundaries().at(-1)?.after ?? null;
+
+export const currentTurn = () => readBoundaries().at(-1)?.id ?? null;
 
 export const registerTurnRecording = () => {
   Hooks.on('combatTurnChange', async (combat, prior, current) => {
@@ -342,23 +346,38 @@ export const draw = () => {
 
   _drawing = true;
   try {
-    for (const old of log.querySelectorAll('.dsbl-turn-marker')) old.remove();
+    for (const old of log.querySelectorAll('.dsbl-turn-marker, .dsbl-res-row')) old.remove();
     for (const li of log.querySelectorAll('.chat-message')) {
       li.classList.remove('dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden');
       delete li.dataset.dscpTurn;
     }
+    const resEntries = setting('resourceLog') ? readResourceLog().filter(visibleEntry) : [];
+    placeResourceRows(log, resEntries);
     if (!setting('turnMarkers') || olderCombatToolsLogs()) return;
 
-    
-    const rows = [...log.querySelectorAll(':scope > .chat-message[data-message-id]')];
-    const at = new Map(rows.map((li, i) => [li.dataset.messageId, i]));
+    const rows = [...log.querySelectorAll(':scope > .chat-message[data-message-id], :scope > .dsbl-res-row')];
+    const at = new Map(rows.filter((li) => li.dataset.messageId).map((li) => [li.dataset.messageId, rows.indexOf(li)]));
+    const isRes = (r) => r.classList.contains('dsbl-res-row');
+    const messagesIn = (s, e) => rows.slice(s, e).filter((r) => !isRes(r)).length;
 
     const entries = readBoundaries();
+    const order = new Map(entries.map((e, i) => [e.id, i]));
+    const resTurn = new Map(resEntries.map((e) => [e.id, e.turn]));
+    const pastEarlierRows = (start, index) => {
+      let s = start;
+      while (s < rows.length && isRes(rows[s])) {
+        const turn = resTurn.get(rows[s].dataset.dsblRes);
+        if ((turn == null ? -1 : (order.get(turn) ?? -1)) >= index) break;
+        s++;
+      }
+      return s;
+    };
     const sections = [];
-    
+
     const placed = entries
       .map((entry, index) => ({ entry, index, start: entry.after === null ? 0 : (at.get(entry.after) ?? -1) + 1 }))
       .filter((b) => b.start > 0 || b.entry.after === null)
+      .map((b) => ({ ...b, start: pastEarlierRows(b.start, b.index) }))
       .filter((b) => b.start <= rows.length);
 
     for (let i = 0; i < placed.length; i++) {
@@ -398,11 +417,12 @@ export const draw = () => {
         rows[r].classList.toggle('dsbl-turn-hidden', hidden);
       }
 
-      if (hidden && end > start) {
+      const folded = messagesIn(start, end);
+      if (hidden && folded) {
         const count = document.createElement('span');
         count.className = 'dsbl-turn-count';
-        count.textContent = String(end - start);
-        count.title = (end - start) + (end - start === 1 ? ' message' : ' messages') + ' folded away';
+        count.textContent = String(folded);
+        count.title = folded + (folded === 1 ? ' message' : ' messages') + ' folded away';
         head.append(count);
       }
 
@@ -450,7 +470,7 @@ export const draw = () => {
       if (!isShut(entry, isOpen)) continue;
 
       let hiddenCount = 0;
-      for (let r = start; r < end; r++) { rows[r].classList.add('dsbl-round-hidden'); hiddenCount++; }
+      for (let r = start; r < end; r++) { rows[r].classList.add('dsbl-round-hidden'); if (!isRes(rows[r])) hiddenCount++; }
 
       
       let n = line.nextElementSibling;
@@ -565,6 +585,7 @@ export const pruneBoundaries = async () => {
     kept.push(e);
   }
 
+  await pruneResourceLog(survivingAnchor, empty);
   _movedTo.clear();
   if (changed) await game.settings.set(MODULE_ID, BOUNDARIES, kept);
 };

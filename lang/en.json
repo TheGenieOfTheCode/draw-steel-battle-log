@@ -4,7 +4,8 @@
       "Headers": {
         "chatCards": "Compact Abilities",
         "typedChat": "Clean Comms",
-        "turnMarkers": "Turn Markers"
+        "turnMarkers": "Turn Markers",
+        "resourceLog": "Resource Log"
       },
       "darkChat": {
         "name": "Dark Theme Chat Cards",
@@ -45,6 +46,22 @@
       "blendSpeech": {
         "name": "Join Back-to-Back Messages",
         "hint": "When the same speaker sends several messages in a row, only the first shows their name and portrait."
+      },
+      "resourceLog": {
+        "name": "Resource Log",
+        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. Spending a Recovery is logged in and out of combat. The heart beside Export Chat Log shows or hides them for you."
+      },
+      "resourceLogFullInfo": {
+        "name": "Show Monster Stamina to Players",
+        "hint": "Players see how much Stamina a monster has before and after each change. Otherwise they only see the change."
+      },
+      "resourceLogOutOfCombat": {
+        "name": "Log Outside of Combat",
+        "hint": "Also log changes on tokens that are not in a running encounter."
+      },
+      "resourceLogTokenCards": {
+        "name": "Replace Hero Token Cards",
+        "hint": "When Hero Tokens are given or spent, only the Resource Log shows it, with who spent them and why, instead of the system's chat card."
       }
     },
     "powerRoll": {
@@ -63,6 +80,32 @@
       "changeTooltip": "Choose who your messages come from",
       "targetsTooltip": "Mention your targets. You can also type @targets in a message.",
       "targetsNone": "Target a token to mention it."
+    },
+    "ResourceLog": {
+      "show": "Show Resource Log",
+      "hide": "Hide Resource Log",
+      "conceal": "Hide from players",
+      "reveal": "Show to players",
+      "delete": "Delete",
+      "res": {
+        "stamina": "Stamina",
+        "temporary": "Temporary Stamina",
+        "heroic": "Heroic Resource",
+        "surges": "Surges",
+        "recovery": "Recoveries",
+        "malice": "Malice",
+        "heroTokens": "Hero Tokens"
+      },
+      "who": {
+        "malice": "Malice",
+        "heroTokens": "Party"
+      },
+      "split": "{temp} from temporary Stamina, {stamina} from Stamina",
+      "immunity": "{type} immunity {n}",
+      "weakness": "{type} weakness {n}",
+      "immune": "Immune",
+      "recoveries": "Recoveries {from} → {to}",
+      "recoveryHeal": "Regained {n} Stamina"
     }
   }
 }

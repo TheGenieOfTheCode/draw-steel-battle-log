@@ -874,3 +874,168 @@ body .theme-dark .dsbl-turn-marker {
   font-weight: 700;
   letter-spacing: 0.04em;
 }
+
+.dsbl-res-row {
+  --dsbl-res-ink: #3a3340;
+  --dsbl-res-subtle: #6e6578;
+  --dsbl-res-wash: #ebe4d6;
+  --dsbl-res-edge: #c9bfae;
+  --dsbl-res-loss: #a3221b;
+  --dsbl-res-gain: #2f7a32;
+  --dsbl-res-stamina: #b3261e;
+  --dsbl-res-temporary: #1e7a44;
+  --dsbl-res-heroic: #6a3fa0;
+  --dsbl-res-surges: #9a5b00;
+  --dsbl-res-recovery: #1e7a44;
+  --dsbl-res-malice: #8b1010;
+  --dsbl-res-tokens: #8a6d00;
+  --dsbl-res-solid: #e7e0d3;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.2em 3.6em 1.2em 5.2em;
+  align-items: center;
+  column-gap: 4px;
+  margin: 2px 0.25em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--dsbl-res-wash);
+  border: 1px solid var(--dsbl-res-edge);
+  color: var(--dsbl-res-ink);
+  font-size: var(--font-size-12, 0.75rem);
+  line-height: 1.6;
+  white-space: nowrap;
+  pointer-events: all;
+  font-variant-numeric: tabular-nums;
+}
+
+body .theme-dark .dsbl-res-row {
+  --dsbl-res-ink: #e6dfee;
+  --dsbl-res-subtle: #a59cb0;
+  --dsbl-res-wash: #1c1924;
+  --dsbl-res-edge: #302831;
+  --dsbl-res-loss: #ff7a70;
+  --dsbl-res-gain: #7fd67f;
+  --dsbl-res-stamina: #ff6b62;
+  --dsbl-res-temporary: #2ecc71;
+  --dsbl-res-heroic: #b48cf0;
+  --dsbl-res-surges: #f0a640;
+  --dsbl-res-recovery: #2ecc71;
+  --dsbl-res-malice: #e85a5a;
+  --dsbl-res-tokens: #e8c050;
+  --dsbl-res-solid: #26232e;
+}
+
+body.dsbl-res-off .dsbl-res-row { display: none !important; }
+
+.dsbl-res-face {
+  flex: 0 0 auto;
+  width: 1.4em;
+  height: 1.4em;
+  border: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.dsbl-res-who {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.dsbl-res-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.dsbl-res-icon { font-size: 0.95em; }
+.dsbl-res-stamina .dsbl-res-icon { color: var(--dsbl-res-stamina); }
+.dsbl-res-temporary .dsbl-res-icon { color: var(--dsbl-res-temporary); }
+
+.dsbl-res-delta { font-weight: 700; text-align: right; }
+.dsbl-res-type { text-align: center; }
+.dsbl-res-icon { text-align: center; }
+.dsbl-res-delta.is-loss { color: var(--dsbl-res-loss); }
+.dsbl-res-delta.is-gain { color: var(--dsbl-res-gain); }
+
+.dsbl-res-type,
+.dsbl-res-totals {
+  color: var(--dsbl-res-subtle);
+  font-size: 0.92em;
+}
+
+.dsbl-res-controls {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 7px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: var(--dsbl-res-solid);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 90ms ease-out;
+}
+
+.dsbl-res-row:hover .dsbl-res-controls,
+.dsbl-res-row:focus-within .dsbl-res-controls { opacity: 1; pointer-events: all; }
+
+.dsbl-res-control { color: var(--dsbl-res-subtle); }
+.dsbl-res-control:hover { color: var(--dsbl-res-ink); }
+
+.dsbl-res-row.is-concealed {
+  opacity: 0.55;
+  outline: 1px dashed var(--dsbl-res-subtle);
+  outline-offset: -1px;
+}
+
+.dsbl-res-totals { text-align: right; }
+
+.dsbl-res-heroic .dsbl-res-icon { color: var(--dsbl-res-heroic); }
+.dsbl-res-surges .dsbl-res-icon { color: var(--dsbl-res-surges); }
+.dsbl-res-recovery .dsbl-res-icon { color: var(--dsbl-res-recovery); }
+.dsbl-res-malice .dsbl-res-icon,
+.dsbl-res-who-malice { color: var(--dsbl-res-malice); }
+.dsbl-res-heroTokens .dsbl-res-icon,
+.dsbl-res-who-heroTokens { color: var(--dsbl-res-tokens); }
+
+.dsbl-res-who-icon {
+  flex: 0 0 auto;
+  width: 1.4em;
+  text-align: center;
+}
+
+.dsbl-res-icon-stack {
+  position: relative;
+  display: inline-block;
+  color: var(--dsbl-res-stamina);
+}
+
+.dsbl-res-icon-badge {
+  position: absolute;
+  right: -0.35em;
+  bottom: -0.25em;
+  font-size: 0.65em;
+  color: var(--dsbl-res-temporary);
+  filter: drop-shadow(0 0 1px var(--dsbl-res-solid));
+}
+
+.dsbl-res-incoming {
+  margin-right: 3px;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: var(--dsbl-res-ink);
+  font-size: 0.85em;
+  font-weight: 400;
+  color: var(--dsbl-res-subtle);
+}
+
+.dsbl-res-delta.is-none { color: var(--dsbl-res-subtle); font-weight: 600; }
+
+.dsbl-res-heal { color: var(--dsbl-res-gain); font-weight: 700; }

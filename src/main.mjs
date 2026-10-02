@@ -2,7 +2,8 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
-import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs } from './turn-markers.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs, currentTurn } from './turn-markers.mjs';
+import { registerResourceRecording, addResourceToggle, syncResourceToggle } from './resource-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
@@ -115,6 +116,48 @@ Hooks.once('init', () => {
     onChange: () => { syncBodyClasses(); draw(); },
   });
 
+  game.settings.register(MODULE_ID, 'resourceLog', {
+    name: 'DSBL.Settings.resourceLog.name',
+    hint: 'DSBL.Settings.resourceLog.hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => { addResourceToggle(); scheduleDraw(); },
+  });
+
+  game.settings.register(MODULE_ID, 'resourceLogFullInfo', {
+    name: 'DSBL.Settings.resourceLogFullInfo.name',
+    hint: 'DSBL.Settings.resourceLogFullInfo.hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: scheduleDraw,
+  });
+
+  game.settings.register(MODULE_ID, 'resourceLogOutOfCombat', {
+    name: 'DSBL.Settings.resourceLogOutOfCombat.name',
+    hint: 'DSBL.Settings.resourceLogOutOfCombat.hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, 'resourceLogTokenCards', {
+    name: 'DSBL.Settings.resourceLogTokenCards.name',
+    hint: 'DSBL.Settings.resourceLogTokenCards.hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
+  game.settings.register(MODULE_ID, 'resourceLogEntries', { scope: 'world', config: false, type: Array, default: [], onChange: scheduleDraw });
+
+  game.settings.register(MODULE_ID, 'resourceLogShown', { scope: 'client', config: false, type: Boolean, default: true, onChange: syncResourceToggle });
+
   game.settings.register(MODULE_ID, 'turnBoundaries', {
     scope: 'world',
     config: false,
@@ -134,7 +177,9 @@ Hooks.once('ready', async () => {
   if (olderCombatToolsLogs()) {
     if (game.user.isGM) ui.notifications.warn(game.i18n.format('DSBL.notice.olderCombatTools', { version: game.modules.get('draw-steel-combat-tools')?.version ?? '' }), { permanent: true });
   } else registerTurnRecording();
-  
+  registerResourceRecording({ currentTurn });
+  addResourceToggle();
+
   await migrateWorldSettings(MODULE_ID, 'turnBoundaries');
   pruneBoundaries();
   pruneEmptySections();
@@ -145,7 +190,10 @@ const SETTING_HEADERS = {
   darkChat: 'chatCards',
   speakerPicker: 'typedChat',
   turnMarkers: 'turnMarkers',
+  resourceLog: 'resourceLog',
 };
+
+Hooks.on('renderChatInput', (_app, elements) => addResourceToggle(elements?.['#chat-controls']));
 
 Hooks.on('renderSettingsConfig', (_app, html) => {
   const root = html instanceof HTMLElement ? html : html?.[0];
