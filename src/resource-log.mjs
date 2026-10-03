@@ -523,11 +523,10 @@ const WHO_ICONS = {
 };
 
 const fitNames = (log) => {
-  for (const name of log.querySelectorAll('.dsbl-res-name[data-short]')) {
-    if (!name.offsetParent) continue;
-    name.textContent = name.dataset.full;
-    if (name.scrollWidth > name.clientWidth + 1) name.textContent = name.dataset.short;
-  }
+  const names = [...log.querySelectorAll('.dsbl-res-name[data-short]')];
+  for (const name of names) name.textContent = name.dataset.full;
+  const tight = names.filter((name) => name.offsetParent && name.scrollWidth > name.clientWidth + 1);
+  for (const name of tight) name.textContent = name.dataset.short;
 };
 
 const _fitted = new WeakSet();
