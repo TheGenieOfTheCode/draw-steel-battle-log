@@ -1,6 +1,7 @@
 
 
-import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog } from './resource-log.mjs';
+import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered } from './resource-log.mjs';
+import { readEffectLog, visibleEffect, effectRow, pruneEffectLog } from './effect-log.mjs';
 
 export const MODULE_ID = 'draw-steel-battle-log';
 
@@ -317,16 +318,19 @@ export const draw = () => {
       li.classList.remove('dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden');
       delete li.dataset.dscpTurn;
     }
-    const resEntries = setting('resourceLog') ? readResourceLog().filter(visibleEntry) : [];
-    placeResourceRows(log, resEntries);
+    const resEntries = [
+      ...(setting('resourceLog') ? readResourceLog().filter(visibleEntry) : []),
+      ...(setting('effectLog') ? readEffectLog().filter(visibleEffect) : []),
+    ].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+    placeResourceRows(log, resEntries, (e) => (e.kind === 'fx' ? effectRow(e) : resourceRow(e)));
+    refreshCovered();
     if (!setting('turnMarkers') || olderCombatToolsLogs()) return;
 
     const rows = [...log.querySelectorAll(':scope > .chat-message[data-message-id], :scope > .dsbl-res-row')];
     const at = new Map(rows.filter((li) => li.dataset.messageId).map((li) => [li.dataset.messageId, rows.indexOf(li)]));
     const isRes = (r) => r.classList.contains('dsbl-res-row');
-    const hidesGain = document.body.classList.contains('dsbl-hide-turn-gain');
     const logsShown = !document.body.classList.contains('dsbl-res-off');
-    const counted = (r) => (isRes(r) ? logsShown : !(hidesGain && r.classList.contains('dsbl-turn-gain')));
+    const counted = (r) => (isRes(r) ? logsShown : !(logsShown && r.classList.contains('dsbl-covered')));
     const messagesIn = (s, e) => rows.slice(s, e).filter(counted).length;
     const foldedTitle = (s, e) => {
       const shown = rows.slice(s, e).filter(counted);
@@ -517,7 +521,7 @@ export const pruneEmptySections = async () => {
   if (!isDirector()) return;
   const entries = readBoundaries();
   const drop = new Set();
-  const logged = new Set(readResourceLog().map((e) => e.turn).filter(Boolean));
+  const logged = new Set([...readResourceLog(), ...readEffectLog()].map((e) => e.turn).filter(Boolean));
 
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
@@ -565,6 +569,7 @@ export const pruneBoundaries = async ({ cleared = false } = {}) => {
   }
 
   await pruneResourceLog(survivingAnchor, empty);
+  await pruneEffectLog(survivingAnchor, empty);
   _movedTo.clear();
   if (changed) await game.settings.set(MODULE_ID, BOUNDARIES, kept);
 };

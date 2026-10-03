@@ -49,7 +49,7 @@
       },
       "resourceLog": {
         "name": "Resource Log",
-        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. Spending a Recovery is logged in and out of combat. The heart beside Export Chat Log shows or hides them for you."
+        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. Spending a Recovery is logged in and out of combat. The heart beside Export Chat Log shows or hides both this and the Effect Log for you."
       },
       "resourceLogFullInfo": {
         "name": "Show Monster Stamina to Players",
@@ -61,11 +61,15 @@
       },
       "resourceLogTokenCards": {
         "name": "Replace Hero Token Cards",
-        "hint": "When Hero Tokens are given or spent, only the Resource Log shows it, with who spent them and why, instead of the system's chat card."
+        "hint": "When Hero Tokens are given or spent, the Resource Log line shows who spent them and why, and the system's chat card is hidden behind it. The card shows again whenever the line doesn't: with the logs hidden, or the line hidden or deleted."
       },
       "resourceLogTurnGainCards": {
-        "name": "Hide Start of Turn Rolls",
-        "hint": "Hides the roll for a hero's Heroic Resource at the start of their turn, since the Resource Log shows the gain. Hover the number to see the roll. The messages are kept, so turning this off shows them again."
+        "name": "Hide Resource Gain Rolls",
+        "hint": "Hides the roll for a hero's Heroic Resource at the start of their turn, and Gain links for Heroic Resource and Surges, while a Resource Log line shows the gain. Hover the number to see the roll. With nothing logged (outside of combat, say) or the logs hidden, the roll shows as usual."
+      },
+      "effectLog": {
+        "name": "Effect Log",
+        "hint": "Conditions and effects starting and ending on creatures appear in chat as one line entries, with who applied them and why they ended. Players see conditions and effects from abilities on monsters; the Director sees everything. The heart beside Export Chat Log shows or hides both logs for you. Follows Log Outside of Combat."
       }
     },
     "powerRoll": {
@@ -86,8 +90,8 @@
       "targetsNone": "Target a token to mention it."
     },
     "ResourceLog": {
-      "show": "Show Resource Log",
-      "hide": "Hide Resource Log",
+      "show": "Show Logs",
+      "hide": "Hide Logs",
       "conceal": "Hide from players",
       "reveal": "Show to players",
       "delete": "Delete",
@@ -117,6 +121,29 @@
         "heroes": "Heroes still standing: +{count}",
         "combatEnd": "The fight ended",
         "turnGain": "Start of turn: {formula} = {total}"
+      }
+    },
+    "EffectLog": {
+      "from": "From {source}",
+      "fromAbility": "{ability}, from {source}",
+      "by": "From {ability}",
+      "many": "{name} and {more} more",
+      "reason": {
+        "saved": "saved",
+        "expired": "ended",
+        "removed": "removed",
+        "cleansed": "cleansed",
+        "disabled": "turned off",
+        "enabled": "turned back on"
+      },
+      "expiry": {
+        "turnEnd": "end of turn",
+        "turnStart": "start of turn",
+        "save": "save ends",
+        "combatEnd": "end of combat",
+        "respite": "respite",
+        "roundEnd": "end of round",
+        "roundStart": "start of round"
       }
     }
   }

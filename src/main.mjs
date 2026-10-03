@@ -3,7 +3,8 @@ import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
 import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs, currentTurn, watchClearAll } from './turn-markers.mjs';
-import { registerResourceRecording, addResourceToggle, syncResourceToggle, markTurnGain } from './resource-log.mjs';
+import { registerResourceRecording, addResourceToggle, syncResourceToggle, markCovered } from './resource-log.mjs';
+import { registerEffectRecording } from './effect-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
@@ -163,6 +164,18 @@ Hooks.once('init', () => {
     onChange: () => { syncBodyClasses(); scheduleDraw(); },
   });
 
+  game.settings.register(MODULE_ID, 'effectLog', {
+    name: 'DSBL.Settings.effectLog.name',
+    hint: 'DSBL.Settings.effectLog.hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => { addResourceToggle(); scheduleDraw(); },
+  });
+
+  game.settings.register(MODULE_ID, 'effectLogEntries', { scope: 'world', config: false, type: Array, default: [], onChange: scheduleDraw });
+
   game.settings.register(MODULE_ID, 'resourceLogEntries', { scope: 'world', config: false, type: Array, default: [], onChange: scheduleDraw });
 
   game.settings.register(MODULE_ID, 'resourceLogShown', { scope: 'client', config: false, type: Boolean, default: true, onChange: () => { syncResourceToggle(); scheduleDraw(); } });
@@ -187,6 +200,7 @@ Hooks.once('ready', async () => {
     if (game.user.isGM) ui.notifications.warn(game.i18n.format('DSBL.notice.olderCombatTools', { version: game.modules.get('draw-steel-combat-tools')?.version ?? '' }), { permanent: true });
   } else registerTurnRecording();
   registerResourceRecording({ currentTurn });
+  registerEffectRecording({ currentTurn });
   addResourceToggle();
   watchClearAll();
 
@@ -203,7 +217,9 @@ const SETTING_HEADERS = {
   resourceLog: 'resourceLog',
 };
 
-Hooks.on('renderChatInput', (_app, elements) => addResourceToggle(elements?.['#chat-controls']));
+Hooks.on('renderChatInput', (_app, elements) => {
+  addResourceToggle(elements?.['#chat-controls']);
+});
 
 Hooks.on('renderSettingsConfig', (_app, html) => {
   const root = html instanceof HTMLElement ? html : html?.[0];
@@ -235,7 +251,7 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
   if (setting('powerRollResults')) collapsePowerRolls(message, html);
   if (setting('flexButtons')) flexMessageButtons(html);
   if (setting('compactSpeech')) renderSpeech(message, html);
-  markTurnGain(message, html);
+  markCovered(message, html);
   if (!setting('collapsibleAbilities')) return;
   makeAbilitiesCollapsible(message, html);
 });
@@ -251,5 +267,4 @@ function syncBodyClasses() {
   document.body.classList.toggle('dsbl-power-roll', setting('powerRollResults'));
   document.body.classList.toggle('dsbl-flex-buttons', setting('flexButtons'));
   document.body.classList.toggle('dsbl-turn-markers', setting('turnMarkers'));
-  document.body.classList.toggle('dsbl-hide-turn-gain', setting('resourceLog') && setting('resourceLogTurnGainCards'));
 }

@@ -75,19 +75,19 @@ const seedKnown = () => {
   for (const key of WORLD_KEYS) _world.set(key, worldValue(key));
 };
 
-const tokenOf = (actor) => {
+export const tokenOf = (actor) => {
   if (actor.isToken) return actor.token;
   const active = actor.getActiveTokens?.(false, true) ?? [];
   return active.find((t) => t.parent === canvas.scene) ?? active[0] ?? null;
 };
 
-const combatOf = (token) => {
+export const combatOf = (token) => {
   if (!token) return null;
   return game.combats.contents.find((c) => c.started
     && c.combatants.some((cb) => cb.tokenId === token.id && cb.sceneId === token.parent?.id)) ?? null;
 };
 
-const hiddenFromPlayers = (token) => {
+export const hiddenFromPlayers = (token) => {
   if (!token) return false;
   if (token.hidden) return true;
   return game.combats.contents.some((c) => c.combatants.some((cb) => cb.hidden
@@ -96,7 +96,7 @@ const hiddenFromPlayers = (token) => {
 
 const anyCombat = () => game.combats.contents.some((c) => c.started);
 
-const isParty = (actor) => actor.type === 'hero' || !!actor.hasPlayerOwner;
+export const isParty = (actor) => actor.type === 'hero' || !!actor.hasPlayerOwner;
 
 const shortName = (actor, token, combat) => {
   const full = String(token?.name ?? actor.name ?? '').trim();
@@ -119,7 +119,7 @@ const shortName = (actor, token, combat) => {
   return kept.length ? kept.join(' ') : full;
 };
 
-const whoFor = (actor, token, combat) => ({
+export const whoFor = (actor, token, combat) => ({
   tokenId: token?.id ?? null,
   sceneId: token?.parent?.id ?? null,
   src: token?.texture?.src ?? actor.img ?? null,
@@ -176,6 +176,7 @@ const note = (change) => {
 
   const after = game.messages.contents.at(-1)?.id ?? null;
   const turn = _currentTurn();
+  const covers = coverOf(after, res);
 
   for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
     const e = list[i];
@@ -201,6 +202,7 @@ const note = (change) => {
     if (change.weak) e.weak = change.weak;
     if (change.immune) e.immune = true;
     if (change.hidden) e.hidden = true;
+    if (covers) e.covers = [...new Set([...(e.covers ?? []), covers])];
     e.why = e.why && why ? [...e.why, ...why] : null;
     if (e.to === e.from && !e.temp && !e.immune && !e.incoming) list.splice(list.indexOf(e), 1);
     scheduleFlush();
@@ -226,6 +228,7 @@ const note = (change) => {
     immune: !!change.immune,
     label: change.label ?? null,
     why,
+    ...(covers ? { covers: [covers] } : {}),
     ...(change.hidden ? { hidden: true } : {}),
   });
   scheduleFlush();
@@ -311,6 +314,33 @@ const wrapMalice = () => {
 
 let _turnGainFor = null;
 
+const rollParts = (message) => (message.system?.parts?.contents ?? []).filter((p) => p?.type === 'roll' && p.rolls?.length);
+const isTurnGainRoll = (message) => {
+  const gain = game.i18n.localize('DRAW_STEEL.Actor.hero.HeroicResourceGain');
+  return (!!message.rolls?.length && message.flavor === gain) || rollParts(message).some((p) => p.flavor === gain);
+};
+
+const GAIN_LABELS = { heroic: 'DRAW_STEEL.Actor.hero.FIELDS.hero.primary.value.label', surges: 'DRAW_STEEL.Actor.hero.FIELDS.hero.surges.label' };
+const gainTitle = (res) => game.i18n.format('DRAW_STEEL.EDITOR.Enrichers.Gain.MessageTitle.Default', {
+  type: game.i18n.localize(GAIN_LABELS[res]), targets: '',
+}).trim();
+export const gainKind = (message) => {
+  if (message.flags?.[MODULE_ID]?.turnGain || isTurnGainRoll(message)) return 'heroic';
+  for (const part of rollParts(message)) {
+    for (const res of Object.keys(GAIN_LABELS)) {
+      const title = gainTitle(res);
+      if (part.flavor === title || part.flavor?.startsWith(`${title} (`)) return res;
+    }
+  }
+  return null;
+};
+
+const coverOf = (messageId, res) => {
+  const message = messageId ? game.messages.get(messageId) : null;
+  if (!message || Date.now() - (message.timestamp ?? 0) > 10000) return null;
+  return gainKind(message) === res ? messageId : null;
+};
+
 const wrapTurnGain = () => {
   const target = 'ds.data.Actor.HeroModel.prototype._onStartTurn';
   const wrapper = function (wrapped, ...args) {
@@ -359,18 +389,23 @@ const wrapHeroTokens = () => {
 
 const replacesTokenCards = () => setting('resourceLog') && setting('resourceLogTokenCards');
 
-const noteTokenSpend = (spendType, by) => {
+const recentTokenEntry = () => {
   const list = draftList();
   const now = Date.now();
   for (let i = list.length - 1; i >= Math.max(0, list.length - 20); i--) {
     const e = list[i];
     if (e.key !== 'world.heroTokens') continue;
-    if (now - e.at > 3000) break;
-    e.reasons = [...new Set([...(e.reasons ?? []), spendType])];
-    if (by) e.by = by;
-    scheduleFlush();
-    return;
+    return now - e.at > 3000 ? null : e;
   }
+  return null;
+};
+
+const noteTokenSpend = (spendType, by) => {
+  const e = recentTokenEntry();
+  if (!e) return;
+  e.reasons = [...new Set([...(e.reasons ?? []), spendType])];
+  if (by) e.by = by;
+  scheduleFlush();
 };
 
 export const registerResourceRecording = ({ currentTurn }) => {
@@ -382,14 +417,16 @@ export const registerResourceRecording = ({ currentTurn }) => {
   wrapMalice();
   wrapTurnGain();
 
+  
   Hooks.on('preCreateChatMessage', (doc) => {
     const call = _tokenCall;
     if (!call || call.messageId || !game.user.isGM || !replacesTokenCards()) return;
     if (call.kind === 'spendToken') noteTokenSpend(call.spendType, doc.flavor || null);
-    return false;
+    const e = recentTokenEntry();
+    if (e) doc.updateSource({ [`flags.${MODULE_ID}.coveredBy`]: e.id });
   });
   Hooks.on('preCreateChatMessage', (doc) => {
-    if (_turnGainFor && doc.rolls?.length) doc.updateSource({ [`flags.${MODULE_ID}.turnGain`]: true });
+    if (_turnGainFor && (doc.rolls?.length || rollParts(doc).length)) doc.updateSource({ [`flags.${MODULE_ID}.turnGain`]: true });
   });
   Hooks.on('createToken', (token) => { if (token.actor) remember(token.actor); });
   Hooks.on('createActor', remember);
@@ -522,7 +559,7 @@ const WHO_ICONS = {
   heroTokens: 'fa-solid fa-users',
 };
 
-const fitNames = (log) => {
+export const fitNames = (log) => {
   const names = [...log.querySelectorAll('.dsbl-res-name[data-short]')];
   for (const name of names) name.textContent = name.dataset.full;
   const tight = names.filter((name) => name.offsetParent && name.scrollWidth > name.clientWidth + 1);
@@ -637,25 +674,57 @@ export const resourceRow = (e) => {
   return li;
 };
 
-
-export const markTurnGain = (message, html) => {
-  const root = html instanceof HTMLElement ? html : html?.[0];
-  if (!root) return;
-  const gain = message.getFlag(MODULE_ID, 'turnGain')
-    || (message.rolls?.length && message.flavor === game.i18n.localize('DRAW_STEEL.Actor.hero.HeroicResourceGain'));
-  root.classList.toggle('dsbl-turn-gain', !!gain);
-};
-
 export const visibleEntry = (e) => game.user.isGM || !e.hidden;
 
-export const placeResourceRows = (log, entries) => {
+const PENDING_MS = 3000;
+const coverState = () => {
+  const messages = new Set();
+  const lines = new Set();
+  for (const e of readResourceLog()) {
+    if (!visibleEntry(e)) continue;
+    lines.add(e.id);
+    for (const id of e.covers ?? []) messages.add(id);
+  }
+  return { messages, lines };
+};
+
+const isCovered = (message, state) => {
+  if (!setting('resourceLog')) return false;
+  const card = message.flags?.[MODULE_ID]?.coveredBy;
+  if (card) return replacesTokenCards() && state.lines.has(card);
+  if (!setting('resourceLogTurnGainCards') || !gainKind(message)) return false;
+  if (state.messages.has(message.id)) return true;
+  const pending = Date.now() - (message.timestamp ?? 0) < PENDING_MS;
+  return pending && (anyCombat() || setting('resourceLogOutOfCombat'));
+};
+
+export const refreshCovered = () => {
+  const state = coverState();
+  for (const el of document.querySelectorAll('.chat-message[data-message-id]')) {
+    const message = game.messages.get(el.dataset.messageId);
+    if (message) el.classList.toggle('dsbl-covered', isCovered(message, state));
+  }
+};
+
+export const markCovered = (message, html) => {
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!root) return;
+  const state = coverState();
+  const covered = isCovered(message, state);
+  root.classList.toggle('dsbl-covered', covered);
+  if (covered && !state.messages.has(message.id) && !message.flags?.[MODULE_ID]?.coveredBy) {
+    setTimeout(refreshCovered, PENDING_MS + 50);
+  }
+};
+
+export const placeResourceRows = (log, entries, rowFor = resourceRow) => {
   if (!entries.length) return;
   const messages = new Map([...log.querySelectorAll(':scope > .chat-message[data-message-id]')].map((li) => [li.dataset.messageId, li]));
   const lastFor = new Map();
   for (const e of entries) {
     const anchor = e.after === null ? null : messages.get(e.after);
     if (e.after !== null && !anchor) continue;
-    const row = resourceRow(e);
+    const row = rowFor(e);
     const prev = lastFor.get(e.after) ?? anchor;
     if (prev) prev.after(row);
     else log.prepend(row);
@@ -677,7 +746,7 @@ const editEntry = async (id, change) => {
 
 document.addEventListener('click', (event) => {
   const control = event.target.closest?.('[data-dsbl-res-action]');
-  if (!control) return;
+  if (!control || control.closest('.dsbl-res-row')?.dataset.dsblLog === 'fx') return;
   event.preventDefault();
   event.stopPropagation();
   const id = control.closest('.dsbl-res-row')?.dataset.dsblRes;
@@ -696,8 +765,11 @@ export const syncResourceToggle = () => {
 };
 
 export const addResourceToggle = (controls = document.getElementById('chat-controls')) => {
-  if (!controls || !setting('resourceLog')) return;
-  if (controls.querySelector('.dsbl-res-toggle')) return syncResourceToggle();
+  const existing = document.querySelector('.dsbl-res-toggle');
+  if (!setting('resourceLog') && !setting('effectLog')) { existing?.remove(); return; }
+  if (!controls) return;
+  if (existing && controls.contains(existing)) return syncResourceToggle();
+  existing?.remove();
   let group = controls.querySelector('.control-buttons');
   if (!group) {
     group = document.createElement('div');
