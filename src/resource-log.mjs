@@ -131,8 +131,10 @@ export const whoFor = (actor, token, combat) => ({
 let _draft = null;
 let _flush = null;
 
+let _writing = null;
+
 const draftList = () => {
-  if (!_draft) _draft = foundry.utils.deepClone(readResourceLog());
+  if (!_draft) _draft = foundry.utils.deepClone(_writing ?? readResourceLog());
   return _draft;
 };
 
@@ -144,11 +146,52 @@ const scheduleFlush = () => {
     _draft = null;
     if (!list) return;
     while (list.length > MAX_ENTRIES) list.shift();
-    await game.settings.set(MODULE_ID, LOG, list);
+    _writing = list;
+    try { await game.settings.set(MODULE_ID, LOG, list); }
+    finally { if (_writing === list) _writing = null; }
   }, 200);
 };
 
+const addCover = (e, messageId, delta) => {
+  e.covers = [...new Set([...(e.covers ?? []), messageId])];
+  const prev = e.coverDelta?.[messageId];
+  e.coverDelta = { ...(e.coverDelta ?? {}), [messageId]: delta === 'all' || prev === 'all' ? 'all' : (Number(prev) || 0) + delta };
+};
+
 const lossOf = (e) => (e.from - e.to) + (e.temp ? e.temp.from - e.temp.to : 0);
+
+const SUMMARY_MS = 5000;
+const summaryPhase = (key, why) => {
+  if (!why?.length) return null;
+  if (why.some((p) => p.k === 'combatEnd')) return 'end';
+  if (why.some((p) => p.k === 'combatStart' || p.k === 'avgVictories')) return 'start';
+  if (key === 'world.malice' && why.some((p) => p.k === 'round') && Date.now() - _combatStartAt < COMBAT_START_MS) return 'start';
+  return null;
+};
+
+const addToSummary = (list, phase, change) => {
+  let e = null;
+  for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
+    const x = list[i];
+    if (x.res !== 'summary') continue;
+    if (x.phase === phase && change.now - x.at < SUMMARY_MS) e = x;
+    break;
+  }
+  if (!e) {
+    e = { id: foundry.utils.randomID(), after: change.after, turn: change.turn, at: change.now, user: change.userId,
+      key: `summary.${phase}`, res: 'summary', phase, from: 0, to: 0, items: [] };
+    list.push(e);
+  }
+  e.at = change.now;
+  const item = e.items.find((it) => it.key === change.key && it.res === change.res);
+  if (item) {
+    item.to = change.to;
+    item.why = [...(item.why ?? []), ...(change.why ?? [])];
+  } else {
+    e.items.push({ key: change.key, res: change.res, name: change.who?.name ?? '', label: change.label ?? null,
+      from: change.from, to: change.to, why: change.why ?? null, hidden: !!change.hidden });
+  }
+};
 
 const note = (change) => {
   const { key, res, from, to } = change;
@@ -176,6 +219,14 @@ const note = (change) => {
 
   const after = game.messages.contents.at(-1)?.id ?? null;
   const turn = _currentTurn();
+
+  const phase = summaryPhase(key, why);
+  if (phase) {
+    addToSummary(list, phase, { ...change, why, after, turn, now });
+    scheduleFlush();
+    return;
+  }
+
   const covers = coverOf(after, res);
 
   for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
@@ -183,14 +234,18 @@ const note = (change) => {
     if (e.key !== key || e.res !== res || e.user !== change.userId) continue;
     if (now - e.at > MERGE_MS || (e.turn !== turn && !change.acrossTurns)) break;
     if (res === 'heroTokens' && (_tokenCall?.kind === 'spendToken' || e.reasons?.length)) break;
+    
+    if (why?.length || e.why?.length) break;
+    
+    if (e.after !== after) break;
     const before = lossOf(e);
     e.to = to;
+    if (res === 'heroic') e.steps = [...(e.steps ?? []), { from, to }].slice(-10);
     e.at = now;
     e.turn = turn;
-    if (e.after !== after) {
-      list.splice(i, 1);
-      e.after = after;
-      list.push(e);
+    if (change.hits?.length) {
+      const seen = new Set((e.hits ?? []).map((h) => h.tokenId));
+      e.hits = [...(e.hits ?? []), ...change.hits.filter((h) => !seen.has(h.tokenId))];
     }
     if (change.temp) e.temp = e.temp ? { from: e.temp.from, to: change.temp.to } : change.temp;
     if (change.dtype) e.dtype = change.dtype;
@@ -202,7 +257,7 @@ const note = (change) => {
     if (change.weak) e.weak = change.weak;
     if (change.immune) e.immune = true;
     if (change.hidden) e.hidden = true;
-    if (covers) e.covers = [...new Set([...(e.covers ?? []), covers])];
+    if (covers) addCover(e, covers, to - from);
     e.why = e.why && why ? [...e.why, ...why] : null;
     if (e.to === e.from && !e.temp && !e.immune && !e.incoming) list.splice(list.indexOf(e), 1);
     scheduleFlush();
@@ -220,6 +275,7 @@ const note = (change) => {
     res,
     from,
     to,
+    ...(res === 'heroic' ? { steps: [{ from, to }] } : {}),
     dtype: change.dtype ?? null,
     temp: change.temp ?? null,
     incoming: change.incoming ?? null,
@@ -228,7 +284,8 @@ const note = (change) => {
     immune: !!change.immune,
     label: change.label ?? null,
     why,
-    ...(covers ? { covers: [covers] } : {}),
+    ...(covers ? { covers: [covers], coverDelta: { [covers]: to - from } } : {}),
+    ...(change.hits?.length ? { hits: change.hits } : {}),
     ...(change.hidden ? { hidden: true } : {}),
   });
   scheduleFlush();
@@ -249,11 +306,19 @@ const noteImmune = (actor, ctx) => {
   note({ key: actor.uuid, res: 'stamina', from: v, to: v, userId: game.user.id, who: whoFor(actor, token, combat), inCombat: !!combat, hidden: hiddenFromPlayers(token), immune: true, ...detail });
 };
 
+let _minionHit = null;
+
 const wrapTakeDamage = () => {
   const target = 'ds.data.Actor.BaseActorModel.prototype.takeDamage';
   const wrapper = async function (wrapped, damage, options = {}) {
     const actor = this.parent;
-    if (!actor?.uuid || this.isMinion) return wrapped(damage, options);
+    
+    if (actor && this.isMinion) {
+      const outer = _minionHit;
+      _minionHit = actor.isToken ? actor.token : actor.getActiveTokens(false, true)[0] ?? null;
+      try { return await wrapped(damage, options); } finally { _minionHit = outer; }
+    }
+    if (!actor?.uuid) return wrapped(damage, options);
     const ctx = { type: options.type || 'untyped', amount: Number(damage) || 0, ignored: [...(options.ignoredImmunities ?? [])] };
     _incoming.set(actor.uuid, ctx);
     try {
@@ -324,7 +389,25 @@ const GAIN_LABELS = { heroic: 'DRAW_STEEL.Actor.hero.FIELDS.hero.primary.value.l
 const gainTitle = (res) => game.i18n.format('DRAW_STEEL.EDITOR.Enrichers.Gain.MessageTitle.Default', {
   type: game.i18n.localize(GAIN_LABELS[res]), targets: '',
 }).trim();
+
+const RUI_CARD = 'dsresources-chat-card';
+const ruiGain = (message) => {
+  const content = message.content ?? '';
+  if (!content.includes(RUI_CARD)) return null;
+  const card = Object.assign(document.createElement('div'), { innerHTML: content }).querySelector(`.${RUI_CARD}`);
+  const header = card?.querySelector('.dsresources-chat-header')?.textContent ?? '';
+  if (!header.includes(game.i18n.localize('DSRESOURCES.Chat.Gained'))) return null;
+  const method = card.querySelector('.dsresources-chat-method')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  const amount = Number(card.querySelectorAll('.dsresources-chat-header strong')[1]?.textContent);
+  const [, prev, cur] = card.querySelector('.dsresources-chat-summary')?.textContent?.match(/(-?\d+)\s*→\s*(-?\d+)/) ?? [];
+  return {
+    res: 'heroic', method, amount: Number.isFinite(amount) ? amount : null,
+    previous: prev === undefined ? null : Number(prev), current: cur === undefined ? null : Number(cur),
+  };
+};
+
 export const gainKind = (message) => {
+  if (ruiGain(message)) return 'heroic';
   if (message.flags?.[MODULE_ID]?.turnGain || isTurnGainRoll(message)) return 'heroic';
   for (const part of rollParts(message)) {
     for (const res of Object.keys(GAIN_LABELS)) {
@@ -337,7 +420,7 @@ export const gainKind = (message) => {
 
 const coverOf = (messageId, res) => {
   const message = messageId ? game.messages.get(messageId) : null;
-  if (!message || Date.now() - (message.timestamp ?? 0) > 10000) return null;
+  if (!message || Date.now() - (message.timestamp ?? 0) > 10000 || ruiGain(message)) return null;
   return gainKind(message) === res ? messageId : null;
 };
 
@@ -361,6 +444,23 @@ const wrapTurnGain = () => {
   proto._onStartTurn = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
 };
 
+const wrapHeroCombatStart = () => {
+  const target = 'ds.data.Actor.HeroModel.prototype.startCombat';
+  const wrapper = function (wrapped, ...args) {
+    const actor = this.parent;
+    if (!actor?.uuid) return wrapped(...args);
+    return explaining(`${actor.uuid}|heroic`, [{ k: 'combatStart', victories: this.hero?.victories ?? 0 }], () => wrapped(...args));
+  };
+  if (globalThis.libWrapper) {
+    libWrapper.register(MODULE_ID, target, wrapper, 'WRAPPER');
+    return;
+  }
+  const proto = globalThis.ds?.data?.Actor?.HeroModel?.prototype;
+  const original = proto?.startCombat;
+  if (!original) return;
+  proto.startCombat = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
+};
+
 const whyLine = (part) => {
   switch (part.k) {
     case 'avgVictories': return part.victories.length
@@ -370,6 +470,8 @@ const whyLine = (part) => {
     case 'heroes': return L('why.heroes', { count: part.count });
     case 'combatEnd': return L('why.combatEnd');
     case 'turnGain': return L('why.turnGain', { formula: part.formula, total: part.total ?? '?' });
+    case 'method': return part.text || null;
+    case 'combatStart': return L('why.combatStart', { victories: part.victories });
     default: return null;
   }
 };
@@ -416,6 +518,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
   wrapCombatStart();
   wrapMalice();
   wrapTurnGain();
+  wrapHeroCombatStart();
 
   
   Hooks.on('preCreateChatMessage', (doc) => {
@@ -427,6 +530,50 @@ export const registerResourceRecording = ({ currentTurn }) => {
   });
   Hooks.on('preCreateChatMessage', (doc) => {
     if (_turnGainFor && (doc.rolls?.length || rollParts(doc).length)) doc.updateSource({ [`flags.${MODULE_ID}.turnGain`]: true });
+  });
+  Hooks.on('createChatMessage', (message) => {
+    if (!isDirector() || !setting('resourceLog')) return;
+    const card = message.flags?.[MODULE_ID]?.coveredBy;
+    if (card) {
+      const e = draftList().find((x) => x.id === card);
+      if (e) { addCover(e, message.id, 'all'); scheduleFlush(); }
+      return;
+    }
+    const gain = ruiGain(message);
+    const actor = gain ? ChatMessage.getSpeakerActor(message.speaker) : null;
+    if (!actor) return;
+    
+    const list = draftList();
+    const now = Date.now();
+    const known = gain.previous !== null && gain.current !== null;
+    const stepOf = (e) => (e.steps ?? [{ from: e.from, to: e.to }]).findIndex((s) => s.from === gain.previous && s.to === gain.current);
+    const why = gain.method ? [{ k: 'method', text: gain.method }] : null;
+    for (let i = list.length - 1; i >= Math.max(0, list.length - 20); i--) {
+      const e = list[i];
+      if (e.key !== actor.uuid || e.res !== gain.res) continue;
+      if (now - e.at > 30000) break;
+      const at = known ? stepOf(e) : (e.steps?.length ?? 1) - 1;
+      if (at < 0) continue;
+      const steps = e.steps ?? [{ from: e.from, to: e.to }];
+      
+      if (steps.length > 1 && at === steps.length - 1 && !e.why?.length && why) {
+        const step = steps[at];
+        e.steps = steps.slice(0, -1);
+        e.to = step.from;
+        const line = {
+          ...e, id: foundry.utils.randomID(), after: message.id, from: step.from, to: step.to, steps: [step],
+          covers: [], coverDelta: {}, why,
+        };
+        addCover(line, message.id, gain.amount ?? step.to - step.from);
+        list.splice(i + 1, 0, line);
+        if (e.to === e.from && !e.temp && !e.immune && !e.incoming && !e.covers?.length) list.splice(i, 1);
+      } else {
+        addCover(e, message.id, gain.amount ?? e.to - e.from);
+        if (!e.why?.length && why && steps.length === 1) e.why = why;
+      }
+      scheduleFlush();
+      break;
+    }
   });
   Hooks.on('createToken', (token) => { if (token.actor) remember(token.actor); });
   Hooks.on('createActor', remember);
@@ -441,6 +588,8 @@ export const registerResourceRecording = ({ currentTurn }) => {
     const before = _known.get(actor.uuid);
     remember(actor);
     if (!isDirector() || !setting('resourceLog')) return;
+    
+    if (options?.dsblQuiet) return;
 
     const changed = {};
     for (const [res, path, read] of TRACKED) {
@@ -484,30 +633,34 @@ export const registerResourceRecording = ({ currentTurn }) => {
     if (!isDirector() || !setting('resourceLog')) return;
     const combat = group.parent;
     const hitId = options?.dstd?.primaryTargetId ?? null;
-    const hit = hitId ? (canvas.tokens?.get(hitId)?.document ?? fromUuidSync(String(hitId).replace(/__/g, '.'))) : null;
+    const named = hitId ? (canvas.tokens?.get(hitId)?.document ?? fromUuidSync(String(hitId).replace(/__/g, '.'))) : null;
+    const hit = named ?? ([...group.members].some((m) => m.tokenId === _minionHit?.id) ? _minionHit : null);
     const member = (hit?.actor ? hit : null) ?? [...group.members].find((m) => !m.isDefeated)?.token ?? [...group.members][0]?.token ?? null;
     if (!member?.actor) return;
     const type = options?.ds?.damageType ?? null;
     const to = group.system.staminaValue;
+    const who = whoFor(member.actor, member, combat?.started ? combat : null);
     note({
       key: group.uuid,
       res: 'stamina',
       from,
       to,
       userId,
-      who: whoFor(member.actor, member, combat?.started ? combat : null),
+      who,
+      hits: hit?.actor ? [who] : null,
       inCombat: !!combat?.started,
       hidden: hiddenFromPlayers(member),
       ...(type && from !== null && to < from ? damageDetail(member.actor, type, null) : {}),
     });
   });
 
-  const onWorld = (setting, userId) => {
+  const onWorld = (setting, userId, options) => {
     const key = WORLD_KEYS.find((k) => setting.key === `draw-steel.${k}`);
     if (!key) return;
     const from = _world.get(key) ?? null;
     const to = worldValue(key);
     _world.set(key, to);
+    if (options?.dsblQuiet) return;
     if (!isDirector() || !game.settings.get(MODULE_ID, 'resourceLog')) return;
     const starting = key === 'malice' && Date.now() - _combatStartAt < COMBAT_START_MS;
     note({
@@ -521,16 +674,35 @@ export const registerResourceRecording = ({ currentTurn }) => {
       acrossTurns: starting,
     });
   };
-  Hooks.on('updateSetting', (setting, _changes, _options, userId) => onWorld(setting, userId));
-  Hooks.on('createSetting', (setting, _options, userId) => onWorld(setting, userId));
+  Hooks.on('updateSetting', (setting, _changes, options, userId) => onWorld(setting, userId, options));
+  Hooks.on('createSetting', (setting, options, userId) => onWorld(setting, userId, options));
+};
+
+const settleCovers = (e) => {
+  const lost = (e.covers ?? []).filter((id) => !game.messages.has(id));
+  if (!lost.length) return e;
+  const next = { ...e, covers: e.covers.filter((id) => !lost.includes(id)), coverDelta: { ...(e.coverDelta ?? {}) } };
+  for (const id of lost) {
+    const share = next.coverDelta[id];
+    delete next.coverDelta[id];
+    if (share === 'all') return null;
+    if (typeof share === 'number') next.to -= share;
+    else if (!next.covers.length) return null;
+  }
+  if (next.to === next.from && !next.temp && !next.immune && !next.incoming) return null;
+  return next;
 };
 
 export const pruneResourceLog = async (survivingAnchor, empty) => {
   if (!isDirector()) return;
-  const entries = readResourceLog();
+  const fresh = !_draft;
+  const entries = draftList();
   const kept = [];
   let changed = false;
-  for (const e of entries) {
+  for (const original of entries) {
+    const e = settleCovers(original);
+    if (e !== original) changed = true;
+    if (!e) continue;
     if (e.after !== null && !game.messages.has(e.after)) {
       const moved = survivingAnchor(e.after);
       if (moved === null && empty) { changed = true; continue; }
@@ -539,7 +711,12 @@ export const pruneResourceLog = async (survivingAnchor, empty) => {
     if (e.after === null && empty) { changed = true; continue; }
     kept.push(e);
   }
-  if (changed) await game.settings.set(MODULE_ID, LOG, kept);
+  if (!changed) {
+    if (fresh) _draft = null;
+    return;
+  }
+  _draft = kept;
+  scheduleFlush();
 };
 
 const showsTotals = (e) => game.user.isGM || e.party || setting('resourceLogFullInfo');
@@ -594,7 +771,51 @@ const damageTypeHTML = (type) => {
   return `<span class="dsbl-res-type-name">${esc(damageLabel(type))}</span>`;
 };
 
+const summaryRow = (e) => {
+  const li = document.createElement('li');
+  li.className = 'message dsbl-res-row dsbl-res-summary';
+  li.dataset.dsblRes = e.id;
+  const items = (e.items ?? []).filter((it) => game.user.isGM || !it.hidden);
+  
+  const resName = (it) => (it.res === 'heroic' && it.label ? it.label : L(`res.${it.res}`));
+  const change = (it) => `${esc(it.from)} → ${esc(it.to)}`;
+  const short = (part) => {
+    switch (part.k) {
+      case 'avgVictories': return L('summary.tip.average', { value: part.value });
+      case 'round': return L('summary.tip.round', { round: part.round });
+      case 'heroes': return L('summary.tip.heroes', { count: part.count });
+      default: return null;
+    }
+  };
+  const heroItems = items.filter((it) => it.res === 'heroic');
+  const others = items.filter((it) => it.res !== 'heroic');
+  const rows = [];
+  if (heroItems.length) {
+    rows.push(`<tr><td colspan="3" class="dsbl-sum-head">${esc(L(`summary.tip.${e.phase === 'start' ? 'victories' : 'reset'}`))}</td></tr>`);
+    for (const it of heroItems) rows.push(`<tr><td>${esc(it.name)}</td><td>${esc(resName(it))}</td><td class="dsbl-sum-num">${change(it)}</td></tr>`);
+  }
+  for (const it of others) {
+    const why = [...new Set((it.why ?? []).map(short).filter(Boolean))];
+    rows.push(`<tr class="dsbl-sum-gap"><td colspan="2">${esc(it.name || resName(it))}</td><td class="dsbl-sum-num">${change(it)}</td></tr>`);
+    if (why.length) rows.push(`<tr><td colspan="3" class="dsbl-sum-why">${esc(why.join(' · '))}</td></tr>`);
+  }
+  const tip = `<table class="dsbl-sum-table">${rows.join('')}</table>`;
+  const heroes = heroItems.length;
+  const malice = items.find((it) => it.res === 'malice');
+  const parts = [];
+  if (heroes) parts.push(L('summary.heroes', { count: heroes }));
+  if (malice) parts.push(`${L('res.malice')} ${malice.from} → ${malice.to}`);
+  const controls = game.user.isGM
+    ? `<span class="dsbl-res-controls"><a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a></span>`
+    : '';
+  li.innerHTML = `<span class="dsbl-res-who"><i class="fa-solid fa-swords dsbl-res-who-icon"></i>`
+    + `<strong class="dsbl-res-name">${esc(L(`summary.${e.phase}`))}</strong>${controls}</span>`
+    + `<span class="dsbl-res-summary-text" data-tooltip="${esc(tip)}" data-tooltip-class="dsbl-sum-tip">${esc(parts.join(' · '))}</span>`;
+  return li;
+};
+
 export const resourceRow = (e) => {
+  if (e.res === 'summary') return summaryRow(e);
   const li = document.createElement('li');
   li.className = `message dsbl-res-row dsbl-res-${e.res}`;
   li.dataset.dsblRes = e.id;
@@ -604,11 +825,16 @@ export const resourceRow = (e) => {
   const sign = delta > 0 ? '+' : delta < 0 ? '−' : '';
   const shown = showsTotals(e);
 
+  const faceOf = (w) => (w.src
+    ? `<img class="dsbl-res-face" src="${esc(w.src)}" alt=""${w.tokenId && w.sceneId ? ` data-ctlib-face="Scene.${esc(w.sceneId)}.Token.${esc(w.tokenId)}"` : ''}>`
+    : '');
+  
+  const many = (e.hits?.length ?? 0) > 1;
   const face = e.whoIcon
     ? `<i class="${WHO_ICONS[e.whoIcon] ?? 'fa-solid fa-circle'} dsbl-res-who-icon dsbl-res-who-${esc(e.whoIcon)}"></i>`
-    : e.src
-      ? `<img class="dsbl-res-face" src="${esc(e.src)}" alt=""${e.tokenId && e.sceneId ? ` data-ctlib-face="Scene.${esc(e.sceneId)}.Token.${esc(e.tokenId)}"` : ''}>`
-      : '';
+    : many
+      ? `<span class="dsbl-fx-faces">${e.hits.slice(0, 3).map(faceOf).join('')}${e.hits.length > 3 ? `<span class="dsbl-fx-more">+${e.hits.length - 3}</span>` : ''}</span>`
+      : faceOf(e);
 
   const stamina = e.res === 'stamina' || e.res === 'temporary';
   const dtype = e.dtype || (stamina && delta < 0 ? 'untyped' : (e.res === 'stamina' && delta > 0 ? 'healing' : null));
@@ -665,9 +891,10 @@ export const resourceRow = (e) => {
     const label = globalThis.ds?.CONFIG?.hero?.tokenSpends?.[k]?.label;
     return label ? game.i18n.localize(label) : k;
   });
-  const fullName = [e.by ?? e.name, ...reasons].join(' · ');
-  const fitName = reasons.length ? (e.by ?? e.name) : e.short;
-  const nameTip = reasons.length ? ` data-tooltip="${esc(fullName)}"` : '';
+  
+  const fullName = many ? `${e.hits[0].name}s` : [e.by ?? e.name, ...reasons].join(' · ');
+  const fitName = many ? `${e.hits[0].short ?? e.hits[0].name}s` : reasons.length ? (e.by ?? e.name) : e.short;
+  const nameTip = !many && reasons.length ? ` data-tooltip="${esc(fullName)}"` : '';
   li.innerHTML = `<span class="dsbl-res-who">${face}<strong class="dsbl-res-name"${nameTip}${fitName && fitName !== fullName ? ` data-full="${esc(fullName)}" data-short="${esc(fitName)}"` : ''}>${esc(fullName)}</strong>${controls}</span>`
     + icon + deltaCell + type + `<span class="dsbl-res-totals">${totals}</span>`;
   if (e.hidden) li.classList.add('is-concealed');

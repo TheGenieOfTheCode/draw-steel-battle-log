@@ -108,6 +108,18 @@
         "malice": "Malice",
         "heroTokens": "Party"
       },
+      "summary": {
+        "start": "Combat started",
+        "end": "Combat ended",
+        "heroes": "{count} heroes reset",
+        "tip": {
+          "victories": "Set to their Victories",
+          "reset": "Reset",
+          "average": "Average Victories {value}",
+          "round": "Round {round} +{round}",
+          "heroes": "{count} heroes +{count}"
+        }
+      },
       "split": "{temp} from temporary Stamina, {stamina} from Stamina",
       "immunity": "{type} immunity {n}",
       "weakness": "{type} weakness {n}",
@@ -120,7 +132,8 @@
         "round": "Round {round}: +{round}",
         "heroes": "Heroes still standing: +{count}",
         "combatEnd": "The fight ended",
-        "turnGain": "Start of turn: {formula} = {total}"
+        "turnGain": "Start of turn: {formula} = {total}",
+        "combatStart": "set to their Victories ({victories})"
       }
     },
     "EffectLog": {
