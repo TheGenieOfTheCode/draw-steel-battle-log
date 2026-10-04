@@ -81,7 +81,7 @@
       },
       "resourceLogTurnGainCards": {
         "name": "Hide Resource Gain Rolls",
-        "hint": "Hides the roll for a hero's Heroic Resource at the start of their turn, and Gain links for Heroic Resource and Surges, while a Resource Log line shows the gain. Hover the number to see the roll. With nothing logged (outside of combat, say) or the logs hidden, the roll shows as usual."
+        "hint": "Hides the roll for a hero's Heroic Resource at the start of their turn, Gain links for Heroic Resource and Surges, and Draw Steel - Resources UI gain cards, while a Resource Log line shows the gain. Hover the number to see the roll or reason. With nothing logged (outside of combat, say) or the logs hidden, they show as usual."
       },
       "effectLog": {
         "name": "Effect Log",
@@ -157,7 +157,6 @@
       "from": "From {source}",
       "fromAbility": "{ability}, from {source}",
       "by": "From {ability}",
-      "many": "{name} and {more} more",
       "reason": {
         "saved": "saved",
         "expired": "ended",

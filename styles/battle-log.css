@@ -854,7 +854,7 @@ body .theme-dark .dsbl-turn-marker {
 
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1.6em 3.6em 1.2em 1.1em 5.2em;
+  grid-template-columns: minmax(0, 1fr) 1.6em 3.8em 1.2em 1.1em 4.35em;
   align-items: center;
   column-gap: 4px;
   margin: 2px 0.25em;
@@ -902,7 +902,6 @@ body:not(.dsbl-res-off) .chat-message.dsbl-covered { display: none !important; }
 }
 
 .dsbl-res-who {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -1024,9 +1023,8 @@ body .theme-dark .dsbl-fx-row {
   --dsbl-fx-start: #7fd67f;
   --dsbl-fx-end: #a59cb0;
 }
-.dsbl-fx-faces { display: flex; align-items: center; flex: 0 0 auto; }
-.dsbl-fx-faces .dsbl-res-face + .dsbl-res-face { margin-left: -0.55em; }
-.dsbl-fx-more { margin-left: 2px; font-size: 0.85em; color: var(--dsbl-res-subtle); }
+.dsbl-fx-faces { display: grid; align-items: center; flex: 0 0 auto; }
+.dsbl-fx-faces .dsbl-res-face { width: 1.4em; min-width: 1.4em; max-width: none; }
 .dsbl-fx-what {
   display: flex;
   align-items: center;

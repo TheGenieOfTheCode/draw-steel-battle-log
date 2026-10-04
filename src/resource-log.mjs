@@ -104,11 +104,12 @@ const shortName = (actor, token, combat) => {
   if (actor.type === 'hero') return words[0] ?? full;
   if (words.length < 2) return full;
 
+  const lastWords = words.slice(1).join(' ');
   const pool = combat
     ? combat.combatants.contents.map((cb) => cb.actor && !isParty(cb.actor) ? (cb.token?.name ?? cb.name) : null)
     : (token?.parent?.tokens.contents ?? []).map((t) => t.actor && !isParty(t.actor) ? t.name : null);
   const names = [...new Set(pool.filter(Boolean).map((n) => n.trim().toLowerCase()))];
-  if (names.length < 2) return full;
+  if (names.length < 2) return lastWords;
 
   const shared = new Set();
   for (const word of new Set(words.map((w) => w.toLowerCase()))) {
@@ -116,7 +117,7 @@ const shortName = (actor, token, combat) => {
     if (hits / names.length > 0.5) shared.add(word);
   }
   const kept = words.filter((w) => !shared.has(w.toLowerCase()));
-  return kept.length ? kept.join(' ') : full;
+  return kept.length && kept.length < words.length ? kept.join(' ') : lastWords;
 };
 
 export const whoFor = (actor, token, combat) => ({
@@ -239,7 +240,8 @@ const note = (change) => {
     if (why?.length || e.why?.length) break;
     
     if (e.after !== after) break;
-    if (sourceKey(source) !== sourceKey(e.source)) break;
+    if (sourceKey(source) !== sourceKey(e.source) && !(change.sourcePending && e.sourceFilled)) break;
+    if (change.hits?.[0]?.kind && e.hits?.[0]?.kind && change.hits[0].kind !== e.hits[0].kind) break;
     const before = lossOf(e);
     e.to = to;
     if (res === 'heroic') e.steps = [...(e.steps ?? []), { from, to }].slice(-10);
@@ -311,6 +313,13 @@ const noteImmune = (actor, ctx) => {
 
 let _minionHit = null;
 let _minionSource = null;
+
+export const faceStack = (faces) => {
+  const n = faces.length;
+  const step = n > 1 ? Math.max(0.7, Math.min(0.85, 2.8 / (n - 1))) : 0;
+  const cols = n > 1 ? `repeat(${n - 1}, ${step.toFixed(3)}em) 1.4em` : '1.4em';
+  return `<span class="dsbl-fx-faces" style="grid-template-columns: ${cols}">${faces.join('')}</span>`;
+};
 
 export const sourceFace = (src) => {
   if (!src) return null;
@@ -597,7 +606,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
           const mine = e.key === actorUuid || (tokenId && e.hits?.some((h) => h.tokenId === tokenId));
           if (!mine || !['stamina', 'temporary'].includes(e.res)) continue;
           if (now - e.at > 10000) break;
-          if (!e.source) { e.source = source; changed = true; }
+          if (!e.source) { e.source = source; e.sourceFilled = true; changed = true; }
           break;
         }
       }
@@ -734,8 +743,9 @@ export const registerResourceRecording = ({ currentTurn }) => {
       to,
       userId,
       who,
-      hits: hit?.actor ? [who] : null,
+      hits: hit?.actor ? [{ ...who, kind: hit.actorId ?? hit.document?.actorId ?? hit.actor.id }] : null,
       source: named ? null : sourceFace(_minionSource),
+      sourcePending: !!named,
       inCombat: !!combat?.started,
       hidden: hiddenFromPlayers(member),
       ...(type && from !== null && to < from ? damageDetail(member.actor, type, null) : {}),
@@ -921,7 +931,7 @@ export const resourceRow = (e) => {
   const bare = e.whoIcon
     ? `<i class="${WHO_ICONS[e.whoIcon] ?? 'fa-solid fa-circle'} dsbl-res-who-icon dsbl-res-who-${esc(e.whoIcon)}"></i>`
     : many
-      ? `<span class="dsbl-fx-faces">${e.hits.slice(0, 3).map(faceOf).join('')}${e.hits.length > 3 ? `<span class="dsbl-fx-more">+${e.hits.length - 3}</span>` : ''}</span>`
+      ? faceStack(e.hits.map(faceOf))
       : faceOf(e);
   
   const by = e.source && (game.user.isGM || !e.source.hidden) ? e.source : null;

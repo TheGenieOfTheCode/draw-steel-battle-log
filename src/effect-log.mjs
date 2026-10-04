@@ -1,5 +1,5 @@
 import { MODULE_ID } from './collapse.mjs';
-import { tokenOf, combatOf, hiddenFromPlayers, isParty, whoFor } from './resource-log.mjs';
+import { tokenOf, combatOf, hiddenFromPlayers, isParty, whoFor, faceStack } from './resource-log.mjs';
 
 const LOG = 'effectLogEntries';
 const MAX_ENTRIES = 600;
@@ -166,7 +166,8 @@ const noteEffect = (effect, phase, reason = null) => {
   const shown = party || publicEffect(effect, source);
   const after = anchor();
   const turn = _currentTurn();
-  const group = [phase, reason ?? '', effect.name, source?.name ?? '', source?.ability ?? '', party, shown].join('|');
+  const kind = isMinion(actor) ? (token?.actorId ?? actor.id) : actor.uuid;
+  const group = [phase, reason ?? '', effect.name, source?.name ?? '', source?.ability ?? '', party, shown, kind].join('|');
 
   for (let i = list.length - 1; i >= Math.max(0, list.length - 20); i--) {
     const e = list[i];
@@ -201,14 +202,15 @@ const noteEffect = (effect, phase, reason = null) => {
   scheduleFlush();
 };
 
-const markSaved = (effectUuid) => {
+const markSaved = (matches, messageId) => {
   const list = draftList();
   const now = Date.now();
   for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
     const e = list[i];
     if (e.phase !== 'end' || now - e.at > SAVE_MS) continue;
-    if (!e.targets.some((t) => t.effect === effectUuid)) continue;
+    if (!matches(e)) continue;
     e.reason = 'saved';
+    if (messageId) e.after = messageId;
     scheduleFlush();
     return true;
   }
@@ -247,9 +249,21 @@ export const registerEffectRecording = ({ currentTurn }) => {
 
   Hooks.on('createChatMessage', (message) => {
     if (!isDirector()) return;
-    for (const part of message.system?.parts?.contents ?? message.system?.parts ?? []) {
-      if (part?.type === 'savingThrow' && part.effectUuid) markSaved(part.effectUuid);
+    const parts = [...(message.system?.parts?.contents ?? message.system?.parts ?? [])];
+    let linked = false;
+    for (const part of parts) {
+      if (part?.type === 'savingThrow' && part.effectUuid) {
+        linked = markSaved((e) => e.targets.some((t) => t.effect === part.effectUuid), message.id) || linked;
+      }
     }
+    if (linked) return;
+
+    const SaveRoll = globalThis.ds?.rolls?.SavingThrowRoll;
+    const rolls = [...(message.rolls ?? []), ...parts.flatMap((p) => p?.rolls ?? [])];
+    if (!SaveRoll || !rolls.some((r) => r instanceof SaveRoll)) return;
+    const actor = ChatMessage.getSpeakerActor(message.speaker);
+    if (!actor) return;
+    markSaved((e) => (e.reason === 'saved' || e.expiry === 'save') && e.targets.some((t) => t.actor === actor.uuid), message.id);
   });
 };
 
@@ -292,10 +306,10 @@ export const effectRow = (e) => {
   li.dataset.dsblRes = e.id;
   li.dataset.dsblLog = 'fx';
 
-  const shown = e.targets.slice(0, 3);
-  const faces = `<span class="dsbl-fx-faces">${shown.map(faceImg).join('')}${e.targets.length > 3 ? `<span class="dsbl-fx-more">+${e.targets.length - 3}</span>` : ''}</span>`;
-  const names = e.targets.length > 1 ? L('many', { more: e.targets.length - 1, name: e.targets[0].short ?? e.targets[0].name }) : (e.targets[0]?.name ?? '');
-  const short = e.targets.length > 1 ? names : (e.targets[0]?.short ?? names);
+  const faces = faceStack(e.targets.map(faceImg));
+  const many = e.targets.length > 1;
+  const names = many ? `${e.targets[0].name}s` : (e.targets[0]?.name ?? '');
+  const short = many ? `${e.targets[0].short ?? e.targets[0].name}s` : (e.targets[0]?.short ?? names);
 
   const controls = game.user.isGM
     ? `<span class="dsbl-res-controls">`
