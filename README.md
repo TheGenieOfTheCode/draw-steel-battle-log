@@ -64,16 +64,31 @@ Every turn gets a line across the chat log with the name and token of whoever is
 
 A turn marker folds away the messages during it once it ends, leaving one line and a count of how many messages are hidden. Rounds and whole fights fold the same way, so a long session collapses to a handful of lines. None of the markers can be collapsed while what they contain is still active (turn, round, combat).
 
+Combat, round and turn markers can each be turned off, and so can the folding when something ends.
+
 <p align="center">
   <img src="images/turn-markers.png" alt="Two rounds of a fight in the chat log. Round 1 is folded to a single line with a count of four, Round 2 is open, and inside it one turn is open showing an ability card." width="330">
 </p>
 
 
+## Effect Log
+
+When a condition or effect starts or ends on a creature, it gets a one line entry in chat, with a small token of whoever applied it and why it ended: saved, end of turn, removed, cleansed and so on. Players see what's on the heroes, and the conditions and ability effects on monsters.
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="images/effect-log-dark.png" alt="The Effect Log in the dark theme. A goblin is Slowed by a hero's ability, and at the end of its turn the goblin saves and the Slowed line ends with saved." width="300"></td>
+      <td><img src="images/effect-log-light.png" alt="The same lines in the light theme" width="300"></td>
+    </tr>
+  </table>
+</div>
+
 ## Resource Log
 
-During combat, every change to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens gets a one line entry in chat, right where it happened, so you can tell who took what, who spent what, and where all that Malice went. Damage shows its type, and what immunity or weakness did to it. Hover a Malice or Heroic Resource gain to see how the system worked it out.
+During combat, every change to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens gets a one line entry in chat, right where it happened, so you can tell who took what, who spent what, and where all that Malice went. Damage shows its type, a small token of whoever dealt it, and what immunity or weakness did to it. Hover a Malice or Heroic Resource gain to see how the system worked it out. The start and end of a fight are one line each, with everything that changed in the tooltip.
 
-Quick changes to the same thing merge into one line, so you don't get spammed with a message for every change. Players only see how much a monster's Stamina changed, not how much it has left, unless the Director allows it. The heart beside Export Chat Log hides the log for you, and the Director can hide or delete any line.
+Quick changes to the same thing merge into one line, so you don't get spammed with a message for every change. Hero Token cards, start of turn rolls and [Draw Steel - Resources UI](https://foundryvtt.com/packages/draw-steel-resources-ui) gain cards hide behind their lines. Players only see how much a monster's Stamina changed, not how much it has left, unless the Director allows it. The heart beside Export Chat Log hides both logs for you, and the Director can hide or delete any line.
 
 <div align="center">
   <table>
@@ -90,7 +105,7 @@ Quick changes to the same thing merge into one line, so you don't get spammed wi
 
 ## Settings
 
-Every feature can be turned off on its own, and each person chooses what they see. The exceptions are the record of where the turns fell and the Resource Log itself, which the Director keeps on everybody's behalf.
+Every feature can be turned off on its own, and each person chooses what they see. The exceptions are the record of where the turns fell and the two logs, which the Director keeps on everybody's behalf.
 
 ---
 
@@ -110,6 +125,7 @@ Requires [Draw Steel: CTLib](https://github.com/TheGenieOfTheCode/draw-steel-ctl
 
 - [Draw Steel: Target Damage](https://foundryvtt.com/packages/draw-steel-target-damage)
 - [Draw Steel: Combat Tools](https://github.com/TheGenieOfTheCode/draw-steel-combat-tools)
+- [Draw Steel - Resources UI](https://foundryvtt.com/packages/draw-steel-resources-ui)
 - [Draw Steel Plus](https://github.com/featureJosh/draw-steel-plus) works with this module, but both restyle the same cards and making them work together cleanly isn't a priority.
 
 ---
