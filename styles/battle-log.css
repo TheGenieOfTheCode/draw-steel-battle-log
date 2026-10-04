@@ -854,7 +854,7 @@ body .theme-dark .dsbl-turn-marker {
 
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1.6em 3.6em 1.2em 5.2em;
+  grid-template-columns: minmax(0, 1fr) 1.6em 3.6em 1.2em 1.1em 5.2em;
   align-items: center;
   column-gap: 4px;
   margin: 2px 0.25em;
@@ -1068,3 +1068,5 @@ body .theme-dark .dsbl-fx-img { background: none; padding: 0; }
 
 .dsbl-sub-setting { margin-left: 1.5em; }
 .dsbl-sub-setting.dsbl-sub-off { opacity: 0.5; }
+
+.dsbl-res-source { width: 1.1em; height: 1.1em; border: 0; border-radius: 50%; object-fit: cover; opacity: 0.9; cursor: pointer; justify-self: center; }

@@ -228,6 +228,7 @@ const note = (change) => {
   }
 
   const covers = coverOf(after, res);
+  const source = change.source && !(change.source.tokenId && change.source.tokenId === change.who?.tokenId) ? change.source : null;
 
   for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
     const e = list[i];
@@ -238,6 +239,7 @@ const note = (change) => {
     if (why?.length || e.why?.length) break;
     
     if (e.after !== after) break;
+    if (sourceKey(source) !== sourceKey(e.source)) break;
     const before = lossOf(e);
     e.to = to;
     if (res === 'heroic') e.steps = [...(e.steps ?? []), { from, to }].slice(-10);
@@ -286,6 +288,7 @@ const note = (change) => {
     why,
     ...(covers ? { covers: [covers], coverDelta: { [covers]: to - from } } : {}),
     ...(change.hits?.length ? { hits: change.hits } : {}),
+    ...(source ? { source } : {}),
     ...(change.hidden ? { hidden: true } : {}),
   });
   scheduleFlush();
@@ -307,19 +310,66 @@ const noteImmune = (actor, ctx) => {
 };
 
 let _minionHit = null;
+let _minionSource = null;
+
+export const sourceFace = (src) => {
+  if (!src) return null;
+  const doc = (uuid) => (uuid ? fromUuidSync(uuid, { strict: false }) : null);
+  const tokenDoc = doc(src.tokenUuid);
+  const found = doc(src.actorUuid);
+  const actor = tokenDoc?.actor ?? (found instanceof Actor ? found : found?.actor ?? null);
+  const token = tokenDoc ?? (actor ? tokenOf(actor) : null);
+  if (!actor && !src.ability) return null;
+  return {
+    name: String(token?.name ?? actor?.name ?? '').trim(), src: token?.texture?.src ?? actor?.img ?? null,
+    tokenId: token?.id ?? null, sceneId: token?.parent?.id ?? null, ability: src.ability ?? null,
+    hidden: token ? hiddenFromPlayers(token) : false,
+  };
+};
+const sourceKey = (s) => (s ? `${s.tokenId ?? s.name ?? ''}|${s.ability ?? ''}` : '');
+
+const messageSource = (message) => {
+  const sp = message?.speaker ?? {};
+  const use = message?.system?.parts?.contents?.find((p) => p.type === 'abilityUse');
+  return {
+    tokenUuid: sp.scene && sp.token ? `Scene.${sp.scene}.Token.${sp.token}` : null,
+    actorUuid: sp.actor ? `Actor.${sp.actor}` : null,
+    ability: use?.abilityUuid ? (fromUuidSync(use.abilityUuid, { strict: false })?.name ?? null) : null,
+  };
+};
+
+let _applySource = null;
+const wrapApplyDamage = () => {
+  const wrapper = async function (wrapped, event) {
+    const li = event?.currentTarget?.closest?.('[data-message-id]');
+    const outer = _applySource;
+    _applySource = li ? messageSource(game.messages.get(li.dataset.messageId)) : null;
+    try { return await wrapped(event); } finally { _applySource = outer; }
+  };
+  if (globalThis.libWrapper) {
+    libWrapper.register(MODULE_ID, 'ds.rolls.DamageRoll.applyDamageCallback', wrapper, 'WRAPPER');
+    return;
+  }
+  const cls = globalThis.ds?.rolls?.DamageRoll;
+  const original = cls?.applyDamageCallback;
+  if (!original) return;
+  cls.applyDamageCallback = function (event) { return wrapper.call(this, original.bind(this), event); };
+};
 
 const wrapTakeDamage = () => {
   const target = 'ds.data.Actor.BaseActorModel.prototype.takeDamage';
   const wrapper = async function (wrapped, damage, options = {}) {
     const actor = this.parent;
     
+    const source = options?.dsbl?.source ?? _applySource;
     if (actor && this.isMinion) {
-      const outer = _minionHit;
+      const outer = [_minionHit, _minionSource];
       _minionHit = actor.isToken ? actor.token : actor.getActiveTokens(false, true)[0] ?? null;
-      try { return await wrapped(damage, options); } finally { _minionHit = outer; }
+      _minionSource = source;
+      try { return await wrapped(damage, options); } finally { [_minionHit, _minionSource] = outer; }
     }
     if (!actor?.uuid) return wrapped(damage, options);
-    const ctx = { type: options.type || 'untyped', amount: Number(damage) || 0, ignored: [...(options.ignoredImmunities ?? [])] };
+    const ctx = { type: options.type || 'untyped', amount: Number(damage) || 0, ignored: [...(options.ignoredImmunities ?? [])], source };
     _incoming.set(actor.uuid, ctx);
     try {
       const result = await wrapped(damage, options);
@@ -519,6 +569,42 @@ export const registerResourceRecording = ({ currentTurn }) => {
   wrapMalice();
   wrapTurnGain();
   wrapHeroCombatStart();
+  wrapApplyDamage();
+
+  
+  const seenApplications = new Set();
+  Hooks.on('updateChatMessage', (message) => {
+    if (!isDirector() || !setting('resourceLog')) return;
+    const state = message.getFlag?.('draw-steel-target-damage', 'state');
+    if (!state?.applications) return;
+    const source = sourceFace({ tokenUuid: state.sourceTokenUuid, actorUuid: state.sourceActorUuid, ability: state.abilityName || null });
+    if (!source) return;
+    const list = draftList();
+    const now = Date.now();
+    let changed = false;
+    for (const [opId, record] of Object.entries(state.applications)) {
+      for (const r of (Array.isArray(record?.records) ? record.records : [record])) {
+        if (r?.kind !== 'damage' || r?.status !== 'applied' || !(now - Number(r.appliedAt ?? 0) < 10000)) continue;
+        const seen = `${message.id}:${opId}:${r.target?.tokenUuid ?? r.target?.actorUuid ?? ''}`;
+        if (seenApplications.has(seen)) continue;
+        seenApplications.add(seen);
+        const doc = fromUuidSync(r.target?.tokenUuid ?? r.target?.actorUuid ?? '', { strict: false });
+        const actorUuid = (doc?.actor ?? doc)?.uuid;
+        const tokenId = doc?.documentName === 'Token' ? doc.id : null;
+        if (source.tokenId && source.tokenId === tokenId) continue;
+        for (let i = list.length - 1; i >= Math.max(0, list.length - 30); i--) {
+          const e = list[i];
+          const mine = e.key === actorUuid || (tokenId && e.hits?.some((h) => h.tokenId === tokenId));
+          if (!mine || !['stamina', 'temporary'].includes(e.res)) continue;
+          if (now - e.at > 10000) break;
+          if (!e.source) { e.source = source; changed = true; }
+          break;
+        }
+      }
+    }
+    if (seenApplications.size > 400) seenApplications.clear();
+    if (changed) scheduleFlush();
+  });
 
   
   Hooks.on('preCreateChatMessage', (doc) => {
@@ -581,7 +667,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
 
   Hooks.on('preUpdateActor', (actor, _changes, options) => {
     const ctx = _incoming.get(actor.uuid);
-    if (ctx) options.dsblDamage = { type: ctx.type, amount: ctx.amount, ignored: ctx.ignored };
+    if (ctx) options.dsblDamage = { type: ctx.type, amount: ctx.amount, ignored: ctx.ignored, source: ctx.source ?? null };
   });
 
   Hooks.on('updateActor', (actor, changes, options, userId) => {
@@ -602,6 +688,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
     const combat = combatOf(token);
     const base = { key: actor.uuid, userId, who: whoFor(actor, token, combat), inCombat: !!combat, hidden: hiddenFromPlayers(token) };
     const dmg = options?.dsblDamage ?? null;
+    base.source = sourceFace(dmg?.source);
     const type = dmg?.type ?? options?.ds?.damageType ?? null;
     const detail = type ? damageDetail(actor, type, dmg?.amount ?? null, dmg?.ignored) : {};
 
@@ -648,6 +735,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
       userId,
       who,
       hits: hit?.actor ? [who] : null,
+      source: named ? null : sourceFace(_minionSource),
       inCombat: !!combat?.started,
       hidden: hiddenFromPlayers(member),
       ...(type && from !== null && to < from ? damageDetail(member.actor, type, null) : {}),
@@ -803,7 +891,7 @@ const summaryRow = (e) => {
   const heroes = heroItems.length;
   const malice = items.find((it) => it.res === 'malice');
   const parts = [];
-  if (heroes) parts.push(L('summary.heroes', { count: heroes }));
+  if (heroes) parts.push(heroes === 1 ? L('summary.hero') : L('summary.heroes', { count: heroes }));
   if (malice) parts.push(`${L('res.malice')} ${malice.from} → ${malice.to}`);
   const controls = game.user.isGM
     ? `<span class="dsbl-res-controls"><a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a></span>`
@@ -830,11 +918,22 @@ export const resourceRow = (e) => {
     : '');
   
   const many = (e.hits?.length ?? 0) > 1;
-  const face = e.whoIcon
+  const bare = e.whoIcon
     ? `<i class="${WHO_ICONS[e.whoIcon] ?? 'fa-solid fa-circle'} dsbl-res-who-icon dsbl-res-who-${esc(e.whoIcon)}"></i>`
     : many
       ? `<span class="dsbl-fx-faces">${e.hits.slice(0, 3).map(faceOf).join('')}${e.hits.length > 3 ? `<span class="dsbl-fx-more">+${e.hits.length - 3}</span>` : ''}</span>`
       : faceOf(e);
+  
+  const by = e.source && (game.user.isGM || !e.source.hidden) ? e.source : null;
+  const byLabel = by
+    ? (by.name && by.ability ? game.i18n.format('DSBL.EffectLog.fromAbility', { ability: by.ability, source: by.name })
+      : by.name ? game.i18n.format('DSBL.EffectLog.from', { source: by.name })
+        : game.i18n.format('DSBL.EffectLog.by', { ability: by.ability }))
+    : '';
+  const sourceCell = by?.src
+    ? `<img class="dsbl-res-source" src="${esc(by.src)}" alt="" data-tooltip="${esc(byLabel)}"${by.tokenId && by.sceneId ? ` data-ctlib-face="Scene.${esc(by.sceneId)}.Token.${esc(by.tokenId)}"` : ''}>`
+    : '<span class="dsbl-res-source-none"></span>';
+  const face = bare;
 
   const stamina = e.res === 'stamina' || e.res === 'temporary';
   const dtype = e.dtype || (stamina && delta < 0 ? 'untyped' : (e.res === 'stamina' && delta > 0 ? 'healing' : null));
@@ -896,7 +995,7 @@ export const resourceRow = (e) => {
   const fitName = many ? `${e.hits[0].short ?? e.hits[0].name}s` : reasons.length ? (e.by ?? e.name) : e.short;
   const nameTip = !many && reasons.length ? ` data-tooltip="${esc(fullName)}"` : '';
   li.innerHTML = `<span class="dsbl-res-who">${face}<strong class="dsbl-res-name"${nameTip}${fitName && fitName !== fullName ? ` data-full="${esc(fullName)}" data-short="${esc(fitName)}"` : ''}>${esc(fullName)}</strong>${controls}</span>`
-    + icon + deltaCell + type + `<span class="dsbl-res-totals">${totals}</span>`;
+    + icon + deltaCell + type + sourceCell + `<span class="dsbl-res-totals">${totals}</span>`;
   if (e.hidden) li.classList.add('is-concealed');
   return li;
 };
