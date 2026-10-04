@@ -268,3 +268,14 @@ function syncBodyClasses() {
   document.body.classList.toggle('dsbl-flex-buttons', setting('flexButtons'));
   document.body.classList.toggle('dsbl-turn-markers', setting('turnMarkers'));
 }
+
+document.addEventListener('scroll', (event) => {
+  const log = event.target;
+  if (!(log instanceof HTMLElement) || !log.classList.contains('chat-scroll')) return;
+  const pct = log.scrollTop / (log.scrollHeight - log.clientHeight);
+  if (!(pct < 0.01)) return;
+  if (log.closest('.chat-sidebar, #chat, .application')?.querySelector('.jump-to-bottom')?.hidden) return;
+  const loaded = log.querySelectorAll('li.chat-message[data-message-id]').length;
+  if (loaded < game.messages.contents.filter((m) => m.visible).length) return;
+  event.stopPropagation();
+}, { capture: true, passive: true });
