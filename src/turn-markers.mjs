@@ -39,7 +39,13 @@ const isShut = (entry, isCurrent) => {
   if (isCurrent) return false;
   const choice = folds().get(entry.id);
   if (choice) return choice === 'shut';
-  return true;
+  return setting('turnMarkersAutoCollapse') !== false;
+};
+
+const shownKind = (entry) => {
+  if (entry.kind !== 'round') return setting('turnMarkersTurns') !== false;
+  if (entry.mark === 'round') return setting('turnMarkersRounds') !== false;
+  return setting('turnMarkersCombats') !== false;
 };
 
 const setFold = (entry, shut) => {
@@ -357,6 +363,7 @@ export const draw = () => {
 
     const placed = entries
       .map((entry, index) => ({ entry, index, start: entry.after === null ? 0 : (at.get(entry.after) ?? -1) + 1 }))
+      .filter((b) => shownKind(b.entry))
       .filter((b) => b.start > 0 || b.entry.after === null)
       .map((b) => ({ ...b, start: pastEarlierRows(b.start, b.index) }))
       .filter((b) => b.start <= rows.length);

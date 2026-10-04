@@ -116,6 +116,18 @@ Hooks.once('init', () => {
     onChange: () => { syncBodyClasses(); draw(); },
   });
 
+  for (const key of ['turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns', 'turnMarkersAutoCollapse']) {
+    game.settings.register(MODULE_ID, key, {
+      name: `DSBL.Settings.${key}.name`,
+      hint: `DSBL.Settings.${key}.hint`,
+      scope: 'client',
+      config: true,
+      type: Boolean,
+      default: true,
+      onChange: () => draw(),
+    });
+  }
+
   game.settings.register(MODULE_ID, 'resourceLog', {
     name: 'DSBL.Settings.resourceLog.name',
     hint: 'DSBL.Settings.resourceLog.hint',
@@ -233,7 +245,21 @@ Hooks.on('renderSettingsConfig', (_app, html) => {
     h.textContent = game.i18n.localize(`DSBL.Settings.Headers.${header}`);
     el.insertAdjacentElement('beforebegin', h);
   }
+
+  
+  for (const [parent, children] of Object.entries(SUB_SETTINGS)) {
+    const box = root.querySelector(`[name="${MODULE_ID}.${parent}"]`);
+    const groups = children.map((key) => root.querySelector(`[name="${MODULE_ID}.${key}"]`)?.closest('.form-group')).filter(Boolean);
+    for (const g of groups) g.classList.add('dsbl-sub-setting');
+    const sync = () => { for (const g of groups) g.classList.toggle('dsbl-sub-off', !box?.checked); };
+    box?.addEventListener('change', sync);
+    sync();
+  }
 });
+
+const SUB_SETTINGS = {
+  turnMarkers: ['turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns', 'turnMarkersAutoCollapse'],
+};
 
 Hooks.on('renderChatLog', scheduleDraw);
 Hooks.on('renderChatLog', () => { addSpeakerRow(); watchChatLogs(); scheduleBlend(); });
