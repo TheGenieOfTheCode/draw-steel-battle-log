@@ -65,7 +65,7 @@
       },
       "resourceLog": {
         "name": "Resource Log",
-        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. Spending a Recovery is logged in and out of combat. The heart beside Export Chat Log shows or hides both this and the Effect Log for you."
+        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. The heart beside Export Chat Log shows or hides both logs."
       },
       "resourceLogFullInfo": {
         "name": "Show Monster Stamina to Players",
@@ -73,7 +73,7 @@
       },
       "resourceLogOutOfCombat": {
         "name": "Log Outside of Combat",
-        "hint": "Also log changes on tokens that are not in a running encounter."
+        "hint": "Also log resource and effect changes on tokens that are not in a running encounter."
       },
       "resourceLogTokenCards": {
         "name": "Replace Hero Token Cards",
@@ -81,11 +81,11 @@
       },
       "resourceLogTurnGainCards": {
         "name": "Hide Resource Gain Rolls",
-        "hint": "Hides the roll for a hero's Heroic Resource at the start of their turn, Gain links for Heroic Resource and Surges, and Draw Steel - Resources UI gain cards, while a Resource Log line shows the gain. Hover the number to see the roll or reason. With nothing logged (outside of combat, say) or the logs hidden, they show as usual."
+        "hint": "Hide the start of turn Heroic Resource roll, Gain links and Resources UI gain cards when a Resource Log line already shows the gain. Hover the line's number to see the roll."
       },
       "effectLog": {
         "name": "Effect Log",
-        "hint": "Conditions and effects starting and ending on creatures appear in chat as one line entries, with who applied them and why they ended. Players see conditions and effects from abilities on monsters; the Director sees everything. The heart beside Export Chat Log shows or hides both logs for you. Follows Log Outside of Combat."
+        "hint": "Conditions and effects starting and ending appear in chat as one line entries, saying who applied them and why they ended. Players only see the ones from abilities on monsters."
       }
     },
     "powerRoll": {
