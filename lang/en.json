@@ -111,6 +111,7 @@
       "conceal": "Hide from players",
       "reveal": "Show to players",
       "delete": "Delete",
+      "undoGain": "Undo this gain",
       "res": {
         "stamina": "Stamina",
         "temporary": "Temporary Stamina",

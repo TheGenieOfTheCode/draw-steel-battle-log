@@ -451,6 +451,11 @@ const gainTitle = (res) => game.i18n.format('DRAW_STEEL.EDITOR.Enrichers.Gain.Me
 
 const RUI_CARD = 'dsresources-chat-card';
 const ruiGain = (message) => {
+  const own = message.flags?.['draw-steel-triggers']?.resourceGain;
+  if (own) {
+    const num = (v) => (Number.isFinite(Number(v)) && v !== null ? Number(v) : null);
+    return { res: 'heroic', method: own.method ?? '', amount: num(own.amount), previous: num(own.previous), current: num(own.current) };
+  }
   const content = message.content ?? '';
   if (!content.includes(RUI_CARD)) return null;
   const card = Object.assign(document.createElement('div'), { innerHTML: content }).querySelector(`.${RUI_CARD}`);
@@ -912,6 +917,20 @@ const summaryRow = (e) => {
   return li;
 };
 
+const triggersApi = () => {
+  const mod = game.modules.get('draw-steel-triggers');
+  return mod?.active ? mod.api ?? null : null;
+};
+
+const undoableGains = (e) => {
+  const api = triggersApi();
+  if (!api?.canUndoResourceGain) return [];
+  return (e.covers ?? []).filter((id) => {
+    const message = game.messages.get(id);
+    return message && api.canUndoResourceGain(message);
+  });
+};
+
 export const resourceRow = (e) => {
   if (e.res === 'summary') return summaryRow(e);
   const li = document.createElement('li');
@@ -990,12 +1009,16 @@ export const resourceRow = (e) => {
     totals = `${esc(e.from)} → ${esc(e.to)}`;
   }
 
+  const gains = undoableGains(e);
+  const undo = gains.length
+    ? `<a class="dsbl-res-control" data-dsbl-res-undo="${esc(gains.join(','))}" data-tooltip="${esc(L('undoGain'))}"><i class="fa-solid fa-rotate-left" inert></i></a>`
+    : '';
   const controls = game.user.isGM
-    ? `<span class="dsbl-res-controls">`
+    ? `<span class="dsbl-res-controls">${undo}`
       + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" data-tooltip="${esc(L(e.hidden ? 'reveal' : 'conceal'))}"><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
       + `<a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a>`
       + `</span>`
-    : '';
+    : undo ? `<span class="dsbl-res-controls">${undo}</span>` : '';
   const reasons = (e.reasons ?? []).map((k) => {
     const label = globalThis.ds?.CONFIG?.hero?.tokenSpends?.[k]?.label;
     return label ? game.i18n.localize(label) : k;
@@ -1080,7 +1103,18 @@ const editEntry = async (id, change) => {
   await game.settings.set(MODULE_ID, LOG, list);
 };
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
+  const undo = event.target.closest?.('[data-dsbl-res-undo]');
+  if (undo) {
+    event.preventDefault();
+    event.stopPropagation();
+    undo.style.pointerEvents = 'none';
+    for (const id of undo.dataset.dsblResUndo.split(',')) {
+      const message = game.messages.get(id);
+      if (message) await triggersApi()?.undoResourceGain?.(message);
+    }
+    return;
+  }
   const control = event.target.closest?.('[data-dsbl-res-action]');
   if (!control || control.closest('.dsbl-res-row')?.dataset.dsblLog === 'fx') return;
   event.preventDefault();
