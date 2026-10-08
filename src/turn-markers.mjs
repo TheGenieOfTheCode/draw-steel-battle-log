@@ -2,6 +2,7 @@
 
 import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered } from './resource-log.mjs';
 import { readEffectLog, visibleEffect, effectRow, pruneEffectLog } from './effect-log.mjs';
+import { isDirector, primaryGM } from './director.mjs';
 
 export const MODULE_ID = 'draw-steel-battle-log';
 
@@ -10,7 +11,6 @@ const FOLD_KEY = `${MODULE_ID}.turnFolds`;
 const MAX_BOUNDARIES = 300;
 
 const setting = (key) => game.settings.get(MODULE_ID, key);
-const isDirector = () => game.users.activeGM?.isSelf === true;
 
 const LEGACY = 'draw-steel-combat-tools';
 export const olderCombatToolsLogs = () => game.modules.get(LEGACY)?.active === true
@@ -101,7 +101,7 @@ const colourOf = (user) => {
 };
 
 const colourFor = (combatant) => {
-  const director = game.users.activeGM ?? game.users.find((u) => u.isGM);
+  const director = primaryGM() ?? game.users.find((u) => u.isGM);
   const actor = combatant?.actor;
   if (!actor) return colourOf(director);
   const player = game.users.find((u) => !u.isGM && u.character?.id === actor.id)

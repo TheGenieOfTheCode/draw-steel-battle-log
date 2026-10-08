@@ -1,5 +1,6 @@
 import { MODULE_ID } from './collapse.mjs';
 import { tokenOf, combatOf, hiddenFromPlayers, isParty, whoFor, faceStack } from './resource-log.mjs';
+import { isDirector } from './director.mjs';
 
 const LOG = 'effectLogEntries';
 const MAX_ENTRIES = 600;
@@ -8,7 +9,6 @@ const UNDO_MS = 2000;
 const SAVE_MS = 6000;
 
 const setting = (key) => game.settings.get(MODULE_ID, key);
-const isDirector = () => game.users.activeGM?.isSelf === true;
 const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
 const L = (key, data) => (data ? game.i18n.format(`DSBL.EffectLog.${key}`, data) : game.i18n.localize(`DSBL.EffectLog.${key}`));
 
