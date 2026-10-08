@@ -1,4 +1,4 @@
-
+import { isDirector } from './director.mjs';
 
 export const OLD_ID = 'draw-steel-chat-polish';
 export const MIGRATED = 'migratedFromChatPolish';
@@ -19,7 +19,7 @@ export const migrateLocalStorage = (newId) => {
 };
 
 export const migrateWorldSettings = async (newId, key) => {
-  if (!game.users.activeGM?.isSelf) return false;
+  if (!isDirector()) return false;
   const done = game.settings.get(newId, MIGRATED) ?? [];
   if (done.includes(key)) return false;
   let copied = false;

@@ -1,11 +1,11 @@
 import { MODULE_ID } from './collapse.mjs';
+import { isDirector } from './director.mjs';
 
 const LOG = 'resourceLogEntries';
 const MAX_ENTRIES = 600;
 const MERGE_MS = 8000;
 
 const setting = (key) => game.settings.get(MODULE_ID, key);
-const isDirector = () => game.users.activeGM?.isSelf === true;
 const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
 const L = (key, data) => (data ? game.i18n.format(`DSBL.ResourceLog.${key}`, data) : game.i18n.localize(`DSBL.ResourceLog.${key}`));
 
