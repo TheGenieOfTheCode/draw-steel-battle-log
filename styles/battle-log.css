@@ -949,6 +949,8 @@ body:not(.dsbl-res-off) .chat-message.dsbl-covered { display: none !important; }
 .dsbl-res-row:hover .dsbl-res-controls,
 .dsbl-res-row:focus-within .dsbl-res-controls { opacity: 1; pointer-events: all; }
 
+.dsbl-fx-row:has(.dsbl-fx-source) .dsbl-res-controls { right: calc(6px + 1.15em + 4px); z-index: 1; }
+
 .dsbl-res-control { color: var(--dsbl-res-subtle); }
 .dsbl-res-control:hover { color: var(--dsbl-res-ink); }
 
