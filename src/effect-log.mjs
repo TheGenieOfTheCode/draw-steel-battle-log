@@ -219,6 +219,34 @@ const markSaved = (matches, messageId) => {
 
 const _ended = new Map();
 
+const coverEndMessage = (message) => {
+  const effectUuid = message.flags?.[CT]?.grabEnded?.effectUuid;
+  if (!effectUuid) return false;
+  const list = draftList();
+  const now = Date.now();
+  for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
+    const e = list[i];
+    if (e.phase !== 'end' || now - e.at > SAVE_MS) continue;
+    if (!e.targets.some((t) => t.effect === effectUuid)) continue;
+    e.covers = [...new Set([...(e.covers ?? []), message.id])];
+    scheduleFlush();
+    return true;
+  }
+  return false;
+};
+
+export const effectCovers = () => {
+  const out = new Set();
+  if (!setting('effectLog')) return out;
+  for (const e of readEffectLog()) {
+    if (!visibleEffect(e)) continue;
+    for (const id of e.covers ?? []) out.add(id);
+  }
+  return out;
+};
+
+export const coversEnd = (message) => !!message.flags?.[CT]?.grabEnded;
+
 export const registerEffectRecording = ({ currentTurn }) => {
   _currentTurn = currentTurn;
 
@@ -249,6 +277,7 @@ export const registerEffectRecording = ({ currentTurn }) => {
 
   Hooks.on('createChatMessage', (message) => {
     if (!isDirector()) return;
+    if (coverEndMessage(message)) return;
     const parts = [...(message.system?.parts?.contents ?? message.system?.parts ?? [])];
     let linked = false;
     for (const part of parts) {

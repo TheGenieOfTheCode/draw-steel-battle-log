@@ -1,5 +1,6 @@
 import { MODULE_ID } from './collapse.mjs';
 import { isDirector } from './director.mjs';
+import { effectCovers, coversEnd } from './effect-log.mjs';
 
 const LOG = 'resourceLogEntries';
 const MAX_ENTRIES = 600;
@@ -1044,10 +1045,16 @@ const coverState = () => {
     lines.add(e.id);
     for (const id of e.covers ?? []) messages.add(id);
   }
+  for (const id of effectCovers()) messages.add(id);
   return { messages, lines };
 };
 
 const isCovered = (message, state) => {
+  if (coversEnd(message)) {
+    if (!setting('effectLog')) return false;
+    if (state.messages.has(message.id)) return true;
+    return Date.now() - (message.timestamp ?? 0) < PENDING_MS && (anyCombat() || setting('resourceLogOutOfCombat'));
+  }
   if (!setting('resourceLog')) return false;
   const card = message.flags?.[MODULE_ID]?.coveredBy;
   if (card) return replacesTokenCards() && state.lines.has(card);
