@@ -101,7 +101,7 @@ export const sourceOf = (effect) => {
   };
   if (!actor) {
     const ct = flagsOf(effect, CT);
-    actor = actorFrom(ct.frightened?.sourceActorId ?? ct.taunted?.sourceActorId ?? ct.judgement?.actorId ?? ct.mark?.actorId ?? ct.flatAppliedSource?.actorId)
+    actor = actorFrom(ct.judgement?.actorId ?? ct.mark?.actorId ?? ct.flatAppliedSource?.actorId)
       ?? fromUuidActor(typeof effect.system?.source === 'string' ? effect.system.source : null);
   }
   if (!actor) {
@@ -117,7 +117,7 @@ export const sourceOf = (effect) => {
 
 const ctCondition = (effect) => {
   const ct = flagsOf(effect, CT);
-  return !!(ct.frightened || ct.taunted || ct.judgement || ct.mark || ct.grabbed || ct.flatAppliedFrom);
+  return !!(ct.judgement || ct.mark || ct.flatAppliedFrom);
 };
 const publicEffect = (effect, source) => isCondition(effect) || ctCondition(effect) || !!source?.isAbility || !!source?.ability;
 
