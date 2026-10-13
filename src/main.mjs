@@ -2,7 +2,7 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
-import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteDeletion, olderCombatToolsLogs, currentTurn, watchClearAll } from './turn-markers.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteMessage, olderCombatToolsLogs, currentTurn, watchClearAll } from './turn-markers.mjs';
 import { registerResourceRecording, addResourceToggle, syncResourceToggle, markCovered } from './resource-log.mjs';
 import { registerEffectRecording } from './effect-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
@@ -266,7 +266,7 @@ Hooks.on('renderChatLog', () => { addSpeakerRow(); watchChatLogs(); scheduleBlen
 
 Hooks.on('canvasReady', scheduleDraw);
 
-Hooks.on('preDeleteChatMessage', noteDeletion);
+Hooks.on('createChatMessage', noteMessage);
 Hooks.on('deleteChatMessage', () => { scheduleDraw(); schedulePrune(); });
 
 Hooks.on('renderChatMessageHTML', (message, html) => {

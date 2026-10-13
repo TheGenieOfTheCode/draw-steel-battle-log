@@ -1,6 +1,6 @@
 
 
-import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered } from './resource-log.mjs';
+import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown } from './resource-log.mjs';
 import { readEffectLog, visibleEffect, effectRow, pruneEffectLog } from './effect-log.mjs';
 
 export const MODULE_ID = 'draw-steel-battle-log';
@@ -302,18 +302,40 @@ const logElement = () => {
 
 let _drawing = false;
 
+const TOP_ROW = 'dsbl-log-top';
+const keepTopRow = (log) => {
+  let top = log.querySelector(`:scope > .${TOP_ROW}`);
+  if (!top) {
+    top = document.createElement('li');
+    top.className = `message ${TOP_ROW}`;
+    top.setAttribute('aria-hidden', 'true');
+  }
+  if (log.firstElementChild !== top) log.prepend(top);
+};
+
+const KINDS = /^dsbl-turn-(start|end|round|roundend)$/;
+const selectorFor = (el) => {
+  if (el.dataset.messageId) return `[data-message-id="${el.dataset.messageId}"]`;
+  if (el.dataset.dsblRes) return `.dsbl-res-row[data-dsbl-res="${el.dataset.dsblRes}"]`;
+  const kind = [...el.classList].find((c) => KINDS.test(c));
+  if (kind && el.dataset.dscpTurn) return `.dsbl-turn-marker.${kind}[data-dscp-turn="${el.dataset.dscpTurn}"]`;
+  return null;
+};
+
 export const draw = () => {
   if (_drawing) return;
   const log = logElement();
   if (!log) return;
 
-  
   const scroller = log.closest('.chat-scroll') ?? log;
   const atBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 4;
   let anchor = null;
   if (!atBottom) {
-    for (const row of log.querySelectorAll(':scope > .chat-message[data-message-id]')) {
-      if (row.offsetTop + row.offsetHeight > scroller.scrollTop) { anchor = { row, above: row.offsetTop - scroller.scrollTop }; break; }
+    for (const row of log.children) {
+      if (row.offsetParent === null || row.classList.contains(TOP_ROW)) continue;
+      if (row.offsetTop + row.offsetHeight <= scroller.scrollTop) continue;
+      const selector = selectorFor(row);
+      if (selector) { anchor = { selector, above: row.offsetTop - scroller.scrollTop }; break; }
     }
   }
 
@@ -348,6 +370,7 @@ export const draw = () => {
     };
 
     const entries = readBoundaries();
+    const fromStart = logStartShown(log);
     const order = new Map(entries.map((e, i) => [e.id, i]));
     const resTurn = new Map(resEntries.map((e) => [e.id, e.turn]));
     const pastEarlierRows = (start, index) => {
@@ -364,7 +387,7 @@ export const draw = () => {
     const placed = entries
       .map((entry, index) => ({ entry, index, start: entry.after === null ? 0 : (at.get(entry.after) ?? -1) + 1 }))
       .filter((b) => shownKind(b.entry))
-      .filter((b) => b.start > 0 || b.entry.after === null)
+      .filter((b) => b.start > 0 || (b.entry.after === null && fromStart))
       .map((b) => ({ ...b, start: pastEarlierRows(b.start, b.index) }))
       .filter((b) => b.start <= rows.length);
 
@@ -491,8 +514,14 @@ export const draw = () => {
     }
   } finally {
     _drawing = false;
+    keepTopRow(log);
     if (atBottom) scroller.scrollTop = scroller.scrollHeight;
-    else if (anchor?.row?.isConnected) scroller.scrollTop = anchor.row.offsetTop - anchor.above;
+    else if (anchor) {
+      
+      let row = log.querySelector(`:scope > ${anchor.selector}`);
+      while (row && row.offsetParent === null) row = row.previousElementSibling;
+      if (row) scroller.scrollTop = row.offsetTop - anchor.above;
+    }
   }
 };
 
@@ -503,25 +532,22 @@ export const scheduleDraw = () => {
   _pending = setTimeout(() => { _pending = null; draw(); }, 80);
 };
 
-const _movedTo = new Map();
+let _order = null;
 
-export const noteDeletion = (message) => {
-  if (!isDirector()) return;
-  const all = game.messages.contents;
-  const i = all.findIndex((m) => m.id === message.id);
-  _movedTo.set(message.id, i > 0 ? all[i - 1].id : null);
+export const noteMessage = (message) => {
+  if (_order && isDirector()) _order.push(message.id);
 };
 
 const survivingAnchor = (after) => {
-  const seen = new Set();
-  let at = after;
-  while (at !== null && !game.messages.has(at)) {
-    if (seen.has(at)) return null;
-    seen.add(at);
-    if (!_movedTo.has(at)) return null;
-    at = _movedTo.get(at);
-  }
-  return at;
+  if (after === null || game.messages.has(after)) return after;
+  const i = _order?.indexOf(after) ?? -1;
+  if (i < 0) return after;
+  for (let j = i - 1; j >= 0; j--) if (game.messages.has(_order[j])) return _order[j];
+  return null;
+};
+
+export const rememberOrder = () => {
+  if (isDirector()) _order = game.messages.contents.map((m) => m.id);
 };
 
 export const pruneEmptySections = async () => {
@@ -577,7 +603,7 @@ export const pruneBoundaries = async ({ cleared = false } = {}) => {
 
   await pruneResourceLog(survivingAnchor, empty);
   await pruneEffectLog(survivingAnchor, empty);
-  _movedTo.clear();
+  rememberOrder();
   if (changed) await game.settings.set(MODULE_ID, BOUNDARIES, kept);
 };
 
