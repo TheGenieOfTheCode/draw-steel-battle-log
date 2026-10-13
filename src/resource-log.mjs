@@ -1083,13 +1083,19 @@ export const markCovered = (message, html) => {
   }
 };
 
+export const logStartShown = (log) => {
+  const first = game.messages.contents.find((m) => m.visible);
+  return !first || !!log.querySelector(`:scope > [data-message-id="${first.id}"]`);
+};
+
 export const placeResourceRows = (log, entries, rowFor = resourceRow) => {
   if (!entries.length) return;
   const messages = new Map([...log.querySelectorAll(':scope > .chat-message[data-message-id]')].map((li) => [li.dataset.messageId, li]));
+  const fromStart = logStartShown(log);
   const lastFor = new Map();
   for (const e of entries) {
     const anchor = e.after === null ? null : messages.get(e.after);
-    if (e.after !== null && !anchor) continue;
+    if (e.after !== null ? !anchor : !fromStart) continue;
     const row = rowFor(e);
     const prev = lastFor.get(e.after) ?? anchor;
     if (prev) prev.after(row);
