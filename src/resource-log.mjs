@@ -839,8 +839,9 @@ const WHO_ICONS = {
   heroTokens: 'fa-solid fa-users',
 };
 
-export const fitNames = (log) => {
-  const names = [...log.querySelectorAll('.dsbl-res-name[data-short]')];
+export const fitNames = (scope) => {
+  const SEL = '.dsbl-res-name[data-short]';
+  const names = Array.isArray(scope) ? scope.flatMap((el) => [...(el.matches?.(SEL) ? [el] : []), ...el.querySelectorAll(SEL)]) : [...scope.querySelectorAll(SEL)];
   for (const name of names) name.textContent = name.dataset.full;
   const tight = names.filter((name) => name.offsetParent && name.scrollWidth > name.clientWidth + 1);
   for (const name of tight) name.textContent = name.dataset.short;
@@ -1086,6 +1087,7 @@ export const placeResourceRows = (log, entries, rowFor = resourceRow) => {
   const messages = new Map([...log.querySelectorAll(':scope > .chat-message[data-message-id]')].map((li) => [li.dataset.messageId, li]));
   const fromStart = logStartShown(log);
   const lastFor = new Map();
+  const placed = [];
   for (const e of entries) {
     const anchor = e.after === null ? null : messages.get(e.after);
     if (e.after !== null ? !anchor : !fromStart) continue;
@@ -1094,8 +1096,9 @@ export const placeResourceRows = (log, entries, rowFor = resourceRow) => {
     if (prev) prev.after(row);
     else log.prepend(row);
     lastFor.set(e.after, row);
+    placed.push(row);
   }
-  fitNames(log);
+  fitNames(placed);
   watchWidth(log);
 };
 
@@ -1129,10 +1132,12 @@ document.addEventListener('click', async (event) => {
   if (id) editEntry(id, control.dataset.dsblResAction);
 });
 
+let _lastShown = null;
 export const syncResourceToggle = () => {
   const shown = setting('resourceLogShown') !== false;
   document.body.classList.toggle('dsbl-res-off', !shown);
-  if (shown) for (const log of document.querySelectorAll('.chat-log')) fitNames(log);
+  if (shown && _lastShown !== true) for (const log of document.querySelectorAll('.chat-log')) fitNames(log);
+  _lastShown = shown;
   for (const btn of document.querySelectorAll('.dsbl-res-toggle')) {
     btn.setAttribute('aria-pressed', String(!shown));
     btn.dataset.tooltip = L('hide');
