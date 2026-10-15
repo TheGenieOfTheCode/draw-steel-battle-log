@@ -590,7 +590,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
   const seenApplications = new Set();
   Hooks.on('updateChatMessage', (message) => {
     if (!isDirector() || !setting('resourceLog')) return;
-    const state = message.getFlag?.('draw-steel-target-damage', 'state');
+    const state = message.flags?.['draw-steel-target-damage']?.state;
     if (!state?.applications) return;
     const source = sourceFace({ tokenUuid: state.sourceTokenUuid, actorUuid: state.sourceActorUuid, ability: state.abilityName || null });
     if (!source) return;
