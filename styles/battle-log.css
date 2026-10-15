@@ -688,6 +688,33 @@ body .theme-dark .dsbl-turn-marker {
   min-width: 0;
 }
 
+.dsbl-speaker-row {
+  --dsbl-row-bg: var(--color-cool-5-75);
+  --dsbl-row-border: var(--color-cool-4);
+  --dsbl-row-hover-bg: var(--color-cool-5);
+  --dsbl-row-hover-border: var(--color-cool-3);
+}
+
+body .theme-light .dsbl-speaker-row {
+  --dsbl-row-bg: rgba(255, 255, 255, 0.6);
+  --dsbl-row-border: rgba(255, 255, 255, 0.8);
+  --dsbl-row-hover-bg: rgba(255, 255, 255, 0.85);
+  --dsbl-row-hover-border: rgba(255, 255, 255, 0.9);
+}
+
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-speaker-row > :is(.dsbl-speaker, .dsbl-targets) {
+  background: var(--dsbl-row-bg);
+  border-color: var(--dsbl-row-border);
+}
+
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-speaker-row > :is(.dsbl-speaker, .dsbl-targets):not(:disabled):hover {
+  background: var(--dsbl-row-hover-bg);
+  border-color: var(--dsbl-row-hover-border);
+}
+
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-speaker-row > .dsbl-targets:disabled { opacity: 1; }
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-speaker-row > .dsbl-targets:disabled > i { opacity: 0.45; }
+
 .dsbl-targets {
   flex: 0 0 auto;
   width: 28px;
