@@ -374,6 +374,8 @@ body.dsbl-power-roll .theme-dark .chat-message .dsbl-pr-die {
   --dsbl-turn-ink: #5d5566;
   --dsbl-turn-ink-lit: #241f2b;
   --dsbl-turn-wash: rgba(0, 0, 0, 0.05);
+  --dsbl-turn-backing: #ebe4d6;
+  --dsbl-turn-backing-edge: #c9bfae;
 
   display: flex;
   align-items: center;
@@ -397,6 +399,23 @@ body .theme-dark .dsbl-turn-marker {
   --dsbl-turn-ink: #b0a7bd;
   --dsbl-turn-ink-lit: #f2ecf8;
   --dsbl-turn-wash: rgba(255, 255, 255, 0.07);
+  --dsbl-turn-backing: #1c1924;
+  --dsbl-turn-backing-edge: #302831;
+}
+
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-turn-marker {
+  background: var(--dsbl-turn-backing);
+  border: 1px solid var(--dsbl-turn-backing-edge);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-turn-marker:hover {
+  background: color-mix(in srgb, var(--dsbl-turn-backing) 88%, var(--dsbl-turn-ink-lit));
+}
+
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-turn-end,
+.chat-sidebar:not(.with-background, .sidebar-popout) .dsbl-turn-end:hover {
+  opacity: 1;
 }
 
 .dsbl-turn-rule {
