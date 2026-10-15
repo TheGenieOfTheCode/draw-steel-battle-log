@@ -322,6 +322,74 @@ const selectorFor = (el) => {
   return null;
 };
 
+let _last = null;
+
+const drawSignature = (log) => JSON.stringify([setting('resourceLog'), setting('effectLog'), setting('turnMarkers'), olderCombatToolsLogs(),
+  document.body.classList.contains('dsbl-res-off'), logStartShown(log), readBoundaries(), [...folds()]]);
+
+const logEntries = () => [
+  ...(setting('resourceLog') ? readResourceLog().filter(visibleEntry) : []),
+  ...(setting('effectLog') ? readEffectLog().filter(visibleEffect) : []),
+].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+
+const rowOf = (e) => (e.kind === 'fx' ? effectRow(e) : resourceRow(e));
+const messageRows = (log) => [...log.querySelectorAll(':scope > .chat-message[data-message-id]')];
+const TURN_CLASSES = ['dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden'];
+
+const remember = (log, sig, current) => {
+  const lis = messageRows(log);
+  const assign = new Map();
+  for (const li of lis) {
+    if (li.dataset.dscpTurn === undefined) continue;
+    assign.set(li.dataset.messageId, { turn: li.dataset.dscpTurn, cls: TURN_CLASSES.filter((c) => li.classList.contains(c)) });
+  }
+  const entries = logEntries();
+  _last = { log, sig, current, assign, ids: lis.map((li) => li.dataset.messageId), res: entries.map((e) => e.id), resJson: JSON.stringify(entries),
+    markers: log.querySelectorAll(':scope > .dsbl-turn-marker').length, rows: log.querySelectorAll(':scope > .dsbl-res-row').length };
+};
+
+const appendOnly = (log, scroller, atBottom) => {
+  if (!_last || _last.log !== log || _last.current === false) return false;
+  const sig = drawSignature(log);
+  if (sig !== _last.sig) return false;
+  if (log.querySelectorAll(':scope > .dsbl-turn-marker').length !== _last.markers || log.querySelectorAll(':scope > .dsbl-res-row').length !== _last.rows) return false;
+  const lis = messageRows(log);
+  const ids = lis.map((li) => li.dataset.messageId);
+  const n = _last.ids.length;
+  if (ids.length < n || _last.ids.some((id, i) => ids[i] !== id)) return false;
+  const entries = logEntries();
+  const m = _last.res.length;
+  if (entries.length < m || JSON.stringify(entries.slice(0, m)) !== _last.resJson) return false;
+  const fresh = new Set(ids.slice(n));
+  const added = entries.slice(m);
+  if (added.some((e) => !fresh.has(e.after))) return false;
+  _drawing = true;
+  try {
+    placeResourceRows(log, added, rowOf);
+    refreshCovered();
+    const tag = (el) => { if (!_last.current) return; el.classList.add('dsbl-in-turn'); el.dataset.dscpTurn = _last.current; };
+    for (const li of lis.slice(n)) tag(li);
+    for (const e of added) {
+      const row = log.querySelector(`:scope > .dsbl-res-row[data-dsbl-res="${CSS.escape(e.id)}"]`);
+      if (row) tag(row);
+    }
+    
+    for (let i = 0; i < n; i++) {
+      const li = lis[i];
+      const was = li.dataset.dscpTurn === undefined ? _last.assign.get(ids[i]) : null;
+      if (!was) continue;
+      li.classList.add(...was.cls);
+      li.dataset.dscpTurn = was.turn;
+    }
+    remember(log, sig, _last.current);
+  } finally {
+    _drawing = false;
+    keepTopRow(log);
+    if (atBottom) scroller.scrollTop = scroller.scrollHeight;
+  }
+  return true;
+};
+
 export const draw = () => {
   if (_drawing) return;
   const log = logElement();
@@ -329,6 +397,11 @@ export const draw = () => {
 
   const scroller = log.closest('.chat-scroll') ?? log;
   const atBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 4;
+  if (appendOnly(log, scroller, atBottom)) return;
+  _last = null;
+  const sig = drawSignature(log);
+  let current = null;
+  let drawn = false;
   let anchor = null;
   if (!atBottom) {
     for (const row of log.children) {
@@ -346,13 +419,10 @@ export const draw = () => {
       li.classList.remove('dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden');
       delete li.dataset.dscpTurn;
     }
-    const resEntries = [
-      ...(setting('resourceLog') ? readResourceLog().filter(visibleEntry) : []),
-      ...(setting('effectLog') ? readEffectLog().filter(visibleEffect) : []),
-    ].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
-    placeResourceRows(log, resEntries, (e) => (e.kind === 'fx' ? effectRow(e) : resourceRow(e)));
+    const resEntries = logEntries();
+    placeResourceRows(log, resEntries, rowOf);
     refreshCovered();
-    if (!setting('turnMarkers') || olderCombatToolsLogs()) return;
+    if (!setting('turnMarkers') || olderCombatToolsLogs()) { drawn = true; return; }
 
     const rows = [...log.querySelectorAll(':scope > .chat-message[data-message-id], :scope > .dsbl-res-row')];
     const at = new Map(rows.filter((li) => li.dataset.messageId).map((li) => [li.dataset.messageId, rows.indexOf(li)]));
@@ -416,6 +486,7 @@ export const draw = () => {
       if (end === start && !isCurrent) continue;
 
       const hidden = isShut(entry, isCurrent);
+      if (isCurrent) current = hidden ? false : entry.id;
       const head = marker(entry, 'start', isCurrent);
       head.classList.toggle('dsbl-turn-shut', hidden);
 
@@ -512,16 +583,18 @@ export const draw = () => {
         line.prepend(twin);
       }
     }
+    drawn = true;
   } finally {
     _drawing = false;
     keepTopRow(log);
     if (atBottom) scroller.scrollTop = scroller.scrollHeight;
     else if (anchor) {
-      
+
       let row = log.querySelector(`:scope > ${anchor.selector}`);
       while (row && row.offsetParent === null) row = row.previousElementSibling;
       if (row) scroller.scrollTop = row.offsetTop - anchor.above;
     }
+    if (drawn) remember(log, sig, current);
   }
 };
 
