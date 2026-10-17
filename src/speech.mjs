@@ -67,6 +67,9 @@ function resolveChoice(pick = choice()) {
   return controlled.length === 1 && controlled[0].actor ? ofToken(controlled[0].document) : self();
 }
 
+const CGMP = { DESC: 1, AS: 2, OOC: 3 };
+const isDescription = message => message.flags?.cgmp?.subType === CGMP.DESC;
+
 let _pending = null;
 const ROLL_COMMAND = /^\/(r|roll|gmr|gmroll|br|broll|blindroll|sr|selfroll|pr|publicroll|macro|m)\b/i;
 
@@ -83,6 +86,10 @@ Hooks.on('preCreateChatMessage', (doc, _data, _options, userId) => {
   if (!pending || userId !== game.user.id || Date.now() - pending.at > 2000) return;
   if (doc.rolls?.length || doc.system?.parts?.size) return;
   const styles = STYLES();
+  
+  const cgmp = doc.flags?.cgmp?.subType;
+  if (cgmp === CGMP.DESC || cgmp === CGMP.AS) return;
+  if (cgmp === CGMP.OOC) return void doc.updateSource({ speaker: resolveChoice({ kind: 'self' }).speaker, style: styles.OOC });
   const update = { speaker: pending.speaker };
   if (doc.style !== styles.EMOTE) update.style = pending.character ? styles.IC : styles.OOC;
   doc.updateSource(update);
@@ -239,7 +246,7 @@ function playerOf(message) {
 
 function isSpeech(message, root) {
   const styles = STYLES();
-  if (![styles.OOC, styles.IC, styles.EMOTE].includes(message.style)) return false;
+  if (![styles.OOC, styles.IC, styles.EMOTE].includes(message.style) && !isDescription(message)) return false;
   if (message.rolls?.length || message.system?.parts?.size || message.flavor) return false;
   if (message.type && message.type !== 'base') return false;
   const content = root.querySelector('.message-content');
@@ -250,7 +257,7 @@ export function renderSpeech(message, html) {
   const root = html instanceof HTMLElement ? html : html?.[0];
   if (!root || root.dataset.dsblSpeech || !isSpeech(message, root)) return;
   const styles = STYLES();
-  const kind = message.style === styles.EMOTE ? 'emote' : message.whisper?.length ? 'whisper' : 'say';
+  const kind = isDescription(message) ? 'desc' : message.style === styles.EMOTE ? 'emote' : message.whisper?.length ? 'whisper' : 'say';
   const name = message.alias || message.author?.name || '';
   const face = speakerOf(message);
   const content = root.querySelector('.message-content');
@@ -259,6 +266,7 @@ export function renderSpeech(message, html) {
   root.dataset.dsblSpeaker = [message.author?.id, message.speaker?.token, message.speaker?.actor, name, kind].join('|');
   root.dataset.dsblTime = String(message.timestamp ?? 0);
   root.classList.add('dsbl-speech', `dsbl-speech-${kind}`);
+  if (kind === 'desc') return void scheduleBlend();
   if (message.style !== styles.OOC) {
     const color = playerOf(message)?.color;
     if (color) root.style.borderColor = color.css ?? String(color);
@@ -278,7 +286,66 @@ export function renderSpeech(message, html) {
   const first = content.querySelector(':scope > p') ?? content;
   first.prepend(lead, document.createTextNode(' '));
   if (setting('mentionNames')) markMentions(content);
+  if (message.flags?.polyglot?.language) watchPolyglot(root, content, lead, message);
   scheduleBlend();
+}
+
+
+const polyglotSwapped = new Set();
+
+document.addEventListener('click', (event) => {
+  const content = event.target.closest?.('.dsbl-polyglot-understood > .message-content');
+  if (!content || event.target.closest('a, button, [data-ctlib-face]') || String(window.getSelection?.() ?? '')) return;
+  const root = content.closest('.chat-message');
+  const id = root.dataset.messageId;
+  if (polyglotSwapped.has(id)) polyglotSwapped.delete(id);
+  else polyglotSwapped.add(id);
+  for (const el of document.querySelectorAll(`.chat-message.dsbl-polyglot-understood[data-message-id="${id}"]`)) {
+    el.classList.toggle('dsbl-polyglot-swapped', polyglotSwapped.has(id));
+  }
+});
+
+function watchPolyglot(root, content, lead, message) {
+  root.classList.add('dsbl-speech-polyglot');
+  const place = () => {
+    const runes = content.querySelector(':scope > .polyglot-original-text');
+    if (!runes) return false;
+    const real = content.querySelector(':scope > .polyglot-translation-text');
+    root.classList.toggle('dsbl-polyglot-understood', !!real);
+    root.classList.toggle('dsbl-polyglot-swapped', !!real && polyglotSwapped.has(root.dataset.messageId));
+    if (real) {
+      (real.querySelector(':scope > p') ?? real).prepend(lead, document.createTextNode(' '));
+      if (setting('mentionNames')) markMentions(real);
+      
+      const spacer = lead.cloneNode(true);
+      spacer.className = 'dsbl-polyglot-spacer';
+      spacer.setAttribute('aria-hidden', 'true');
+      for (const el of spacer.querySelectorAll('[data-ctlib-face]')) el.removeAttribute('data-ctlib-face');
+      (runes.querySelector(':scope > p') ?? runes).prepend(spacer, document.createTextNode(' '));
+    } else content.before(lead, document.createTextNode(' '));
+    return true;
+  };
+  if (place()) return;
+  const watch = new MutationObserver(() => { if (place()) watch.disconnect(); });
+  watch.observe(content, { childList: true });
+  queueMicrotask(() => coverPolyglotLeak(content, message));
+}
+
+
+function coverPolyglotLeak(content, message) {
+  const pg = game.polyglot;
+  const lang = message.flags?.polyglot?.language;
+  if (!pg || !lang || content.querySelector(':scope > .polyglot-original-text')) return;
+  if (message.polyglot_unknown === undefined && !game.ready) {
+    Hooks.once('polyglot.languageProvider.ready', () => queueMicrotask(() => coverPolyglotLeak(content, message)));
+    return;
+  }
+  if (!message.polyglot_unknown || message.polyglot_force || game.settings.get('polyglot', 'display-translated')) return;
+  const runes = document.createElement('div');
+  runes.className = 'polyglot-original-text';
+  runes.style.font = pg._getFontStyle(lang);
+  runes.innerHTML = pg.scrambleString(message.content, message.id, lang);
+  content.replaceChildren(runes);
 }
 
 function mentionTargets() {

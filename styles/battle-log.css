@@ -846,6 +846,15 @@ body .theme-light .dsbl-speaker-row {
 
 .chat-message.dsbl-speech > .message-header :is(.message-sender, .whisper-to, .flavor-text) { display: none; }
 
+body.dsp-improved-chat :is(.chat-sidebar, #chat-notifications, .chat-popout) .chat-message.dsbl-speech > .message-header {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  margin: 0;
+}
+
+body.dsp-improved-chat :is(.chat-sidebar, #chat-notifications, .chat-popout) .chat-message.dsbl-speech > .message-header :is(.message-sender, .whisper-to, .flavor-text) { display: none; }
+
 .chat-message.dsbl-speech > .message-header .message-metadata {
   opacity: 0;
   transition: opacity 120ms ease-out;
@@ -859,6 +868,74 @@ body .theme-light .dsbl-speaker-row {
 .dsbl-speech-lead { white-space: nowrap; }
 
 .chat-message.dsbl-speech-emote .message-content { font-style: italic; }
+
+.chat-message.dsbl-speech-desc .message-content { font-style: italic; text-align: center; }
+
+.chat-message.dsbl-speech-polyglot:not(.dsbl-polyglot-understood) { display: block; }
+
+.chat-message.dsbl-speech-polyglot:not(.dsbl-polyglot-understood) > .message-content,
+.chat-message.dsbl-speech-polyglot:not(.dsbl-polyglot-understood) .polyglot-original-text,
+.chat-message.dsbl-speech-polyglot:not(.dsbl-polyglot-understood) .polyglot-original-text > p:first-child { display: inline; }
+
+.chat-message.dsbl-polyglot-understood > .message-content { display: grid; }
+
+.chat-message.dsbl-polyglot-understood > .message-content > :is(.polyglot-original-text, .polyglot-translation-text) { grid-area: 1 / 1; }
+
+.chat-message.dsbl-polyglot-understood .polyglot-original-text {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  contain: size;
+  overflow: hidden;
+  color: var(--dsbl-polyglot-ink);
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+
+.theme-dark { --dsbl-polyglot-ink: rgb(214, 168, 64); }
+.theme-light { --dsbl-polyglot-ink: rgb(140, 95, 10); }
+
+body.dsp-improved-chat .chat-message { --dsbl-polyglot-ink: rgb(214, 168, 64); }
+
+.chat-message.dsbl-polyglot-understood > .message-content { cursor: pointer; }
+
+.chat-message.dsbl-polyglot-swapped .polyglot-original-text {
+  contain: none;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+  color: inherit;
+  opacity: 1;
+}
+
+.chat-message.dsbl-polyglot-swapped .polyglot-translation-text {
+  contain: size;
+  overflow: hidden;
+  color: var(--dsbl-polyglot-ink);
+  opacity: 0.35;
+  user-select: none;
+}
+
+.chat-message.dsbl-polyglot-swapped .polyglot-translation-text .dsbl-speech-lead { visibility: hidden; }
+.chat-message.dsbl-polyglot-swapped .dsbl-polyglot-spacer { visibility: visible; }
+
+.dsbl-polyglot-spacer {
+  visibility: hidden;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.chat-message.dsbl-speech-cont .dsbl-polyglot-spacer { display: none; }
+
+.chat-message.dsbl-speech-polyglot :is(.polyglot-original-text, .polyglot-translation-text) > p { margin: 0; }
+
+.chat-message.dsbl-polyglot-understood .polyglot-translation-text {
+  position: relative;
+  border-top: 0;
+}
+
+body:not(.dsp-improved-chat) :is(#chat-log, .chat-log) .chat-message.dsbl-speech-desc.cgmp-desc { background: revert-layer; }
+:is(#chat-log, .chat-log) .chat-message.dsbl-speech-desc.cgmp-desc .message-content { color: inherit; }
 
 .chat-message.dsbl-speech-cont {
   margin-top: -4px;
@@ -876,6 +953,23 @@ body .theme-light .dsbl-speaker-row {
 }
 
 .chat-message.dsbl-speech-cont .dsbl-speech-lead { display: none; }
+
+body.dsp-improved-chat :is(.chat-sidebar, #chat-notifications, .chat-popout) .chat-message.dsbl-speech:has(+ .dsbl-speech-cont) {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom-width: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+body.dsp-improved-chat :is(.chat-sidebar, #chat-notifications, .chat-popout) .chat-message.dsbl-speech-cont {
+  clip-path: inset(0 -16px -16px -16px);
+  margin-top: 0;
+  padding-top: 0;
+  border-top-width: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
 
 .dsbl-mention { white-space: nowrap; }
 
