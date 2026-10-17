@@ -13,8 +13,8 @@
         "hint": "Settings for compatibility with other installed modules."
       },
       "darkChat": {
-        "name": "Dark Theme Chat Cards",
-        "hint": "Recolours the default Draw Steel chat cards, buttons and embeds to match the Foundry dark theme."
+        "name": "Dark Theme Chat Messages",
+        "hint": "Recolours the default Draw Steel chat messages, buttons and embeds to match the Foundry dark theme."
       },
       "compactAbilities": {
         "name": "Compact Ability Details",
@@ -22,11 +22,11 @@
       },
       "collapsibleAbilities": {
         "name": "Click Ability Name to Collapse",
-        "hint": "Clicking the name of an ability in chat collapses the card down to just its name. Remembered between reloads."
+        "hint": "Clicking the name of an ability in chat collapses its ability message down to just its name. Remembered between reloads."
       },
       "flexButtons": {
         "name": "Full Width Chat Buttons",
-        "hint": "Chat card buttons fill the width of the message, sharing a row when two or three fit, and always using the fewest rows with the most even split."
+        "hint": "Buttons in chat messages fill the width of the message, sharing a row when two or three fit, and always using the fewest rows with the most even split."
       },
       "powerRollResults": {
         "name": "Collapsible Power Roll Results",
@@ -57,7 +57,7 @@
         "hint": "A row above the chat buttons shows who your messages come from: your selected token, or you when nothing is selected. Click it to speak as yourself or another character."
       },
       "compactSpeech": {
-        "name": "Compact Chat Messages",
+        "name": "Compact User Chat Messages",
         "hint": "Typed messages fit on one line: the speaker's portrait, their name, and what they said. Emotes appear in italics."
       },
       "mentionNames": {
@@ -81,12 +81,12 @@
         "hint": "Also log resource and effect changes on tokens that are not in a running encounter."
       },
       "resourceLogTokenCards": {
-        "name": "Replace Hero Token Cards",
-        "hint": "When Hero Tokens are given or spent, the Resource Log line shows who spent them and why, and the system's chat card is hidden behind it. The card shows again whenever the line doesn't: with the logs hidden, or the line hidden or deleted."
+        "name": "Replace Hero Token Messages",
+        "hint": "When Hero Tokens are given or spent, the Resource Log line shows who spent them and why, and the system's chat message is hidden behind it. The message shows again whenever the line doesn't: with the logs hidden, or the line hidden or deleted."
       },
       "resourceLogTurnGainCards": {
         "name": "Hide Resource Gain Rolls",
-        "hint": "Hide the start of turn Heroic Resource roll, Gain links and Resources UI gain cards when a Resource Log line already shows the gain. Hover the line's number to see the roll."
+        "hint": "Hide the start of turn Heroic Resource roll, Gain links and Resources UI gain messages when a Resource Log line already shows the gain. Hover the line's number to see the roll."
       },
       "effectLog": {
         "name": "Effect Log",
@@ -101,7 +101,7 @@
       "none": "No supported modules are active.",
       "cgmp": {
         "name": "Commands and Speakers",
-        "hint": "/desc lines show as narration, and /as and /ooc keep the speaker they give. Draw Steel cards keep their speaker whatever its Speaker Mode says, so the logs still know who acted."
+        "hint": "/desc lines show as narration, and /as and /ooc keep the speaker they give. Draw Steel chat messages keep their speaker whatever its Speaker Mode says, so the logs still know who acted."
       },
       "dsPlus": {
         "name": "Typed Chat",

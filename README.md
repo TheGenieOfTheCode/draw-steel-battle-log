@@ -30,18 +30,18 @@ The system's dark palette does not cover the chat, now interface includes the ch
 <div align="center">
   <table>
     <tr>
-      <td><img src="images/ability-dark.png" alt="An ability card in the dark theme" width="300"></td>
-      <td><img src="images/ability-light.png" alt="The same ability card in the light theme" width="300"></td>
+      <td><img src="images/ability-dark.png" alt="An ability message in the dark theme" width="300"></td>
+      <td><img src="images/ability-light.png" alt="The same ability message in the light theme" width="300"></td>
     </tr>
   </table>
 </div>
 
 ## Compact Abilities
 
-Click an ability's name and the card folds down to just that name, good for when you're done with an ability. The message format is also restructured so it fits the basic details in less space like in the books while preserving the default Draw Steel Foundry aesthetic.
+Click an ability's name and its ability message folds down to just that name, good for when you're done with an ability. The message format is also restructured so it fits the basic details in less space like in the books while preserving the default Draw Steel Foundry aesthetic.
 
 <p align="center">
-  <img src="images/ability-collapsed.png" alt="The same ability card folded down to a single line showing only its name" width="300">
+  <img src="images/ability-collapsed.png" alt="The same ability message folded down to a single line showing only its name" width="300">
 </p>
 
 
@@ -67,7 +67,7 @@ A turn marker folds away the messages during it once it ends, leaving one line a
 Combat, round and turn markers can each be turned off, and so can the folding when something ends.
 
 <p align="center">
-  <img src="images/turn-markers.png" alt="Two rounds of a fight in the chat log. Round 1 is folded to a single line with a count of four, Round 2 is open, and inside it one turn is open showing an ability card." width="330">
+  <img src="images/turn-markers.png" alt="Two rounds of a fight in the chat log. Round 1 is folded to a single line with a count of four, Round 2 is open, and inside it one turn is open showing an ability message." width="330">
 </p>
 
 
@@ -88,7 +88,7 @@ When a condition or effect starts or ends on a creature, it gets a one line entr
 
 During combat, every change to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens gets a one line entry in chat, right where it happened, so you can tell who took what, who spent what, and where all that Malice went. Damage shows its type, a small token of whoever dealt it, and what immunity or weakness did to it. Hover a Malice or Heroic Resource gain to see how the system worked it out. The start and end of a fight are one line each, with everything that changed in the tooltip.
 
-Quick changes to the same thing merge into one line, so you don't get spammed with a message for every change. Hero Token cards, start of turn rolls and [Draw Steel - Resources UI](https://foundryvtt.com/packages/draw-steel-resources-ui) gain cards hide behind their lines. Players only see how much a monster's Stamina changed, not how much it has left, unless the Director allows it. The heart beside Export Chat Log hides both logs for you, and the Director can hide or delete any line.
+Quick changes to the same thing merge into one line, so you don't get spammed with a message for every change. Hero Token messages, start of turn rolls and [Draw Steel - Resources UI](https://foundryvtt.com/packages/draw-steel-resources-ui) gain messages hide behind their lines. Players only see how much a monster's Stamina changed, not how much it has left, unless the Director allows it. The heart beside Export Chat Log hides both logs for you, and the Director can hide or delete any line.
 
 <div align="center">
   <table>
@@ -126,7 +126,7 @@ Requires [Draw Steel: CTLib](https://github.com/TheGenieOfTheCode/draw-steel-ctl
 - [Draw Steel: Target Damage](https://foundryvtt.com/packages/draw-steel-target-damage)
 - [Draw Steel: Combat Tools](https://github.com/TheGenieOfTheCode/draw-steel-combat-tools)
 - [Draw Steel - Resources UI](https://foundryvtt.com/packages/draw-steel-resources-ui)
-- [Draw Steel Plus](https://github.com/featureJosh/draw-steel-plus): typed chat is matched up to it, so each line shows one name and lines in a row still join up. Both modules restyle the ability cards, though, and those can still clash; fixing that is a low priority.
+- [Draw Steel Plus](https://github.com/featureJosh/draw-steel-plus): typed chat is matched up to it, so each line shows one name and lines in a row still join up. Both modules restyle ability messages, though, and those can still clash; fixing that is a low priority.
 - [Polyglot](https://foundryvtt.com/packages/polyglot): lines spoken in a language keep their speaker. When you understand the language, the runes show faintly behind the words; click the line to swap them.
 - [Cautious Gamemaster's Pack](https://foundryvtt.com/packages/CautiousGamemastersPack): /desc lines show as narration, and /as and /ooc keep the speaker they give.
 
