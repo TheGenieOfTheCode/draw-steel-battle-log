@@ -39,7 +39,7 @@
       {
         "id": "draw-steel-plus",
         "type": "module",
-        "reason": "Both restyle the same chat cards. They run side by side, but the two looks can fight, and matching them is not planned."
+        "reason": "Both restyle the same chat cards. Typed chat is matched up to it, but the ability cards can still clash, and fixing that is a low priority."
       }
     ],
     "systems": [
