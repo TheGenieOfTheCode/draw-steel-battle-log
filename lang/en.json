@@ -98,7 +98,7 @@
     },
     "Compat": {
       "title": "Compatibility",
-      "none": "No supported modules are active. Turn on Cautious Gamemaster's Pack, Draw Steel Plus or Polyglot to see what Battle Log does for them.",
+      "none": "No supported modules are active.",
       "cgmp": {
         "name": "Commands and Speakers",
         "hint": "/desc lines show as narration, and /as and /ooc keep the speaker they give. Draw Steel cards keep their speaker whatever its Speaker Mode says, so the logs still know who acted."
