@@ -126,7 +126,9 @@ Requires [Draw Steel: CTLib](https://github.com/TheGenieOfTheCode/draw-steel-ctl
 - [Draw Steel: Target Damage](https://foundryvtt.com/packages/draw-steel-target-damage)
 - [Draw Steel: Combat Tools](https://github.com/TheGenieOfTheCode/draw-steel-combat-tools)
 - [Draw Steel - Resources UI](https://foundryvtt.com/packages/draw-steel-resources-ui)
-- [Draw Steel Plus](https://github.com/featureJosh/draw-steel-plus) works with this module, but both restyle the same cards and making them work together cleanly isn't a priority.
+- [Draw Steel Plus](https://github.com/featureJosh/draw-steel-plus): typed chat is matched up to it, so each line shows one name and lines in a row still join up. Both modules restyle the ability cards, though, and those can still clash; fixing that is a low priority.
+- [Polyglot](https://foundryvtt.com/packages/polyglot): lines spoken in a language keep their speaker. When you understand the language, the runes show faintly behind the words; click the line to swap them.
+- [Cautious Gamemaster's Pack](https://foundryvtt.com/packages/CautiousGamemastersPack): /desc lines show as narration, and /as and /ooc keep the speaker they give.
 
 ---
 
