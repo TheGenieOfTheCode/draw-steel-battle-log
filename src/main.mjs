@@ -8,6 +8,7 @@ import { registerEffectRecording } from './effect-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
+import { registerCompatibilityMenu } from './compat-menu.mjs';
 
 export { MODULE_ID };
 
@@ -16,6 +17,8 @@ migrateLocalStorage(MODULE_ID);
 const setting = key => game.settings.get(MODULE_ID, key);
 
 Hooks.once('init', () => {
+  registerCompatibilityMenu();
+
   game.settings.register(MODULE_ID, 'darkChat', {
     name: 'DSBL.Settings.darkChat.name',
     hint: 'DSBL.Settings.darkChat.hint',
