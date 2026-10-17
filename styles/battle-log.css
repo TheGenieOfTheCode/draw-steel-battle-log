@@ -877,6 +877,11 @@ body.dsp-improved-chat :is(.chat-sidebar, #chat-notifications, .chat-popout) .ch
 .chat-message.dsbl-speech-polyglot:not(.dsbl-polyglot-understood) .polyglot-original-text,
 .chat-message.dsbl-speech-polyglot:not(.dsbl-polyglot-understood) .polyglot-original-text > p:first-child { display: inline; }
 
+.chat-message.dsbl-speech-polyglot .polyglot-original-text {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
 .chat-message.dsbl-polyglot-understood > .message-content { display: grid; }
 
 .chat-message.dsbl-polyglot-understood > .message-content > :is(.polyglot-original-text, .polyglot-translation-text) { grid-area: 1 / 1; }
