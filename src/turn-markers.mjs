@@ -1,7 +1,7 @@
 
 
-import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown } from './resource-log.mjs';
-import { readEffectLog, visibleEffect, effectRow, pruneEffectLog } from './effect-log.mjs';
+import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown, rewriteResourceLog } from './resource-log.mjs';
+import { readEffectLog, visibleEffect, effectRow, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
 import { isDirector, primaryGM } from './director.mjs';
 
 export const MODULE_ID = 'draw-steel-battle-log';
@@ -194,8 +194,10 @@ export const registerTurnRecording = () => {
   Hooks.on('updateCombat', (combat, changes) => {
     if (changes.round !== undefined && combat.started && changes.round > 1) round(`Round ${changes.round}`, 'round');
   });
-  Hooks.on('deleteCombat', async () => {
-    await round('Combat Ends', 'end');
+  Hooks.on('deleteCombat', async (combat) => {
+    
+    const last = readBoundaries().findLast((e) => e.kind === 'round' && depthOf(e) <= 1);
+    if (combat.started || last?.mark === 'begin') await round('Combat Ends', 'end');
     await pruneEmptySections();
   });
 };
@@ -517,10 +519,13 @@ export const draw = () => {
       }
     }
     
+    
+    const orphans = [];
     for (let i = 0; i < sections.length; i++) {
       if (sections[i].depth !== 0) continue;
-      const owner = sections.slice(0, i).reverse().find((x) => x.depth === 1);
-      if (!owner || owner.isOpen) continue;
+      const owner = sections.slice(0, i).reverse().find((x) => x.depth <= 1);
+      if (owner?.depth !== 1) { orphans.push(sections[i].line); continue; }
+      if (owner.isOpen) continue;
       const line = sections[i].line;
       line.classList.remove('dsbl-turn-live');
       line.addEventListener('click', () => {
@@ -583,6 +588,7 @@ export const draw = () => {
         line.prepend(twin);
       }
     }
+    for (const line of orphans) line.remove();
     drawn = true;
   } finally {
     _drawing = false;
@@ -647,9 +653,13 @@ export const pruneEmptySections = async () => {
     if (entries[i].kind !== 'round' || depthOf(entries[i]) !== 0) continue;
     let ownerAt = -1;
     for (let j = i - 1; j >= 0; j--) {
-      if (entries[j].kind === 'round' && depthOf(entries[j]) === 1) { ownerAt = j; break; }
+      if (entries[j].kind !== 'round' || depthOf(entries[j]) > 1) continue;
+      if (depthOf(entries[j]) === 1) ownerAt = j;
+      break;
     }
-    if (ownerAt < 0 || drop.has(ownerAt)) drop.add(i);
+    const prev = entries[i - 1];
+    const closes = !!prev && !(prev.kind === 'round' && depthOf(prev) === 0);
+    if (ownerAt < 0 ? !closes : drop.has(ownerAt)) drop.add(i);
   }
 
   if (!drop.size) return;
@@ -700,4 +710,122 @@ let _pruning = null;
 export const schedulePrune = () => {
   if (!isDirector() || _pruning) return;
   _pruning = setTimeout(() => { _pruning = null; pruneBoundaries(); }, 500);
+};
+
+const levelOf = (entry) => (entry.kind === 'round' ? depthOf(entry) : 3);
+const closerAt = (entries, i) => entries.findIndex((x, j) => j > i && levelOf(x) <= levelOf(entries[i]));
+
+const openerAt = (entries, id) => {
+  const i = entries.findIndex((e) => e.id === id);
+  if (i < 0 || levelOf(entries[i]) !== 0) return i;
+  for (let j = i - 1; j >= 0; j--) {
+    const level = levelOf(entries[j]);
+    if (level > 1) continue;
+    return level === 1 ? j : -1;
+  }
+  return -1;
+};
+
+const contentsOf = (entries, i) => {
+  const all = game.messages.contents;
+  const index = new Map(all.map((m, n) => [m.id, n]));
+  const order = new Map(entries.map((e, n) => [e.id, n]));
+  const pos = (after) => (after === null ? -1 : index.get(after));
+  const c = closerAt(entries, i);
+  const from = pos(entries[i].after);
+  const to = c < 0 ? null : pos(entries[c].after);
+  if (from === undefined || to === undefined) return null;
+  const past = (a, t, j, at) => a > at || (a === at && t >= j);
+  const within = (a, t) => a !== undefined && past(a, t, i, from) && (c < 0 || !past(a, t, c, to));
+  const turnOf = (e) => (e.turn == null ? -1 : (order.get(e.turn) ?? -1));
+  const logged = (on, list) => new Set(on ? list.filter((e) => within(pos(e.after), turnOf(e))).map((e) => e.id) : []);
+  return {
+    messages: all.filter((_, n) => within(n, -1)).map((m) => m.id),
+    resources: logged(setting('resourceLog'), readResourceLog()),
+    effects: logged(setting('effectLog'), readEffectLog()),
+  };
+};
+
+const contentsAt = (id) => {
+  const entries = readBoundaries();
+  const i = openerAt(entries, id);
+  return i < 0 ? null : { entry: entries[i], ...contentsOf(entries, i) };
+};
+
+const deleteMarker = async (id) => {
+  if (!game.user.isGM) return;
+  const entries = readBoundaries();
+  const i = openerAt(entries, id);
+  if (i < 0) return;
+  const drop = new Set([i]);
+  const c = closerAt(entries, i);
+  if (levelOf(entries[i]) === 1 && c >= 0 && levelOf(entries[c]) === 0) drop.add(c);
+
+  
+  const home = new Map();
+  for (const k of drop) {
+    let j = k - 1;
+    while (j >= 0 && drop.has(j)) j--;
+    home.set(entries[k].id, entries[j]?.id ?? null);
+  }
+  const rehome = (e) => (home.has(e.turn) ? { ...e, turn: home.get(e.turn) } : e);
+
+  await game.settings.set(MODULE_ID, BOUNDARIES, entries.filter((_, k) => !drop.has(k)));
+  await rewriteResourceLog(rehome);
+  await rewriteEffectLog(rehome);
+};
+
+const L = (key, data) => (data ? game.i18n.format(`DSBL.Markers.${key}`, data) : game.i18n.localize(`DSBL.Markers.${key}`));
+
+const deleteContents = async (id) => {
+  if (!game.user.isGM) return;
+  const found = contentsAt(id);
+  if (!found) return;
+  const { entry, messages, resources, effects } = found;
+  const logs = resources.size + effects.size;
+  if (!messages.length && !logs) return;
+
+  const parts = [
+    messages.length ? (messages.length === 1 ? L('oneMessage') : L('messages', { count: messages.length })) : null,
+    logs ? (logs === 1 ? L('oneLogLine') : L('logLines', { count: logs })) : null,
+  ].filter(Boolean);
+  const what = parts.length > 1 ? L('both', { first: parts[0], second: parts[1] }) : parts[0];
+  const scope = entry.kind !== 'round' ? 'turn' : entry.mark === 'begin' ? 'combat' : 'round';
+  const label = foundry.utils.escapeHTML(String(entry.label ?? ''));
+
+  const ok = await foundry.applications.api.DialogV2.confirm({
+    window: { title: 'DSBL.Markers.deleteMessages', icon: 'fa-solid fa-trash' },
+    content: `<p>${L(`confirm.${scope}`, { what, label })}</p>`,
+  });
+  if (ok !== true) return;
+
+  if (resources.size) await rewriteResourceLog((e) => (resources.has(e.id) ? null : e));
+  if (effects.size) await rewriteEffectLog((e) => (effects.has(e.id) ? null : e));
+  const ids = messages.filter((m) => game.messages.has(m));
+  if (ids.length) await ChatMessage.implementation.deleteDocuments(ids);
+};
+
+const _menus = new WeakSet();
+
+export const addMarkerMenu = (root) => {
+  if (!game.user.isGM || !(root instanceof HTMLElement) || _menus.has(root)) return;
+  _menus.add(root);
+  const holds = (li) => {
+    const found = contentsAt(li.dataset.dscpTurn);
+    return !!found && found.messages.length + found.resources.size + found.effects.size > 0;
+  };
+  new foundry.applications.ux.ContextMenu.implementation(root, '.dsbl-turn-marker[data-dscp-turn]', [
+    {
+      label: 'DSBL.Markers.deleteMarker',
+      icon: 'fa-solid fa-eraser',
+      visible: (li) => openerAt(readBoundaries(), li.dataset.dscpTurn) >= 0,
+      onClick: (_event, li) => deleteMarker(li.dataset.dscpTurn),
+    },
+    {
+      label: 'DSBL.Markers.deleteMessages',
+      icon: 'fa-solid fa-trash',
+      visible: holds,
+      onClick: (_event, li) => deleteContents(li.dataset.dscpTurn),
+    },
+  ], { jQuery: false, fixed: true });
 };

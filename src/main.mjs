@@ -2,7 +2,7 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
-import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteMessage, olderCombatToolsLogs, currentTurn, watchClearAll } from './turn-markers.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteMessage, olderCombatToolsLogs, currentTurn, watchClearAll, addMarkerMenu } from './turn-markers.mjs';
 import { registerResourceRecording, addResourceToggle, syncResourceToggle, markCovered } from './resource-log.mjs';
 import { registerEffectRecording } from './effect-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
@@ -266,6 +266,7 @@ const SUB_SETTINGS = {
 
 Hooks.on('renderChatLog', scheduleDraw);
 Hooks.on('renderChatLog', () => { addSpeakerRow(); watchChatLogs(); scheduleBlend(); });
+Hooks.on('renderChatLog', (app, html) => { if (!app.isPopout) addMarkerMenu(html); });
 
 Hooks.on('canvasReady', scheduleDraw);
 

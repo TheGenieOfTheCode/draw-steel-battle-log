@@ -1119,6 +1119,13 @@ const editEntry = async (id, change) => {
   await game.settings.set(MODULE_ID, LOG, list);
 };
 
+export const rewriteResourceLog = async (change) => {
+  if (!game.user.isGM) return;
+  const list = readResourceLog();
+  const next = list.map(change).filter(Boolean);
+  if (next.length !== list.length || next.some((e, i) => e !== list[i])) await game.settings.set(MODULE_ID, LOG, next);
+};
+
 document.addEventListener('click', async (event) => {
   const undo = event.target.closest?.('[data-dsbl-res-undo]');
   if (undo) {

@@ -373,6 +373,13 @@ export const editEffectEntry = async (id, change) => {
   await game.settings.set(MODULE_ID, LOG, list);
 };
 
+export const rewriteEffectLog = async (change) => {
+  if (!game.user.isGM) return;
+  const list = readEffectLog();
+  const next = list.map(change).filter(Boolean);
+  if (next.length !== list.length || next.some((e, i) => e !== list[i])) await game.settings.set(MODULE_ID, LOG, next);
+};
+
 document.addEventListener('click', (event) => {
   const control = event.target.closest?.('[data-dsbl-res-action]');
   const row = control?.closest('.dsbl-res-row');
