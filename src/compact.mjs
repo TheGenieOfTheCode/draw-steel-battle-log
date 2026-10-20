@@ -163,7 +163,7 @@ function watch(dl) {
     const due = [];
     for (const entry of entries) {
       const width = Math.round(entry.contentRect.width);
-      if (_widths.get(entry.target) === width) continue;
+      if (!width || _widths.get(entry.target) === width) continue;
       _widths.set(entry.target, width);
       due.push(entry.target);
     }

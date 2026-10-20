@@ -840,23 +840,41 @@ const WHO_ICONS = {
   heroTokens: 'fa-solid fa-users',
 };
 
-export const fitNames = (scope) => {
-  const SEL = '.dsbl-res-name[data-short]';
-  const names = Array.isArray(scope) ? scope.flatMap((el) => [...(el.matches?.(SEL) ? [el] : []), ...el.querySelectorAll(SEL)]) : [...scope.querySelectorAll(SEL)];
-  for (const name of names) name.textContent = name.dataset.full;
-  const tight = names.filter((name) => name.offsetParent && name.scrollWidth > name.clientWidth + 1);
+const NAME_SEL = '.dsbl-res-name[data-short]';
+const _fitQueue = new Set();
+let _fitFrame = null;
+
+const fitQueued = () => {
+  _fitFrame = null;
+  const names = [];
+  for (const scope of _fitQueue) {
+    if (!scope.isConnected) continue;
+    if (scope.matches?.(NAME_SEL)) names.push(scope);
+    names.push(...scope.querySelectorAll(NAME_SEL));
+  }
+  _fitQueue.clear();
+  const shown = [...new Set(names)].filter((name) => name.offsetParent);
+  for (const name of shown) name.textContent = name.dataset.full;
+  const tight = shown.filter((name) => name.scrollWidth > name.clientWidth + 1);
   for (const name of tight) name.textContent = name.dataset.short;
+};
+
+export const fitNames = (scope) => {
+  for (const el of Array.isArray(scope) ? scope : [scope]) if (el) _fitQueue.add(el);
+  _fitFrame ??= requestAnimationFrame(fitQueued);
 };
 
 const _fitted = new WeakSet();
 const watchWidth = (log) => {
   if (_fitted.has(log)) return;
   _fitted.add(log);
-  let last = log.clientWidth;
-  new ResizeObserver(() => {
-    if (Math.abs(log.clientWidth - last) < 2) return;
-    last = log.clientWidth;
-    fitNames(log);
+  let last = null;
+  new ResizeObserver(([entry]) => {
+    const width = entry.contentRect.width;
+    if (!width || (last !== null && Math.abs(width - last) < 2)) return;
+    const first = last === null;
+    last = width;
+    if (!first) fitNames(log);
   }).observe(log);
 };
 
