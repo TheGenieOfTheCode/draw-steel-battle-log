@@ -3,6 +3,7 @@
 import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown, rewriteResourceLog } from './resource-log.mjs';
 import { readEffectLog, visibleEffect, effectRow, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
 import { isDirector, primaryGM } from './director.mjs';
+import { syncLoadOlder } from './load-older.mjs';
 
 export const MODULE_ID = 'draw-steel-battle-log';
 
@@ -313,6 +314,7 @@ const keepTopRow = (log) => {
     top.setAttribute('aria-hidden', 'true');
   }
   if (log.firstElementChild !== top) log.prepend(top);
+  syncLoadOlder(log);
 };
 
 const KINDS = /^dsbl-turn-(start|end|round|roundend)$/;

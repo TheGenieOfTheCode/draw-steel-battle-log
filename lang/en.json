@@ -52,6 +52,12 @@
         "name": "Auto Collapse",
         "hint": "Fold a combat, round or turn away once it ends."
       },
+      "loadOlderMessages": {
+        "name": "Load Older Messages",
+        "hint": "With a button, older messages only load when you click the row at the top of the chat, not whenever you scroll there or fold a turn. Fewer loaded messages keep the chat quick.",
+        "button": "With a button",
+        "scroll": "On scroll"
+      },
       "speakerPicker": {
         "name": "Speaking As Row",
         "hint": "A row above the chat buttons shows who your messages come from: your selected token, or you when nothing is selected. Click it to speak as yourself or another character."
@@ -125,6 +131,10 @@
         "round": "Delete the {what} in {label}? This cannot be undone.",
         "combat": "Delete the {what} in this combat? This cannot be undone."
       }
+    },
+    "loadOlder": {
+      "button": "Load {count} older messages",
+      "title": "{count} older messages are not loaded yet"
     },
     "notice": {
       "olderCombatTools": "Draw Steel: Combat Tools {version} still posts its own Combat Round Log and Combat Turn Log, so Battle Log's turn markers are off to avoid logging every turn twice. Update Combat Tools, or turn those logs off under its Combat Logs settings, and reload."

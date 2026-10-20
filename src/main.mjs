@@ -9,6 +9,7 @@ import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
 import { registerCompatibilityMenu } from './compat-menu.mjs';
+import { registerLoadOlder } from './load-older.mjs';
 
 export { MODULE_ID };
 
@@ -131,6 +132,20 @@ Hooks.once('init', () => {
     });
   }
 
+  game.settings.register(MODULE_ID, 'loadOlderMessages', {
+    name: 'DSBL.Settings.loadOlderMessages.name',
+    hint: 'DSBL.Settings.loadOlderMessages.hint',
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: {
+      button: 'DSBL.Settings.loadOlderMessages.button',
+      scroll: 'DSBL.Settings.loadOlderMessages.scroll',
+    },
+    default: 'button',
+    onChange: () => draw(),
+  });
+
   game.settings.register(MODULE_ID, 'resourceLog', {
     name: 'DSBL.Settings.resourceLog.name',
     hint: 'DSBL.Settings.resourceLog.hint',
@@ -216,6 +231,7 @@ Hooks.once('ready', async () => {
   } else registerTurnRecording();
   registerResourceRecording({ currentTurn });
   registerEffectRecording({ currentTurn });
+  registerLoadOlder();
   addResourceToggle();
   watchClearAll();
 

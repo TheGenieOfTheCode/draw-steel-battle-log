@@ -563,6 +563,19 @@ body .theme-dark .dsbl-turn-marker {
   pointer-events: none;
 }
 
+.chat-log > li.dsbl-load-older {
+  display: flex;
+  justify-content: center;
+  margin: 0.35em 0.25em;
+  list-style: none;
+}
+
+.chat-log > li.dsbl-load-older > button {
+  width: auto;
+  padding: 0 1em;
+  font-size: var(--font-size-12);
+}
+
 .dsbl-round-begin {
   margin: 1.2em 0.25em;
 }
