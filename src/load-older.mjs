@@ -1,4 +1,5 @@
 import { MODULE_ID } from './collapse.mjs';
+import { onEveryDocument } from './windows.mjs';
 
 const ROW = 'dsbl-load-older';
 const byButton = () => game.settings.get(MODULE_ID, 'loadOlderMessages') === 'button';
@@ -6,14 +7,14 @@ const byButton = () => game.settings.get(MODULE_ID, 'loadOlderMessages') === 'bu
 let _scrolling = false;
 
 export const registerLoadOlder = () => {
-  document.addEventListener('scroll', (event) => {
+  onEveryDocument((doc) => doc.addEventListener('scroll', (event) => {
     if (!event.target?.classList?.contains('chat-scroll')) return;
     _scrolling = true;
     setTimeout(() => { _scrolling = false; });
-  }, { capture: true, passive: true });
+  }, { capture: true, passive: true }));
 
   const wrapper = function (wrapped, ...args) {
-    if (_scrolling && !this.isPopout && byButton()) return Promise.resolve();
+    if (_scrolling && byButton()) return Promise.resolve();
     return wrapped(...args);
   };
   const target = 'foundry.applications.sidebar.tabs.ChatLog.prototype.renderBatch';
@@ -40,7 +41,8 @@ const loadOlder = async (log, row) => {
   const below = row.nextElementSibling;
   const above = below ? below.offsetTop - scroller.scrollTop : 0;
   row.querySelector('button').disabled = true;
-  await ui.chat.renderBatch(CONFIG.ChatMessage.batchSize);
+  const owner = [...foundry.applications.instances.values()].find((a) => a instanceof foundry.applications.sidebar.tabs.ChatLog && a.element?.contains(log)) ?? ui.chat;
+  await owner.renderBatch(CONFIG.ChatMessage.batchSize);
   const top = log.querySelector(':scope > .dsbl-log-top');
   if (top) log.prepend(top);
   top ? top.after(row) : log.prepend(row);

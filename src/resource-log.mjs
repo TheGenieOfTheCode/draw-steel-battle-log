@@ -1,6 +1,7 @@
 import { MODULE_ID } from './collapse.mjs';
 import { isDirector } from './director.mjs';
 import { effectCovers, coversEnd } from './effect-log.mjs';
+import { onEveryDocument, queryAll, toggleBodyClass } from './windows.mjs';
 
 const LOG = 'resourceLogEntries';
 const MAX_ENTRIES = 600;
@@ -1085,7 +1086,7 @@ const isCovered = (message, state) => {
 
 export const refreshCovered = () => {
   const state = coverState();
-  for (const el of document.querySelectorAll('.chat-message[data-message-id]')) {
+  for (const el of queryAll('.chat-message[data-message-id]')) {
     const message = game.messages.get(el.dataset.messageId);
     if (message) el.classList.toggle('dsbl-covered', isCovered(message, state));
   }
@@ -1144,7 +1145,12 @@ export const rewriteResourceLog = async (change) => {
   if (next.length !== list.length || next.some((e, i) => e !== list[i])) await game.settings.set(MODULE_ID, LOG, next);
 };
 
-document.addEventListener('click', async (event) => {
+onEveryDocument((doc) => doc.addEventListener('click', async (event) => {
+  if (event.target.closest?.('.dsbl-res-toggle')) {
+    event.preventDefault();
+    await game.settings.set(MODULE_ID, 'resourceLogShown', !(setting('resourceLogShown') !== false));
+    return;
+  }
   const undo = event.target.closest?.('[data-dsbl-res-undo]');
   if (undo) {
     event.preventDefault();
@@ -1162,27 +1168,29 @@ document.addEventListener('click', async (event) => {
   event.stopPropagation();
   const id = control.closest('.dsbl-res-row')?.dataset.dsblRes;
   if (id) editEntry(id, control.dataset.dsblResAction);
-});
+}));
 
 let _lastShown = null;
 export const syncResourceToggle = () => {
   const shown = setting('resourceLogShown') !== false;
-  document.body.classList.toggle('dsbl-res-off', !shown);
-  if (shown && _lastShown !== true) for (const log of document.querySelectorAll('.chat-log')) fitNames(log);
+  toggleBodyClass('dsbl-res-off', !shown);
+  if (shown && _lastShown !== true) for (const log of queryAll('.chat-log')) fitNames(log);
   _lastShown = shown;
-  for (const btn of document.querySelectorAll('.dsbl-res-toggle')) {
+  for (const btn of queryAll('.dsbl-res-toggle')) {
     btn.setAttribute('aria-pressed', String(!shown));
     btn.dataset.tooltip = L('hide');
     btn.setAttribute('aria-label', L('hide'));
   }
 };
 
+
 export const addResourceToggle = (controls = document.getElementById('chat-controls')) => {
-  const existing = document.querySelector('.dsbl-res-toggle');
-  if (!setting('resourceLog') && !setting('effectLog')) { existing?.remove(); return; }
+  const all = queryAll('.dsbl-res-toggle');
+  if (!setting('resourceLog') && !setting('effectLog')) { for (const b of all) b.remove(); return; }
   if (!controls) return;
-  if (existing && controls.contains(existing)) return syncResourceToggle();
-  existing?.remove();
+  const keep = all.find((b) => controls.contains(b));
+  for (const b of all) if (b !== keep) b.remove();
+  if (keep) return syncResourceToggle();
   let group = controls.querySelector('.control-buttons');
   if (!group) {
     group = document.createElement('div');
@@ -1192,10 +1200,6 @@ export const addResourceToggle = (controls = document.getElementById('chat-contr
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'ui-control icon toggle fa-solid fa-heart-pulse dsbl-res-toggle';
-  btn.addEventListener('click', async (event) => {
-    event.preventDefault();
-    await game.settings.set(MODULE_ID, 'resourceLogShown', !(setting('resourceLogShown') !== false));
-  });
   group.prepend(btn);
   syncResourceToggle();
 };

@@ -10,6 +10,7 @@ import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.m
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
 import { registerCompatibilityMenu } from './compat-menu.mjs';
 import { registerLoadOlder } from './load-older.mjs';
+import { onEveryDocument, toggleBodyClass } from './windows.mjs';
 
 export { MODULE_ID };
 
@@ -282,7 +283,7 @@ const SUB_SETTINGS = {
 
 Hooks.on('renderChatLog', scheduleDraw);
 Hooks.on('renderChatLog', () => { addSpeakerRow(); watchChatLogs(); scheduleBlend(); });
-Hooks.on('renderChatLog', (app, html) => { if (!app.isPopout) addMarkerMenu(html); });
+Hooks.on('renderChatLog', (_app, html) => addMarkerMenu(html));
 
 Hooks.on('canvasReady', scheduleDraw);
 
@@ -304,24 +305,30 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
 
 Hooks.on('renderChatMessageHTML', scheduleDraw);
 
+
+Hooks.on('renderChatPopout', (app) => {
+  if (!setting('darkChat') || !document.getElementById('interface')?.classList.contains('theme-dark')) return;
+  app.element?.classList.replace('theme-light', 'theme-dark');
+});
+
 Hooks.on('deleteChatMessage', message => forgetMessage(message.id));
 
 function syncBodyClasses() {
-  document.body.classList.toggle('dsbl-dark-chat', setting('darkChat'));
-  document.body.classList.toggle('dsbl-collapse', setting('collapsibleAbilities'));
-  document.body.classList.toggle('dsbl-compact', setting('compactAbilities'));
-  document.body.classList.toggle('dsbl-power-roll', setting('powerRollResults'));
-  document.body.classList.toggle('dsbl-flex-buttons', setting('flexButtons'));
-  document.body.classList.toggle('dsbl-turn-markers', setting('turnMarkers'));
+  toggleBodyClass('dsbl-dark-chat', setting('darkChat'));
+  toggleBodyClass('dsbl-collapse', setting('collapsibleAbilities'));
+  toggleBodyClass('dsbl-compact', setting('compactAbilities'));
+  toggleBodyClass('dsbl-power-roll', setting('powerRollResults'));
+  toggleBodyClass('dsbl-flex-buttons', setting('flexButtons'));
+  toggleBodyClass('dsbl-turn-markers', setting('turnMarkers'));
 }
 
-document.addEventListener('scroll', (event) => {
+onEveryDocument((doc) => doc.addEventListener('scroll', (event) => {
   const log = event.target;
-  if (!(log instanceof HTMLElement) || !log.classList.contains('chat-scroll')) return;
+  if (!log?.classList?.contains('chat-scroll')) return;
   const pct = log.scrollTop / (log.scrollHeight - log.clientHeight);
   if (!(pct < 0.01)) return;
   if (log.closest('.chat-sidebar, #chat, .application')?.querySelector('.jump-to-bottom')?.hidden) return;
   const loaded = log.querySelectorAll('li.chat-message[data-message-id]').length;
   if (loaded < game.messages.contents.filter((m) => m.visible).length) return;
   event.stopPropagation();
-}, { capture: true, passive: true });
+}, { capture: true, passive: true }));

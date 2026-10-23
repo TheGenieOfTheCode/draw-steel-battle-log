@@ -1,6 +1,7 @@
 import { MODULE_ID } from './collapse.mjs';
 import { tokenOf, combatOf, hiddenFromPlayers, isParty, whoFor, faceStack } from './resource-log.mjs';
 import { isDirector } from './director.mjs';
+import { onEveryDocument } from './windows.mjs';
 
 const LOG = 'effectLogEntries';
 const MAX_ENTRIES = 600;
@@ -380,14 +381,14 @@ export const rewriteEffectLog = async (change) => {
   if (next.length !== list.length || next.some((e, i) => e !== list[i])) await game.settings.set(MODULE_ID, LOG, next);
 };
 
-document.addEventListener('click', (event) => {
+onEveryDocument((doc) => doc.addEventListener('click', (event) => {
   const control = event.target.closest?.('[data-dsbl-res-action]');
   const row = control?.closest('.dsbl-res-row');
   if (!row || row.dataset.dsblLog !== 'fx') return;
   event.preventDefault();
   event.stopPropagation();
   editEffectEntry(row.dataset.dsblRes, control.dataset.dsblResAction);
-});
+}));
 
 export const pruneEffectLog = async (survivingAnchor, empty) => {
   if (!isDirector()) return;

@@ -1,4 +1,5 @@
 import { MODULE_ID } from './collapse.mjs';
+import { onEveryDocument, queryAll } from './windows.mjs';
 
 const setting = key => game.settings.get(MODULE_ID, key);
 const L = (key, data) => data ? game.i18n.format(`DSBL.Speech.${key}`, data) : game.i18n.localize(`DSBL.Speech.${key}`);
@@ -33,7 +34,8 @@ function faceHTML(face) {
   return `<img class="dsbl-speech-face"${token} src="${esc(face.src)}" alt="">`;
 }
 
-Hooks.once('ready', () => game.modules.get('draw-steel-ctlib')?.api?.activateFaces?.(document.body));
+
+Hooks.once('ready', () => onEveryDocument((doc) => game.modules.get('draw-steel-ctlib')?.api?.activateFaces?.(doc === document ? doc.body : doc.documentElement)));
 
 const choice = () => setting('speakAs') ?? { kind: 'selected' };
 
@@ -132,7 +134,7 @@ function targetLinks() {
 }
 
 function refreshRows() {
-  for (const row of document.querySelectorAll('.dsbl-speaker-row')) row.innerHTML = rowInner();
+  for (const row of queryAll('.dsbl-speaker-row')) row.innerHTML = rowInner();
 }
 
 let _refreshTimer = null;
@@ -161,7 +163,7 @@ function menuOptions() {
 }
 
 function closeMenu() {
-  document.querySelector('.dsbl-speaker-menu')?.remove();
+  for (const menu of queryAll('.dsbl-speaker-menu')) menu.remove();
 }
 
 function openMenu(row) {
@@ -183,19 +185,24 @@ function openMenu(row) {
   row.append(menu);
 }
 
-document.addEventListener('mousedown', event => {
-  if (event.target.closest?.('.dsbl-targets')) event.preventDefault();
+onEveryDocument((doc) => {
+  doc.addEventListener('mousedown', event => {
+    if (event.target.closest?.('.dsbl-targets')) event.preventDefault();
+  });
+  doc.addEventListener('click', onSpeakerClick);
+  doc.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
 });
 
-document.addEventListener('click', event => {
+function onSpeakerClick(event) {
   const targets = event.target.closest?.('.dsbl-targets');
   if (targets) {
     event.preventDefault();
     const links = targetLinks();
-    const input = document.querySelector('#chat-message .ProseMirror') ?? document.querySelector('#chat-message');
+    const doc = targets.ownerDocument;
+    const input = doc.querySelector('#chat-message .ProseMirror') ?? doc.querySelector('#chat-message');
     if (!links || !input) return;
     input.focus();
-    document.execCommand('insertText', false, `${links} `);
+    doc.execCommand('insertText', false, `${links} `);
     return;
   }
   const button = event.target.closest?.('.dsbl-speaker');
@@ -207,13 +214,12 @@ document.addEventListener('click', event => {
     return;
   }
   if (!event.target.closest?.('.dsbl-speaker-menu')) closeMenu();
-});
-document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
+}
 
 export function addSpeakerRow(controls = document.getElementById('chat-controls')) {
   if (!setting('speakerPicker') || !controls) return;
   if (controls.previousElementSibling?.classList.contains('dsbl-speaker-row')) return;
-  const row = document.querySelector('.dsbl-speaker-row') ?? document.createElement('div');
+  const row = queryAll('.dsbl-speaker-row')[0] ?? document.createElement('div');
   row.className = 'dsbl-speaker-row';
   row.innerHTML = rowInner();
   controls.before(row);
@@ -293,17 +299,17 @@ export function renderSpeech(message, html) {
 
 const polyglotSwapped = new Set();
 
-document.addEventListener('click', (event) => {
+onEveryDocument((doc) => doc.addEventListener('click', (event) => {
   const content = event.target.closest?.('.dsbl-polyglot-understood > .message-content');
-  if (!content || event.target.closest('a, button, [data-ctlib-face]') || String(window.getSelection?.() ?? '')) return;
+  if (!content || event.target.closest('a, button, [data-ctlib-face]') || String(doc.getSelection?.() ?? '')) return;
   const root = content.closest('.chat-message');
   const id = root.dataset.messageId;
   if (polyglotSwapped.has(id)) polyglotSwapped.delete(id);
   else polyglotSwapped.add(id);
-  for (const el of document.querySelectorAll(`.chat-message.dsbl-polyglot-understood[data-message-id="${id}"]`)) {
+  for (const el of queryAll(`.chat-message.dsbl-polyglot-understood[data-message-id="${id}"]`)) {
     el.classList.toggle('dsbl-polyglot-swapped', polyglotSwapped.has(id));
   }
-});
+}));
 
 function watchPolyglot(root, content, lead, message) {
   root.classList.add('dsbl-speech-polyglot');
@@ -384,7 +390,7 @@ const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 Hooks.on('canvasReady', () => {
   if (!setting('compactSpeech') || !setting('mentionNames')) return;
-  for (const content of document.querySelectorAll('.chat-message.dsbl-speech .message-content')) markMentions(content);
+  for (const content of queryAll('.chat-message.dsbl-speech .message-content')) markMentions(content);
 });
 
 function markTokenLinks(content) {
@@ -434,7 +440,7 @@ function markMentions(content) {
 
 function blend() {
   const on = setting('blendSpeech');
-  for (const log of document.querySelectorAll('.chat-log')) {
+  for (const log of queryAll('.chat-log')) {
     let prev = null;
     for (const li of log.children) {
       const speech = li.classList.contains('dsbl-speech');
@@ -455,7 +461,7 @@ export function scheduleBlend() {
 
 const _watched = new WeakSet();
 export function watchChatLogs() {
-  for (const log of document.querySelectorAll('.chat-log')) {
+  for (const log of queryAll('.chat-log')) {
     if (_watched.has(log)) continue;
     _watched.add(log);
     new MutationObserver(scheduleBlend).observe(log, { childList: true });
