@@ -2,6 +2,7 @@ import { MODULE_ID } from './collapse.mjs';
 import { tokenOf, combatOf, hiddenFromPlayers, isParty, whoFor, faceStack } from './resource-log.mjs';
 import { isDirector } from './director.mjs';
 import { onEveryDocument } from './windows.mjs';
+import { tip as richTip, tipAttrs } from './tips.mjs';
 
 const LOG = 'effectLogEntries';
 const MAX_ENTRIES = 600;
@@ -343,15 +344,15 @@ export const effectRow = (e) => {
 
   const controls = game.user.isGM
     ? `<span class="dsbl-res-controls">`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" data-tooltip="${esc(game.i18n.localize(e.hidden ? 'DSBL.ResourceLog.reveal' : 'DSBL.ResourceLog.conceal'))}"><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(game.i18n.localize('DSBL.ResourceLog.delete'))}"><i class="fa-solid fa-trash" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
       + `</span>`
     : '';
 
   const reason = ends || e.reason === 'enabled' ? reasonText(e) : '';
   const tip = tipFor(e);
   li.innerHTML = `<span class="dsbl-res-who">${faces}<strong class="dsbl-res-name"${short !== names ? ` data-full="${esc(names)}" data-short="${esc(short)}"` : ''}>${esc(names)}</strong>${controls}</span>`
-    + `<span class="dsbl-fx-what"${tip ? ` data-tooltip="${esc(tip)}"` : ''}>`
+    + `<span class="dsbl-fx-what"${tip ? ` ${tipAttrs(richTip(ends ? 'effectEnded' : 'effectStarted', { title: e.name, html: tip.split('<br>').map((l) => `<p>${l}</p>`).join('') }))}` : ''}>`
     + `<i class="fa-solid ${ends ? 'fa-minus' : 'fa-plus'} dsbl-fx-phase" inert></i>`
     + (e.img ? `<img class="dsbl-fx-img" src="${esc(e.img)}" alt="">` : '')
     + `<span class="dsbl-fx-name">${esc(e.name)}</span>`

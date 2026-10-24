@@ -1,5 +1,6 @@
 import { MODULE_ID } from './collapse.mjs';
 import { onEveryDocument } from './windows.mjs';
+import { setTip, tip } from './tips.mjs';
 
 const ROW = 'dsbl-load-older';
 const byButton = () => game.settings.get(MODULE_ID, 'loadOlderMessages') === 'button';
@@ -65,7 +66,7 @@ export const syncLoadOlder = (log) => {
   const button = row.querySelector('button');
   button.disabled = false;
   button.textContent = game.i18n.format('DSBL.loadOlder.button', { count: Math.min(count, CONFIG.ChatMessage.batchSize) });
-  button.title = game.i18n.format('DSBL.loadOlder.title', { count });
+  setTip(button, tip('loadOlder', { title: button.textContent, body: game.i18n.format('DSBL.loadOlder.title', { count }) }));
   const top = log.querySelector(':scope > .dsbl-log-top');
   if (top ? top.nextElementSibling !== row : log.firstElementChild !== row) top ? top.after(row) : log.prepend(row);
 };

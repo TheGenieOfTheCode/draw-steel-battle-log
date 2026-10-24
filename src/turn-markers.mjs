@@ -4,6 +4,7 @@ import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, res
 import { readEffectLog, visibleEffect, effectRow, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
 import { isDirector, primaryGM } from './director.mjs';
 import { syncLoadOlder } from './load-older.mjs';
+import { setTip, tip } from './tips.mjs';
 
 export const MODULE_ID = 'draw-steel-battle-log';
 
@@ -441,9 +442,9 @@ const drawLog = (log) => {
       const shown = rows.slice(s, e).filter(counted);
       const logs = shown.filter(isRes).length;
       const msgs = shown.length - logs;
-      const part = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-      const parts = [msgs ? part(msgs, 'message', 'messages') : null, logs ? part(logs, 'log line', 'log lines') : null].filter(Boolean);
-      return `${parts.join(' and ')} folded away`;
+      const F = (key, data) => game.i18n.format(`DSBL.tip.folded.${key}`, data);
+      const parts = [msgs ? F(msgs === 1 ? 'message' : 'messages', { n: msgs }) : null, logs ? F(logs === 1 ? 'logLine' : 'logLines', { n: logs }) : null].filter(Boolean);
+      return tip('folded', { body: F('body', { what: parts.length > 1 ? F('both', { a: parts[0], b: parts[1] }) : (parts[0] ?? '') }) });
     };
 
     const entries = readBoundaries();
@@ -511,7 +512,7 @@ const drawLog = (log) => {
         const count = document.createElement('span');
         count.className = 'dsbl-turn-count';
         count.textContent = String(folded);
-        count.title = foldedTitle(start, end);
+        setTip(count, foldedTitle(start, end));
         head.append(count);
       }
 
@@ -583,7 +584,7 @@ const drawLog = (log) => {
         const count = document.createElement('span');
         count.className = 'dsbl-turn-count';
         count.textContent = String(hiddenCount);
-        count.title = foldedTitle(start, end);
+        setTip(count, foldedTitle(start, end));
         line.append(count);
 
         

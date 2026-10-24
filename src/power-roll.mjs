@@ -1,4 +1,5 @@
 import { isStored, setStored, MODULE_ID } from './collapse.mjs';
+import { setTip, tip } from './tips.mjs';
 
 const DIE = (face) => `modules/${MODULE_ID}/icons/dice/die-${face}.png`;
 
@@ -63,7 +64,7 @@ function buildRolls(html, characteristic, message) {
       const chip = document.createElement('span');
       chip.className = 'dsbl-pr-mod';
       chip.textContent = bonus;
-      if (characteristic) chip.dataset.tooltip = characteristic;
+      if (characteristic) setTip(chip, tip('rollBonus', { title: characteristic, data: { bonus } }));
       left.append(chip);
     }
 

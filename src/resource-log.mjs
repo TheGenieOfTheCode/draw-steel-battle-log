@@ -2,6 +2,7 @@ import { MODULE_ID } from './collapse.mjs';
 import { isDirector } from './director.mjs';
 import { effectCovers, coversEnd } from './effect-log.mjs';
 import { onEveryDocument, queryAll, toggleBodyClass } from './windows.mjs';
+import { setTip, tip as richTip, tipAttrs } from './tips.mjs';
 
 const LOG = 'resourceLogEntries';
 const MAX_ENTRIES = 600;
@@ -930,11 +931,11 @@ const summaryRow = (e) => {
   if (heroes) parts.push(heroes === 1 ? L('summary.hero') : L('summary.heroes', { count: heroes }));
   if (malice) parts.push(`${L('res.malice')} ${malice.from} → ${malice.to}`);
   const controls = game.user.isGM
-    ? `<span class="dsbl-res-controls"><a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a></span>`
+    ? `<span class="dsbl-res-controls"><a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a></span>`
     : '';
   li.innerHTML = `<span class="dsbl-res-who"><i class="fa-solid fa-swords dsbl-res-who-icon"></i>`
     + `<strong class="dsbl-res-name">${esc(L(`summary.${e.phase}`))}</strong>${controls}</span>`
-    + `<span class="dsbl-res-summary-text" data-tooltip="${esc(tip)}" data-tooltip-class="dsbl-sum-tip">${esc(parts.join(' · '))}</span>`;
+    + `<span class="dsbl-res-summary-text" ${tipAttrs(richTip('summary', { title: L(`summary.${e.phase}`), html: tip }))}>${esc(parts.join(' · '))}</span>`;
   return li;
 };
 
@@ -981,7 +982,7 @@ export const resourceRow = (e) => {
         : game.i18n.format('DSBL.EffectLog.by', { ability: by.ability }))
     : '';
   const sourceCell = by?.src
-    ? `<img class="dsbl-res-source" src="${esc(by.src)}" alt="" data-tooltip="${esc(byLabel)}"${by.tokenId && by.sceneId ? ` data-ctlib-face="Scene.${esc(by.sceneId)}.Token.${esc(by.tokenId)}"` : ''}>`
+    ? `<img class="dsbl-res-source" src="${esc(by.src)}" alt="" ${tipAttrs(richTip('source', { title: by.name || by.ability || '', body: byLabel }))}${by.tokenId && by.sceneId ? ` data-ctlib-face="Scene.${esc(by.sceneId)}.Token.${esc(by.tokenId)}"` : ''}>`
     : '<span class="dsbl-res-source-none"></span>';
   const face = bare;
 
@@ -1003,7 +1004,7 @@ export const resourceRow = (e) => {
     : '';
   if (e.immune && delta === 0) notes.unshift(L('immune'));
   const amount = `${sign}${Math.abs(delta)}`;
-  const deltaCell = `<span class="dsbl-res-delta ${delta < 0 ? 'is-loss' : delta > 0 ? 'is-gain' : 'is-none'}"${notes.length ? ` data-tooltip="${esc(notes.join('<br>'))}"` : ''}>${struck}${amount}</span>`;
+  const deltaCell = `<span class="dsbl-res-delta ${delta < 0 ? 'is-loss' : delta > 0 ? 'is-gain' : 'is-none'}"${notes.length ? ` ${tipAttrs(richTip('change', { title: amount, category: e.res === 'heroic' && e.label ? e.label : L(`res.${e.res}`), html: notes.map((n) => `<p>${n}</p>`).join('') }))}` : ''}>${struck}${amount}</span>`;
 
   const resName = e.res === 'heroic' && e.label ? e.label : L(`res.${e.res}`);
   const iconTip = e.res === 'recovery' ? L('recoveries', { from: e.from, to: e.to }) : resName;
@@ -1012,12 +1013,13 @@ export const resourceRow = (e) => {
   if (e.temp) {
     const heart = token('stamina') || `<i class="${ICONS.stamina}"></i>`;
     const badge = token('temporary', 'dsbl-res-icon-badge') || `<i class="${ICONS.temporary} dsbl-res-icon-badge"></i>`;
-    icon = `<span class="dsbl-res-icon dsbl-res-icon-stack" data-tooltip="${esc(L('res.stamina'))}">${heart}${badge}</span>`;
+    icon = `<span class="dsbl-res-icon dsbl-res-icon-stack" ${tipAttrs(richTip('resource', { title: L('res.stamina'), body: L('split', { temp: e.temp.from - e.temp.to, stamina: e.from - e.to }) }))}>${heart}${badge}</span>`;
   } else {
     const drawn = token(e.res);
+    const iconAttrs = tipAttrs(richTip('resource', { title: resName, body: iconTip !== resName ? iconTip : undefined }));
     icon = drawn
-      ? `<span class="dsbl-res-icon dsbl-res-icon-token" data-tooltip="${esc(iconTip)}">${drawn}</span>`
-      : `<i class="${ICONS[e.res] ?? 'fa-solid fa-circle'} dsbl-res-icon" data-tooltip="${esc(iconTip)}"></i>`;
+      ? `<span class="dsbl-res-icon dsbl-res-icon-token" ${iconAttrs}>${drawn}</span>`
+      : `<i class="${ICONS[e.res] ?? 'fa-solid fa-circle'} dsbl-res-icon" ${iconAttrs}></i>`;
   }
 
   const type = `<span class="dsbl-res-type">${dtype && stamina ? damageTypeHTML(dtype) : ''}</span>`;
@@ -1025,19 +1027,19 @@ export const resourceRow = (e) => {
   let totals = '';
   if (e.res === 'recovery' && e.heal) {
     const healed = e.heal.to - e.heal.from;
-    totals = `<span class="dsbl-res-heal" data-tooltip="${esc(L('recoveryHeal', { n: healed }))}">${damageTypeHTML('healing')} +${esc(healed)}</span>`;
+    totals = `<span class="dsbl-res-heal" ${tipAttrs(richTip('recoveryHeal', { body: L('recoveryHeal', { n: healed }) }))}>${damageTypeHTML('healing')} +${esc(healed)}</span>`;
   } else if (shown) {
     totals = `${esc(e.from)} → ${esc(e.to)}`;
   }
 
   const gains = undoableGains(e);
   const undo = gains.length
-    ? `<a class="dsbl-res-control" data-dsbl-res-undo="${esc(gains.join(','))}" data-tooltip="${esc(L('undoGain'))}"><i class="fa-solid fa-rotate-left" inert></i></a>`
+    ? `<a class="dsbl-res-control" data-dsbl-res-undo="${esc(gains.join(','))}" ${tipAttrs(richTip('undoGain'))}><i class="fa-solid fa-rotate-left" inert></i></a>`
     : '';
   const controls = game.user.isGM
     ? `<span class="dsbl-res-controls">${undo}`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" data-tooltip="${esc(L(e.hidden ? 'reveal' : 'conceal'))}"><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
       + `</span>`
     : undo ? `<span class="dsbl-res-controls">${undo}</span>` : '';
   const reasons = (e.reasons ?? []).map((k) => {
@@ -1047,7 +1049,7 @@ export const resourceRow = (e) => {
   
   const fullName = many ? `${e.hits[0].name}s` : [e.by ?? e.name, ...reasons].join(' · ');
   const fitName = many ? `${e.hits[0].short ?? e.hits[0].name}s` : reasons.length ? (e.by ?? e.name) : e.short;
-  const nameTip = !many && reasons.length ? ` data-tooltip="${esc(fullName)}"` : '';
+  const nameTip = !many && reasons.length ? ` ${tipAttrs(richTip('spent', { title: e.by ?? e.name, body: reasons.join(', ') }))}` : '';
   li.innerHTML = `<span class="dsbl-res-who">${face}<strong class="dsbl-res-name"${nameTip}${fitName && fitName !== fullName ? ` data-full="${esc(fullName)}" data-short="${esc(fitName)}"` : ''}>${esc(fullName)}</strong>${controls}</span>`
     + icon + deltaCell + type + sourceCell + `<span class="dsbl-res-totals">${totals}</span>`;
   if (e.hidden) li.classList.add('is-concealed');
@@ -1178,7 +1180,7 @@ export const syncResourceToggle = () => {
   _lastShown = shown;
   for (const btn of queryAll('.dsbl-res-toggle')) {
     btn.setAttribute('aria-pressed', String(!shown));
-    btn.dataset.tooltip = L('hide');
+    setTip(btn, richTip('hideLogs', { title: L('hide') }));
     btn.setAttribute('aria-label', L('hide'));
   }
 };

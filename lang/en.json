@@ -134,7 +134,36 @@
     },
     "loadOlder": {
       "button": "Load {count} older messages",
-      "title": "{count} older messages are not loaded yet"
+      "title": "{count} older messages are not loaded yet."
+    },
+    "tip": {
+      "conceal": { "title": "Hide from Players", "category": "Battle Log", "body": "Players stop seeing this log line. You still see it, faded." },
+      "reveal": { "title": "Show to Players", "category": "Battle Log", "body": "Players can see this log line again." },
+      "delete": { "title": "Delete", "category": "Battle Log", "body": "Removes this log line for everyone." },
+      "undoGain": { "title": "Undo the Gain", "category": "Battle Log", "body": "Takes back what this line gained." },
+      "hideLogs": { "category": "Battle Log", "body": "Hides or shows the Resource Log and Effect Log lines in chat." },
+      "effectStarted": { "category": "Effect Started" },
+      "effectEnded": { "category": "Effect Ended" },
+      "summary": { "category": "Combat" },
+      "source": { "category": "Source" },
+      "change": { "category": "Change" },
+      "resource": { "category": "Resource" },
+      "recoveryHeal": { "title": "Recovery", "category": "Resource" },
+      "spent": { "category": "Spent On" },
+      "loadOlder": { "category": "Chat" },
+      "rollBonus": { "category": "Power Roll", "body": "Adds {bonus} to the roll." },
+      "speaker": { "title": "Speaking As", "category": "Chat" },
+      "targets": { "title": "Mention Targets", "category": "Chat" },
+      "folded": {
+        "title": "Folded Away",
+        "category": "Turn Marker",
+        "body": "{what} folded away under this marker.",
+        "message": "{n} message",
+        "messages": "{n} messages",
+        "logLine": "{n} log line",
+        "logLines": "{n} log lines",
+        "both": "{a} and {b}"
+      }
     },
     "notice": {
       "olderCombatTools": "Draw Steel: Combat Tools {version} still posts its own Combat Round Log and Combat Turn Log, so Battle Log's turn markers are off to avoid logging every turn twice. Update Combat Tools, or turn those logs off under its Combat Logs settings, and reload."

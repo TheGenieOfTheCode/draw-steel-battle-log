@@ -1,5 +1,6 @@
 import { MODULE_ID } from './collapse.mjs';
 import { onEveryDocument, queryAll } from './windows.mjs';
+import { tip, tipAttrs } from './tips.mjs';
 
 const setting = key => game.settings.get(MODULE_ID, key);
 const L = (key, data) => data ? game.i18n.format(`DSBL.Speech.${key}`, data) : game.i18n.localize(`DSBL.Speech.${key}`);
@@ -112,7 +113,7 @@ function rowInner() {
   const now = resolveChoice();
   const pick = choice();
   const mode = pick.kind === 'selected' ? ` <span class="dsbl-speaker-mode">${esc(L('selected'))}</span>` : '';
-  return `<button type="button" class="dsbl-speaker" data-tooltip="${esc(L('changeTooltip'))}">
+  return `<button type="button" class="dsbl-speaker" ${tipAttrs(tip('speaker', { body: L('changeTooltip') }))}>
       ${faceHTML(now.face)}
       <span class="dsbl-speaker-label">${esc(L('speakingAs'))} <strong>${esc(now.name)}</strong>${mode}</span>
       <i class="fa-solid fa-caret-up dsbl-speaker-caret" inert></i>
@@ -121,7 +122,7 @@ function rowInner() {
 
 function targetsButton() {
   const none = !game.user.targets.size;
-  return `<button type="button" class="dsbl-targets"${none ? ' disabled' : ''} data-tooltip="${esc(L(none ? 'targetsNone' : 'targetsTooltip'))}">
+  return `<button type="button" class="dsbl-targets"${none ? ' disabled' : ''} ${tipAttrs(tip('targets', { body: L(none ? 'targetsNone' : 'targetsTooltip') }))}>
       <i class="fa-solid fa-crosshairs" inert></i>
     </button>`;
 }
