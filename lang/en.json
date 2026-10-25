@@ -142,6 +142,8 @@
       "delete": { "title": "Delete", "category": "Battle Log", "body": "Removes this log line for everyone." },
       "undoGain": { "title": "Undo the Gain", "category": "Battle Log", "body": "Takes back what this line gained." },
       "hideLogs": { "category": "Battle Log", "body": "Hides or shows the Resource Log and Effect Log lines in chat." },
+      "undoMove": { "title": "Undo the Move", "category": "Battle Log", "body": "Puts the creature back where it was moved from." },
+      "forcedMovement": { "category": "Forced Movement" },
       "effectStarted": { "category": "Effect Started" },
       "effectEnded": { "category": "Effect Ended" },
       "summary": { "category": "Combat" },
@@ -229,6 +231,7 @@
       }
     },
     "EffectLog": {
+      "undoMoveMissing": "That move's chat message isn't loaded, so it can't be undone from here.",
       "from": "From {source}",
       "fromAbility": "{ability}, from {source}",
       "by": "From {ability}",
@@ -238,7 +241,8 @@
         "removed": "removed",
         "cleansed": "cleansed",
         "disabled": "turned off",
-        "enabled": "turned back on"
+        "enabled": "turned back on",
+        "undone": "undone"
       },
       "expiry": {
         "turnEnd": "end of turn",

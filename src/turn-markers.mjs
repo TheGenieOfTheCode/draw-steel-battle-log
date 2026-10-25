@@ -1,7 +1,7 @@
 
 
 import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown, rewriteResourceLog } from './resource-log.mjs';
-import { readEffectLog, visibleEffect, effectRow, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
+import { readEffectLog, visibleEffect, effectRow, fmRow, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
 import { isDirector, primaryGM } from './director.mjs';
 import { syncLoadOlder } from './load-older.mjs';
 import { setTip, tip } from './tips.mjs';
@@ -298,7 +298,6 @@ const marker = (entry, kind, isCurrent) => {
   return el;
 };
 
-
 const logElements = () => {
   const ChatLog = foundry.applications.sidebar.tabs.ChatLog;
   const apps = new Set([ui.chat, ...[...foundry.applications.instances.values()].filter((a) => a instanceof ChatLog && a.rendered)]);
@@ -338,7 +337,7 @@ const logEntries = () => [
   ...(setting('effectLog') ? readEffectLog().filter(visibleEffect) : []),
 ].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
 
-const rowOf = (e) => (e.kind === 'fx' ? effectRow(e) : resourceRow(e));
+const rowOf = (e) => (e.kind === 'fx' ? effectRow(e) : e.kind === 'fm' ? fmRow(e) : resourceRow(e));
 const messageRows = (log) => [...log.querySelectorAll(':scope > .chat-message[data-message-id]')];
 const TURN_CLASSES = ['dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden'];
 

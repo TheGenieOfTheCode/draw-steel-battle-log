@@ -1,6 +1,6 @@
 import { MODULE_ID } from './collapse.mjs';
 import { isDirector } from './director.mjs';
-import { effectCovers, coversEnd } from './effect-log.mjs';
+import { effectCovers, coversEnd, coversMove } from './effect-log.mjs';
 import { onEveryDocument, queryAll, toggleBodyClass } from './windows.mjs';
 import { setTip, tip as richTip, tipAttrs } from './tips.mjs';
 
@@ -164,6 +164,37 @@ const addCover = (e, messageId, delta) => {
 
 const lossOf = (e) => (e.from - e.to) + (e.temp ? e.temp.from - e.temp.to : 0);
 
+const CT = 'draw-steel-combat-tools';
+
+const _recurringWaiting = new Map();
+const RECURRING_WAIT_MS = 120000;
+
+const linkRecurring = (message) => {
+  const data = message.flags?.[CT]?.recurring;
+  if (!data?.record) return;
+  const keys = [data.actorUuid, data.record.squadGroupUuid].filter(Boolean);
+  const list = draftList();
+  const now = Date.now();
+  for (let i = list.length - 1; i >= Math.max(0, list.length - 30); i--) {
+    const e = list[i];
+    if (!keys.includes(e.key) || !['stamina', 'temporary'].includes(e.res)) continue;
+    if (now - e.at > 10000) break;
+    if (!e.covers?.includes(message.id)) {
+      addCover(e, message.id, 'all');
+      scheduleFlush();
+    }
+    return;
+  }
+  for (const key of keys) _recurringWaiting.set(key, { messageId: message.id, at: now });
+};
+
+const takeRecurring = (key) => {
+  const waiting = _recurringWaiting.get(key);
+  if (!waiting) return null;
+  _recurringWaiting.delete(key);
+  return Date.now() - waiting.at < RECURRING_WAIT_MS && game.messages.has(waiting.messageId) ? waiting.messageId : null;
+};
+
 const SUMMARY_MS = 5000;
 const summaryPhase = (key, why) => {
   if (!why?.length) return null;
@@ -232,6 +263,7 @@ const note = (change) => {
   }
 
   const covers = coverOf(after, res);
+  const recurring = (res === 'stamina' || res === 'temporary') && to < from ? takeRecurring(key) : null;
   const source = change.source && !(change.source.tokenId && change.source.tokenId === change.who?.tokenId) ? change.source : null;
 
   for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
@@ -265,13 +297,14 @@ const note = (change) => {
     if (change.immune) e.immune = true;
     if (change.hidden) e.hidden = true;
     if (covers) addCover(e, covers, to - from);
+    if (recurring) addCover(e, recurring, 'all');
     e.why = e.why && why ? [...e.why, ...why] : null;
     if (e.to === e.from && !e.temp && !e.immune && !e.incoming) list.splice(list.indexOf(e), 1);
     scheduleFlush();
     return;
   }
 
-  list.push({
+  const entry = {
     id: foundry.utils.randomID(),
     after,
     turn,
@@ -295,7 +328,9 @@ const note = (change) => {
     ...(change.hits?.length ? { hits: change.hits } : {}),
     ...(source ? { source } : {}),
     ...(change.hidden ? { hidden: true } : {}),
-  });
+  };
+  if (recurring) addCover(entry, recurring, 'all');
+  list.push(entry);
   scheduleFlush();
 };
 
@@ -634,8 +669,12 @@ export const registerResourceRecording = ({ currentTurn }) => {
   Hooks.on('preCreateChatMessage', (doc) => {
     if (_turnGainFor && (doc.rolls?.length || rollParts(doc).length)) doc.updateSource({ [`flags.${MODULE_ID}.turnGain`]: true });
   });
+  Hooks.on('updateChatMessage', (message, changes) => {
+    if (isDirector() && setting('resourceLog') && foundry.utils.hasProperty(changes, `flags.${CT}.recurring.record`)) linkRecurring(message);
+  });
   Hooks.on('createChatMessage', (message) => {
     if (!isDirector() || !setting('resourceLog')) return;
+    if (message.flags?.[CT]?.recurring) return void linkRecurring(message);
     const card = message.flags?.[MODULE_ID]?.coveredBy;
     if (card) {
       const e = draftList().find((x) => x.id === card);
@@ -1072,18 +1111,18 @@ const coverState = () => {
 };
 
 const isCovered = (message, state) => {
-  if (coversEnd(message)) {
+  const pending = () => Date.now() - (message.timestamp ?? 0) < PENDING_MS && (anyCombat() || setting('resourceLogOutOfCombat'));
+  if (coversEnd(message) || coversMove(message)) {
     if (!setting('effectLog')) return false;
-    if (state.messages.has(message.id)) return true;
-    return Date.now() - (message.timestamp ?? 0) < PENDING_MS && (anyCombat() || setting('resourceLogOutOfCombat'));
+    return state.messages.has(message.id) || pending();
   }
   if (!setting('resourceLog')) return false;
+  const recurring = message.flags?.[CT]?.recurring;
+  if (recurring) return !!recurring.record && (state.messages.has(message.id) || pending());
   const card = message.flags?.[MODULE_ID]?.coveredBy;
   if (card) return replacesTokenCards() && state.lines.has(card);
   if (!setting('resourceLogTurnGainCards') || !gainKind(message)) return false;
-  if (state.messages.has(message.id)) return true;
-  const pending = Date.now() - (message.timestamp ?? 0) < PENDING_MS;
-  return pending && (anyCombat() || setting('resourceLogOutOfCombat'));
+  return state.messages.has(message.id) || pending();
 };
 
 export const refreshCovered = () => {
@@ -1184,7 +1223,6 @@ export const syncResourceToggle = () => {
     btn.setAttribute('aria-label', L('hide'));
   }
 };
-
 
 export const addResourceToggle = (controls = document.getElementById('chat-controls')) => {
   const all = queryAll('.dsbl-res-toggle');

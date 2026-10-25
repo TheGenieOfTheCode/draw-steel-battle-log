@@ -249,6 +249,57 @@ export const effectCovers = () => {
 
 export const coversEnd = (message) => !!message.flags?.[CT]?.grabEnded;
 
+export const coversMove = (message) => {
+  const flags = message.flags?.[CT];
+  return !!flags?.isFmUndo && !!(flags.fmLog || flags.entries?.some?.((m) => m?.fmLog));
+};
+
+const noteForcedMovement = (message) => {
+  const flags = message.flags?.[CT];
+  if (!flags?.isFmUndo || flags.isUndone) return false;
+  const moves = (flags.isCombined ? flags.entries ?? [] : [flags]).filter((m) => m?.fmLog && m.targetTokenId);
+  const targets = [];
+  let inCombat = false;
+  for (const m of moves) {
+    const token = game.scenes.get(m.targetSceneId)?.tokens.get(m.targetTokenId) ?? null;
+    const actor = token?.actor;
+    if (!actor) continue;
+    const combat = combatOf(token);
+    inCombat ||= !!combat;
+    targets.push({ actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token), moved: m.fmLog.moved });
+  }
+  if (!targets.length || (!inCombat && !setting('resourceLogOutOfCombat'))) return false;
+  const first = moves[0].fmLog;
+  const lines = String(message.content ?? '').split(/<br\s*\/?>/i).map((l) => l.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  draftList().push({
+    id: foundry.utils.randomID(),
+    kind: 'fm',
+    after: message.id,
+    turn: _currentTurn(),
+    at: Date.now(),
+    movement: first.movement,
+    vertical: !!first.vertical,
+    source: first.source ?? null,
+    targets,
+    lines,
+    party: targets.some((t) => t.party),
+    shown: true,
+    hidden: targets.every((t) => t.hidden),
+    covers: [message.id],
+  });
+  scheduleFlush();
+  return true;
+};
+
+const noteUndoneMove = (message) => {
+  const list = draftList();
+  const mine = list.filter((e) => e.kind === 'fm' && e.covers?.includes(message.id));
+  const original = mine.find((e) => !e.undo);
+  if (!original || mine.some((e) => e.undo)) return;
+  list.push({ ...foundry.utils.deepClone(original), id: foundry.utils.randomID(), undo: true, after: anchor(), turn: _currentTurn(), at: Date.now() });
+  scheduleFlush();
+};
+
 export const registerEffectRecording = ({ currentTurn }) => {
   _currentTurn = currentTurn;
 
@@ -277,9 +328,14 @@ export const registerEffectRecording = ({ currentTurn }) => {
     noteEffect(effect, 'end', options?.ctlib?.endReason ?? options?.[MODULE_ID]?.endReason ?? 'removed');
   });
 
+  Hooks.on('updateChatMessage', (message, changes) => {
+    if (isDirector() && foundry.utils.getProperty(changes, `flags.${CT}.isUndone`) === true) noteUndoneMove(message);
+  });
+
   Hooks.on('createChatMessage', (message) => {
     if (!isDirector()) return;
     if (coverEndMessage(message)) return;
+    if (setting('effectLog') && noteForcedMovement(message)) return;
     const parts = [...(message.system?.parts?.contents ?? message.system?.parts ?? [])];
     let linked = false;
     for (const part of parts) {
@@ -365,6 +421,48 @@ export const effectRow = (e) => {
   return li;
 };
 
+const FM_ICONS = { push: 'fa-arrow-right-long', pull: 'fa-arrow-left-long', slide: 'fa-arrows-left-right' };
+
+const movementLabel = (e) => {
+  const cfg = globalThis.ds?.CONFIG?.abilities?.forcedMovement?.[e.movement];
+  const key = cfg ? (e.vertical ? cfg.vertical : cfg.label) : null;
+  return key ? game.i18n.localize(key) : e.movement.charAt(0).toUpperCase() + e.movement.slice(1);
+};
+
+export const fmRow = (e) => {
+  const li = document.createElement('li');
+  li.className = `message dsbl-res-row dsbl-fx-row dsbl-fm-row ${e.undo ? 'is-end' : 'is-start'}`;
+  li.dataset.dsblRes = e.id;
+  li.dataset.dsblLog = 'fx';
+
+  const faces = faceStack(e.targets.map(faceImg));
+  const many = e.targets.length > 1;
+  const names = many ? `${e.targets[0].name}s` : (e.targets[0]?.name ?? '');
+  const short = many ? `${e.targets[0].short ?? e.targets[0].name}s` : (e.targets[0]?.short ?? names);
+  const message = game.messages.get(e.covers?.[0]);
+  const canUndo = !e.undo && !!message && !message.getFlag(CT, 'isUndone') && (game.user.isGM || message.isAuthor);
+  const controls = (canUndo ? `<a class="dsbl-res-control" data-dsbl-fm-undo="${esc(message.id)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
+    + (game.user.isGM
+      ? `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+        + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
+      : '');
+
+  const label = movementLabel(e);
+  const distances = [...new Set(e.targets.map((t) => t.moved))];
+  const tip = tipAttrs(richTip('forcedMovement', { title: `${label} ${distances.join(' / ')}`, html: (e.lines ?? []).map((l) => `<p>${esc(l)}</p>`).join('') }));
+  li.innerHTML = `<span class="dsbl-res-who">${faces}<strong class="dsbl-res-name"${short !== names ? ` data-full="${esc(names)}" data-short="${esc(short)}"` : ''}>${esc(names)}</strong>${controls ? `<span class="dsbl-res-controls">${controls}</span>` : ''}</span>`
+    + `<span class="dsbl-fx-what" ${tip}>`
+    + `<i class="fa-solid ${e.undo ? 'fa-rotate-left' : e.vertical ? 'fa-arrow-up-long' : FM_ICONS[e.movement] ?? 'fa-arrow-right-long'} dsbl-fx-phase" inert></i>`
+    + `<span class="dsbl-fx-name">${esc(label)} ${esc(distances.join(' / '))}</span>`
+    + (e.undo ? `<span class="dsbl-fx-reason">${esc(L('reason.undone'))}</span>` : '')
+    + (!e.undo && e.source?.src
+      ? `<img class="dsbl-fx-source" src="${esc(e.source.src)}" alt=""${e.source.tokenId && e.source.sceneId ? ` data-ctlib-face="Scene.${esc(e.source.sceneId)}.Token.${esc(e.source.tokenId)}"` : ''}>`
+      : '')
+    + `</span>`;
+  if (e.hidden) li.classList.add('is-concealed');
+  return li;
+};
+
 export const editEffectEntry = async (id, change) => {
   if (!game.user.isGM) return;
   const list = foundry.utils.deepClone(readEffectLog());
@@ -383,6 +481,16 @@ export const rewriteEffectLog = async (change) => {
 };
 
 onEveryDocument((doc) => doc.addEventListener('click', (event) => {
+  const undo = event.target.closest?.('[data-dsbl-fm-undo]');
+  if (undo) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = doc.querySelector(`li.chat-message[data-message-id="${undo.dataset.dsblFmUndo}"] .dsct-undo-fm`);
+    if (button && !button.disabled) button.click();
+    else ui.notifications.warn(L('undoMoveMissing'));
+    return;
+  }
   const control = event.target.closest?.('[data-dsbl-res-action]');
   const row = control?.closest('.dsbl-res-row');
   if (!row || row.dataset.dsblLog !== 'fx') return;
