@@ -261,13 +261,17 @@ export const coversEnd = (message) => !!message.flags?.[CT]?.grabEnded;
 
 export const coversMove = (message) => {
   const flags = message.flags?.[CT];
-  return !!flags?.isFmUndo && !!(flags.fmLog || flags.entries?.some?.((m) => m?.fmLog));
+  return !!flags?.fallLog || (!!flags?.isFmUndo && !!(flags.fmLog || flags.entries?.some?.((m) => m?.fmLog)));
 };
+
+const asMove = (flags) => (flags?.fallLog
+  ? [{ ...flags.fallLog, fmLog: { movement: 'fall', moved: flags.fallLog.fell, vertical: false, source: null } }]
+  : null);
 
 const noteForcedMovement = (message) => {
   const flags = message.flags?.[CT];
-  if (!flags?.isFmUndo || flags.isUndone) return false;
-  const moves = (flags.isCombined ? flags.entries ?? [] : [flags]).filter((m) => m?.fmLog && m.targetTokenId);
+  if ((!flags?.isFmUndo && !flags?.fallLog) || flags.isUndone) return false;
+  const moves = (asMove(flags) ?? (flags.isCombined ? flags.entries ?? [] : [flags])).filter((m) => m?.fmLog && m.targetTokenId);
   const targets = [];
   let inCombat = false;
   for (const m of moves) {
@@ -431,9 +435,10 @@ export const effectRow = (e) => {
   return li;
 };
 
-const FM_ICONS = { push: 'fa-arrow-right-long', pull: 'fa-arrow-left-long', slide: 'fa-arrows-left-right' };
+const FM_ICONS = { push: 'fa-arrow-right-long', pull: 'fa-arrow-left-long', slide: 'fa-arrows-left-right', fall: 'fa-arrow-down-long' };
 
 const movementLabel = (e) => {
+  if (e.movement === 'fall') return L('fall');
   const cfg = globalThis.ds?.CONFIG?.abilities?.forcedMovement?.[e.movement];
   const key = cfg ? (e.vertical ? cfg.vertical : cfg.label) : null;
   return key ? game.i18n.localize(key) : e.movement.charAt(0).toUpperCase() + e.movement.slice(1);
@@ -450,7 +455,7 @@ export const fmRow = (e) => {
   const names = many ? `${e.targets[0].name}s` : (e.targets[0]?.name ?? '');
   const short = many ? `${e.targets[0].short ?? e.targets[0].name}s` : (e.targets[0]?.short ?? names);
   const message = game.messages.get(e.covers?.[0]);
-  const canUndo = !e.undo && !!message && !message.getFlag(CT, 'isUndone') && (game.user.isGM || message.isAuthor);
+  const canUndo = !e.undo && e.movement !== 'fall' && !!message && !message.getFlag(CT, 'isUndone') && (game.user.isGM || message.isAuthor);
   const controls = (canUndo ? `<a class="dsbl-res-control" data-dsbl-fm-undo="${esc(message.id)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
     + (game.user.isGM
       ? `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
@@ -459,7 +464,7 @@ export const fmRow = (e) => {
 
   const label = movementLabel(e);
   const distances = [...new Set(e.targets.map((t) => t.moved))];
-  const tip = tipAttrs(richTip('forcedMovement', { title: `${label} ${distances.join(' / ')}`, html: (e.lines ?? []).map((l) => `<p>${esc(l)}</p>`).join('') }));
+  const tip = tipAttrs(richTip(e.movement === 'fall' ? 'fall' : 'forcedMovement', { title: `${label} ${distances.join(' / ')}`, html: (e.lines ?? []).map((l) => `<p>${esc(l)}</p>`).join('') }));
   li.innerHTML = `<span class="dsbl-res-who">${faces}<strong class="dsbl-res-name"${short !== names ? ` data-full="${esc(names)}" data-short="${esc(short)}"` : ''}>${esc(names)}</strong>${controls ? `<span class="dsbl-res-controls">${controls}</span>` : ''}</span>`
     + `<span class="dsbl-fx-what" ${tip}>`
     + `<i class="fa-solid ${e.undo ? 'fa-rotate-left' : e.vertical ? 'fa-arrow-up-long' : FM_ICONS[e.movement] ?? 'fa-arrow-right-long'} dsbl-fx-phase" inert></i>`

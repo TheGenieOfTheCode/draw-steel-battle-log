@@ -144,6 +144,7 @@
       "hideLogs": { "category": "Battle Log", "body": "Hides or shows the Resource Log and Effect Log lines in chat." },
       "undoMove": { "title": "Undo the Move", "category": "Battle Log", "body": "Puts the creature back where it was moved from." },
       "forcedMovement": { "category": "Forced Movement" },
+      "fall": { "category": "Falling" },
       "effectStarted": { "category": "Effect Started" },
       "effectEnded": { "category": "Effect Ended" },
       "summary": { "category": "Combat" },
@@ -232,6 +233,7 @@
     },
     "EffectLog": {
       "undoMoveMissing": "That move's chat message isn't loaded, so it can't be undone from here.",
+      "fall": "Fall",
       "from": "From {source}",
       "fromAbility": "{ability}, from {source}",
       "by": "From {ability}",
