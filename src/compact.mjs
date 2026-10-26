@@ -1,6 +1,6 @@
 const SEL = 'document-embed.draw-steel.ability .metadata dl';
 
-const MIN_SIZE = 11;
+const MIN_SIZE = 12.5;
 const STEP = 0.5;
 
 function wraps(cell) {
