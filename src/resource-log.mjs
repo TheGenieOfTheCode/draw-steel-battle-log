@@ -3,6 +3,7 @@ import { isDirector } from './director.mjs';
 import { effectCovers, coversEnd, coversMove } from './effect-log.mjs';
 import { onEveryDocument, queryAll, toggleBodyClass } from './windows.mjs';
 import { setTip, tip as richTip, tipAttrs } from './tips.mjs';
+import { addChatTabs } from './chat-tabs.mjs';
 
 const LOG = 'resourceLogEntries';
 const MAX_ENTRIES = 600;
@@ -1285,33 +1286,13 @@ onEveryDocument((doc) => doc.addEventListener('click', async (event) => {
 
 let _lastShown = null;
 export const syncResourceToggle = () => {
-  const shown = setting('resourceLogShown') !== false;
-  toggleBodyClass('dsbl-res-off', !shown);
-  if (shown && _lastShown !== true) for (const log of queryAll('.chat-log')) fitNames(log);
-  _lastShown = shown;
-  for (const btn of queryAll('.dsbl-res-toggle')) {
-    btn.setAttribute('aria-pressed', String(!shown));
-    setTip(btn, richTip('hideLogs', { title: L('hide') }));
-    btn.setAttribute('aria-label', L('hide'));
-  }
+  toggleBodyClass('dsbl-res-off', false);
+  if (_lastShown !== true) for (const log of queryAll('.chat-log')) fitNames(log);
+  _lastShown = true;
 };
 
-export const addResourceToggle = (controls = document.getElementById('chat-controls')) => {
-  const all = queryAll('.dsbl-res-toggle');
-  if (!setting('resourceLog') && !setting('effectLog')) { for (const b of all) b.remove(); return; }
-  if (!controls) return;
-  const keep = all.find((b) => controls.contains(b));
-  for (const b of all) if (b !== keep) b.remove();
-  if (keep) return syncResourceToggle();
-  let group = controls.querySelector('.control-buttons');
-  if (!group) {
-    group = document.createElement('div');
-    group.className = 'control-buttons';
-    controls.append(group);
-  }
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'ui-control icon toggle fa-solid fa-heart-pulse dsbl-res-toggle';
-  group.prepend(btn);
+export const addResourceToggle = () => {
+  for (const b of queryAll('.dsbl-res-toggle')) b.remove();
   syncResourceToggle();
+  addChatTabs();
 };

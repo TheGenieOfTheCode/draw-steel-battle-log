@@ -4,6 +4,7 @@ import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
 import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteMessage, olderCombatToolsLogs, currentTurn, watchClearAll, addMarkerMenu } from './turn-markers.mjs';
 import { registerResourceRecording, addResourceToggle, syncResourceToggle, markCovered } from './resource-log.mjs';
+import { registerChatTabs } from './chat-tabs.mjs';
 import { registerEffectRecording } from './effect-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
@@ -20,6 +21,7 @@ const setting = key => game.settings.get(MODULE_ID, key);
 
 Hooks.once('init', () => {
   registerCompatibilityMenu();
+  registerChatTabs();
 
   game.settings.register(MODULE_ID, 'darkChat', {
     name: 'DSBL.Settings.darkChat.name',

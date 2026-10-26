@@ -182,6 +182,17 @@
       "targetsTooltip": "Mention your targets. You can also type @targets in a message.",
       "targetsNone": "Target a token to mention it."
     },
+    "ChatTabs": {
+      "all": "All",
+      "logs": "Logs",
+      "chat": "Chat",
+      "allTip": "Everything: chat messages, with log lines in place of the messages they cover.",
+      "logsTip": "Only log lines, with a short line for each ability used.",
+      "chatTip": "Only talk: no ability chat messages and no log lines.",
+      "used": "{name} used {ability}",
+      "usedOn": "{name} used {ability} on {targets}",
+      "stubTip": "Show the full chat message"
+    },
     "ResourceLog": {
       "show": "Show Logs",
       "hide": "Hide Logs",

@@ -1250,3 +1250,74 @@ body .theme-dark .dsbl-fx-img { background: none; padding: 0; }
 .dsbl-sub-setting.dsbl-sub-off { opacity: 0.5; }
 
 .dsbl-res-source { width: 1.1em; height: 1.1em; border: 0; border-radius: 50%; object-fit: cover; opacity: 0.9; cursor: pointer; justify-self: center; }
+
+
+.dsbl-chat-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
+  font-size: var(--font-size-13, 13px);
+  line-height: 1.4;
+  
+  pointer-events: auto;
+  justify-content: space-around;
+  gap: 4px;
+  margin: 0 0 4px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
+}
+.dsbl-chat-tabs .item {
+  position: relative;
+  flex: 1 1 0;
+  padding: 1px 0;
+  line-height: inherit;
+  text-align: center;
+  font-family: var(--font-h4, inherit);
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.dsbl-chat-tabs .item:hover { color: var(--color-text-primary); }
+.dsbl-chat-tabs .item.active {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-border-highlight, #ff6400);
+}
+.dsbl-tab-count:not(:empty) {
+  margin-left: 0.35em;
+  padding: 0 0.45em;
+  border-radius: 999px;
+  font-size: var(--font-size-11, 11px);
+  background: var(--color-border-highlight, #ff6400);
+  color: #fff;
+}
+
+body.dsbl-tab-logs :is(.chat-sidebar, .chat-popout) .chat-log > li.chat-message { display: none !important; }
+body.dsbl-tab-chat :is(.chat-sidebar, .chat-popout) .chat-log > li.dsbl-res-row,
+body.dsbl-tab-chat :is(.chat-sidebar, .chat-popout) .chat-log > li.chat-message.dsbl-ability { display: none !important; }
+body:not(.dsbl-tab-logs) .chat-log > li.dsbl-stub { display: none !important; }
+
+
+li.dsbl-stub {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 3px 6px;
+  --dsbl-res-ink: #3a3340;
+  font-size: var(--font-size-13, 13px);
+  color: var(--dsbl-res-ink);
+  opacity: 0.85;
+  cursor: pointer;
+  pointer-events: all;
+}
+body .theme-dark li.dsbl-stub { --dsbl-res-ink: #e6dfee; }
+li.dsbl-stub:hover { opacity: 1; }
+.dsbl-stub-face { width: 1.4em; height: 1.4em; border: 0; border-radius: 50%; object-fit: cover; }
+
+li.chat-message.dsbl-flash { animation: dsbl-flash 1.8s ease-out; }
+@keyframes dsbl-flash {
+  0%, 30% { box-shadow: 0 0 0 2px var(--color-border-highlight, #ff6400); }
+  100% { box-shadow: 0 0 0 2px transparent; }
+}
