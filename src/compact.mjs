@@ -149,15 +149,15 @@ function fitAll(dls) {
     shrinking = shrinking.filter(j => j.cells.some(wraps));
   }
 
-  for (const j of jobs) {
-    const key = fitKey(j.dl);
-    if (key) _fitted.set(key, j.embed.style.getPropertyValue('--dsbl-meta-size') || null);
-  }
-
   const withKeywords = jobs.filter(j => j.keywords);
   for (const j of withKeywords) resetKeywords(j.keywords);
   const plans = withKeywords.map(j => planKeywords(j.keywords));
   withKeywords.forEach((j, i) => applyKeywords(j.keywords, plans[i]));
+
+  for (const j of jobs) {
+    const key = fitKey(j.dl);
+    if (key) _fitted.set(key, { size: j.embed.style.getPropertyValue('--dsbl-meta-size') || null, breaks: plans[withKeywords.indexOf(j)] ?? null });
+  }
 }
 
 let _observer = null;
@@ -186,8 +186,13 @@ const fitKey = (dl) => {
 
 export function compactAbilityMetadata(html) {
   for (const dl of html.querySelectorAll(SEL)) {
-    const size = _fitted.get(fitKey(dl));
-    if (size) dl.closest('document-embed')?.style.setProperty('--dsbl-meta-size', size);
+    
+    pillify(dl);
+    rowify(dl);
+    const fit = _fitted.get(fitKey(dl));
+    if (fit?.size) dl.closest('document-embed')?.style.setProperty('--dsbl-meta-size', fit.size);
+    const keywords = dl.querySelector('dd.keywords');
+    if (fit?.breaks && keywords) applyKeywords(keywords, fit.breaks);
     watch(dl);
   }
 }
