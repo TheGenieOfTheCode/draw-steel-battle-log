@@ -37,10 +37,16 @@ const scheduleFlush = () => {
     if (!list) return;
     while (list.length > MAX_ENTRIES) list.shift();
     _writing = list;
-    try { await game.settings.set(MODULE_ID, LOG, list); }
+    try { await game.settings.set(MODULE_ID, LOG, list, { dsblOwn: true }); }
     finally { if (_writing === list) _writing = null; }
   }, 200);
 };
+
+Hooks.on('updateSetting', (setting, _changes, options) => {
+  if (setting.key !== `${MODULE_ID}.${LOG}` || options?.dsblOwn) return;
+  _draft = null;
+  _writing = null;
+});
 
 const CT = 'draw-steel-combat-tools';
 const flagsOf = (effect, scope) => effect.flags?.[scope] ?? {};

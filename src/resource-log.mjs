@@ -142,6 +142,58 @@ const draftList = () => {
   return _draft;
 };
 
+const UNDO_MS = 8000;
+
+const cancelUndone = (keys) => {
+  const list = draftList();
+  const now = Date.now();
+  for (const key of keys.filter(Boolean)) {
+    const heals = [];
+    let hit = null;
+    for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
+      const e = list[i];
+      if (e.key !== key || (e.res !== 'stamina' && e.res !== 'temporary')) continue;
+      if (e.to > e.from && !hit) {
+        if (now - e.at > UNDO_MS || heals.some((h) => h.res === e.res)) break;
+        heals.push(e);
+        continue;
+      }
+      if (e.to < e.from || (e.temp && e.temp.to < e.temp.from)) hit = e;
+      break;
+    }
+    if (!hit || !heals.length) continue;
+    const healOf = (res) => heals.find((h) => h.res === res);
+    const back = (res, span) => { const h = healOf(res); return !!h && h.from === span.to && h.to === span.from; };
+    const stamina = hit.res === 'temporary' ? null : { from: hit.from, to: hit.to };
+    const temp = hit.res === 'temporary' ? { from: hit.from, to: hit.to } : hit.temp;
+    const ok = (!stamina || stamina.from === stamina.to || back('stamina', stamina))
+      && (!temp || temp.from === temp.to || back('temporary', temp))
+      && heals.every((h) => (h.res === 'stamina' ? stamina && stamina.from !== stamina.to : temp && temp.from !== temp.to));
+    if (!ok) continue;
+    for (const e of [hit, ...heals]) list.splice(list.indexOf(e), 1);
+    scheduleFlush();
+  }
+};
+
+const _undoneSeen = new Set();
+
+const undoneRecords = (message) => {
+  const apps = message.flags?.['draw-steel-target-damage']?.state?.applications ?? {};
+  const out = [];
+  for (const [opId, entry] of Object.entries(apps)) {
+    for (const rec of [entry, ...(entry?.history ?? []), ...(entry?.records ?? [])].filter(Boolean)) {
+      for (const r of [rec, ...(Array.isArray(rec.records) ? rec.records : [])]) {
+        if (r?.status !== 'undone' || !r.undoneAt || Date.now() - r.undoneAt > UNDO_MS) continue;
+        const id = `${message.id}:${opId}:${r.undoneAt}:${r.target?.tokenUuid ?? r.target?.actorUuid ?? ''}`;
+        if (_undoneSeen.has(id)) continue;
+        _undoneSeen.add(id);
+        out.push(r);
+      }
+    }
+  }
+  return out;
+};
+
 const scheduleFlush = () => {
   if (_flush) return;
   _flush = setTimeout(async () => {
@@ -151,7 +203,7 @@ const scheduleFlush = () => {
     if (!list) return;
     while (list.length > MAX_ENTRIES) list.shift();
     _writing = list;
-    try { await game.settings.set(MODULE_ID, LOG, list); }
+    try { await game.settings.set(MODULE_ID, LOG, list, { dsblOwn: true }); }
     finally { if (_writing === list) _writing = null; }
   }, 200);
 };
@@ -270,6 +322,8 @@ const note = (change) => {
     const e = list[i];
     if (e.key !== key || e.res !== res || e.user !== change.userId) continue;
     if (now - e.at > MERGE_MS || (e.turn !== turn && !change.acrossTurns)) break;
+    
+    if (e.to !== e.from && Math.sign(to - from) !== Math.sign(e.to - e.from)) break;
     if (res === 'heroTokens' && (_tokenCall?.kind === 'spendToken' || e.reasons?.length)) break;
     
     if (why?.length || e.why?.length) break;
@@ -767,6 +821,17 @@ export const registerResourceRecording = ({ currentTurn }) => {
         always: res === 'recovery' && lost,
       });
     }
+    if (options?.dsblUndo) cancelUndone([actor.uuid]);
+  });
+
+  Hooks.on('updateChatMessage', (message, changes) => {
+    if (!isDirector() || !setting('resourceLog') || !foundry.utils.hasProperty(changes, 'flags.draw-steel-target-damage')) return;
+    for (const r of undoneRecords(message)) {
+      const token = r.target?.tokenUuid ? fromUuidSync(r.target.tokenUuid) : null;
+      const actor = token?.actor ?? (r.target?.actorUuid ? fromUuidSync(r.target.actorUuid) : null);
+      const group = token ? game.combat?.groups?.find((g) => [...(g.members ?? [])].some((m) => m.tokenId === token.id)) : null;
+      cancelUndone([actor?.uuid, group?.uuid]);
+    }
   });
 
   Hooks.on('updateCombatantGroup', (group, changes, options, userId) => {
@@ -797,6 +862,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
       hidden: hiddenFromPlayers(member),
       ...(type && from !== null && to < from ? damageDetail(member.actor, type, null) : {}),
     });
+    if (options?.dsblUndo) cancelUndone([group.uuid]);
   });
 
   const onWorld = (setting, userId, options) => {
@@ -820,6 +886,12 @@ export const registerResourceRecording = ({ currentTurn }) => {
     });
   };
   Hooks.on('updateSetting', (setting, _changes, options, userId) => onWorld(setting, userId, options));
+  
+  Hooks.on('updateSetting', (setting, _changes, options) => {
+    if (setting.key !== `${MODULE_ID}.${LOG}` || options?.dsblOwn) return;
+    _draft = null;
+    _writing = null;
+  });
   Hooks.on('createSetting', (setting, options, userId) => onWorld(setting, userId, options));
 };
 
