@@ -22,8 +22,10 @@ export const readEffectLog = () => {
 let _currentTurn = () => null;
 let _draft = null;
 let _flush = null;
+
+let _writing = null;
 const draftList = () => {
-  if (!_draft) _draft = foundry.utils.deepClone(readEffectLog());
+  if (!_draft) _draft = foundry.utils.deepClone(_writing ?? readEffectLog());
   return _draft;
 };
 const scheduleFlush = () => {
@@ -34,7 +36,9 @@ const scheduleFlush = () => {
     _draft = null;
     if (!list) return;
     while (list.length > MAX_ENTRIES) list.shift();
-    await game.settings.set(MODULE_ID, LOG, list);
+    _writing = list;
+    try { await game.settings.set(MODULE_ID, LOG, list); }
+    finally { if (_writing === list) _writing = null; }
   }, 200);
 };
 
