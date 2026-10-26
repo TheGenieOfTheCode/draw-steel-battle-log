@@ -149,6 +149,11 @@ function fitAll(dls) {
     shrinking = shrinking.filter(j => j.cells.some(wraps));
   }
 
+  for (const j of jobs) {
+    const key = fitKey(j.dl);
+    if (key) _fitted.set(key, j.embed.style.getPropertyValue('--dsbl-meta-size') || null);
+  }
+
   const withKeywords = jobs.filter(j => j.keywords);
   for (const j of withKeywords) resetKeywords(j.keywords);
   const plans = withKeywords.map(j => planKeywords(j.keywords));
@@ -172,8 +177,19 @@ function watch(dl) {
   _observer.observe(dl);
 }
 
+
+const _fitted = new Map();
+const fitKey = (dl) => {
+  const li = dl.closest('[data-message-id]');
+  return li ? `${li.dataset.messageId}|${[...li.querySelectorAll(SEL)].indexOf(dl)}` : null;
+};
+
 export function compactAbilityMetadata(html) {
-  for (const dl of html.querySelectorAll(SEL)) watch(dl);
+  for (const dl of html.querySelectorAll(SEL)) {
+    const size = _fitted.get(fitKey(dl));
+    if (size) dl.closest('document-embed')?.style.setProperty('--dsbl-meta-size', size);
+    watch(dl);
+  }
 }
 
 export function inlineEffectLabels(html) {
