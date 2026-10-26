@@ -70,6 +70,9 @@ export const isInternal = (effect) => {
   return false;
 };
 
+const gmOnly = (effect) => !!(flagsOf(effect, MODULE_ID).gmOnly || flagsOf(effect, 'draw-steel-ctlib').gmOnly
+  || flagsOf(effect, CT).expiryReminderFor || flagsOf(effect, 'draw-steel-triggers').abilityUse);
+
 const DEFEATED = () => CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
 const isMinion = (actor) => !!actor.system?.isMinion;
 
@@ -173,7 +176,7 @@ const noteEffect = (effect, phase, reason = null) => {
   }
 
   const source = phase === 'start' ? sourceOf(effect) : null;
-  const target = { effect: key, actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token) };
+  const target = { effect: key, actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token) || gmOnly(effect) };
   const party = isParty(actor);
   const shown = party || publicEffect(effect, source);
   const after = anchor();
