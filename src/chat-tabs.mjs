@@ -1,7 +1,7 @@
 import { MODULE_ID } from './collapse.mjs';
 import { queryAll, toggleBodyClass, onEveryDocument } from './windows.mjs';
 
-const TABS = ['all', 'logs', 'chat'];
+const TABS = ['all', 'abilities', 'logs', 'chat'];
 const L = (key, data) => (data ? game.i18n.format(`DSBL.ChatTabs.${key}`, data) : game.i18n.localize(`DSBL.ChatTabs.${key}`));
 const setting = (key) => game.settings.get(MODULE_ID, key);
 const current = () => (TABS.includes(setting('chatTab')) ? setting('chatTab') : 'all');
@@ -9,11 +9,14 @@ const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
 
 const ITEMS = {
   all: ['li.chat-message:not(.dsbl-covered)', 'li.dsbl-res-row'],
+  abilities: ['li.chat-message.dsbl-ability:not(.dsbl-covered)'],
   logs: ['li.dsbl-res-row', 'li.dsbl-stub'],
   chat: ['li.chat-message:not(.dsbl-covered):not(.dsbl-ability)'],
 };
-const keyOf = (li) => li.dataset.messageId ?? li.dataset.dsblRes ?? (li.dataset.dsblStub ? `stub:${li.dataset.dsblStub}` : null);
-const seen = { all: new Set(), logs: new Set(), chat: new Set() };
+
+const keyOf = (li) => li.dataset.messageId ?? li.dataset.dsblRes ?? li.dataset.dsblStub ?? null;
+
+const seen = new Set();
 
 let primed = false;
 
@@ -68,13 +71,13 @@ const keysOf = (tab) => new Set(logs().flatMap((log) => [...log.querySelectorAll
 const syncCounts = () => {
   const keys = Object.fromEntries(TABS.map((t) => [t, keysOf(t)]));
   if (!primed && queryAll('.chat-log > li').length) {
-    for (const t of TABS) for (const k of keys[t]) seen[t].add(k);
+    for (const t of TABS) for (const k of keys[t]) seen.add(k);
     primed = true;
   }
-  for (const k of keys[current()]) seen[current()].add(k);
+  for (const k of keys[current()]) seen.add(k);
   for (const nav of queryAll('.dsbl-chat-tabs')) {
     for (const t of TABS) {
-      const n = [...keys[t]].filter((k) => !seen[t].has(k)).length;
+      const n = [...keys[t]].filter((k) => !seen.has(k)).length;
       const badge = nav.querySelector(`[data-dsbl-tab="${t}"] .dsbl-tab-count`);
       if (badge && badge.textContent !== (n ? String(n) : '')) badge.textContent = n ? String(n) : '';
     }

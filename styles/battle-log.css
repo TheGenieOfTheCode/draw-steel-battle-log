@@ -1285,6 +1285,8 @@ body .theme-dark .dsbl-fx-img { background: none; padding: 0; }
 body.dsbl-tab-logs :is(.chat-sidebar, .chat-popout) .chat-log > li.chat-message { display: none !important; }
 body.dsbl-tab-chat :is(.chat-sidebar, .chat-popout) .chat-log > li.dsbl-res-row,
 body.dsbl-tab-chat :is(.chat-sidebar, .chat-popout) .chat-log > li.chat-message.dsbl-ability { display: none !important; }
+body.dsbl-tab-abilities :is(.chat-sidebar, .chat-popout) .chat-log > li.dsbl-res-row,
+body.dsbl-tab-abilities :is(.chat-sidebar, .chat-popout) .chat-log > li.chat-message:not(.dsbl-ability) { display: none !important; }
 body:not(.dsbl-tab-logs) .chat-log > li.dsbl-stub { display: none !important; }
 
 

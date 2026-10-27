@@ -184,9 +184,11 @@
     },
     "ChatTabs": {
       "all": "All",
+      "abilities": "Abilities",
       "logs": "Logs",
       "chat": "Chat",
       "allTip": "Everything: chat messages, with log lines in place of the messages they cover.",
+      "abilitiesTip": "Only the chat messages of abilities used: no log lines and no talk.",
       "logsTip": "Only log lines, with a short line for each ability used.",
       "chatTip": "Only talk: no ability chat messages and no log lines.",
       "used": "{name} used {ability}",
