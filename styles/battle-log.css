@@ -1289,19 +1289,25 @@ body:not(.dsbl-tab-logs) .chat-log > li.dsbl-stub { display: none !important; }
 
 
 li.dsbl-stub {
+  --dsbl-res-ink: #3a3340;
+  --dsbl-res-wash: #ebe4d6;
+  --dsbl-res-edge: #c9bfae;
   display: flex;
   align-items: center;
   gap: 0.5em;
+  margin: 2px 0.25em;
   padding: 3px 6px;
-  --dsbl-res-ink: #3a3340;
+  border-radius: 4px;
+  background: var(--dsbl-res-wash);
+  border: 1px solid var(--dsbl-res-edge);
   font-size: var(--font-size-13, 13px);
   color: var(--dsbl-res-ink);
-  opacity: 0.85;
   cursor: pointer;
   pointer-events: all;
 }
-body .theme-dark li.dsbl-stub { --dsbl-res-ink: #e6dfee; }
-li.dsbl-stub:hover { opacity: 1; }
+body .theme-dark li.dsbl-stub { --dsbl-res-ink: #e6dfee; --dsbl-res-wash: #1c1924; --dsbl-res-edge: #302831; }
+li.dsbl-stub > * { opacity: 0.85; }
+li.dsbl-stub:hover > * { opacity: 1; }
 .dsbl-stub-face { width: 1.4em; height: 1.4em; border: 0; border-radius: 50%; object-fit: cover; }
 
 li.chat-message.dsbl-flash { animation: dsbl-flash 1.8s ease-out; }
