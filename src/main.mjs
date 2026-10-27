@@ -244,44 +244,40 @@ Hooks.once('ready', async () => {
   scheduleDraw();
 });
 
-const SETTING_HEADERS = {
-  darkChat: 'chatCards',
-  speakerPicker: 'typedChat',
-  turnMarkers: 'turnMarkers',
-  resourceLog: 'resourceLog',
-};
-
 Hooks.on('renderChatInput', (_app, elements) => {
   addResourceToggle(elements?.['#chat-controls']);
 });
 
-Hooks.on('renderSettingsConfig', (_app, html) => {
-  const root = html instanceof HTMLElement ? html : html?.[0];
-  if (!root) return;
-  for (const [key, header] of Object.entries(SETTING_HEADERS)) {
-    const el = root.querySelector(`[name="${MODULE_ID}.${key}"]`)?.closest('.form-group')
-      ?? root.querySelector(`[data-setting-id="${MODULE_ID}.${key}"]`);
-    if (!el || el.previousElementSibling?.classList?.contains('dsbl-settings-header')) continue;
-    const h = document.createElement('h3');
-    h.className = 'dsbl-settings-header';
-    h.textContent = game.i18n.localize(`DSBL.Settings.Headers.${header}`);
-    el.insertAdjacentElement('beforebegin', h);
-  }
-
-  
-  for (const [parent, children] of Object.entries(SUB_SETTINGS)) {
-    const box = root.querySelector(`[name="${MODULE_ID}.${parent}"]`);
-    const groups = children.map((key) => root.querySelector(`[name="${MODULE_ID}.${key}"]`)?.closest('.form-group')).filter(Boolean);
-    for (const g of groups) g.classList.add('dsbl-sub-setting');
-    const sync = () => { for (const g of groups) g.classList.toggle('dsbl-sub-off', !box?.checked); };
-    box?.addEventListener('change', sync);
-    sync();
-  }
+Hooks.once('ready', () => {
+  const H = (key) => `DSBL.Settings.Headers.${key}`;
+  game.modules.get('draw-steel-ctlib')?.api?.registerSettingsLayout?.(MODULE_ID, [
+    { label: H('chatCards'), wiki: 'Compact-Abilities', items: ['darkChat', 'compactAbilities', 'collapsibleAbilities', 'powerRollResults', 'flexButtons'] },
+    { label: H('typedChat'), wiki: 'Clean-Comms', items: ['speakerPicker', 'compactSpeech', 'blendSpeech', 'mentionNames'] },
+    { label: H('turnMarkers'), wiki: 'Turn-Markers', items: ['turnMarkers', 'turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns',
+      'turnMarkersAutoCollapse', 'loadOlderMessages'] },
+    { label: H('resourceLog'), wiki: 'Resource-Log', items: ['resourceLog', 'resourceLogFullInfo', 'resourceLogOutOfCombat', 'resourceLogTokenCards',
+      'resourceLogTurnGainCards', 'effectLog'] },
+  ], {
+    dependencies: {
+      turnMarkersCombats: 'turnMarkers',
+      turnMarkersRounds: 'turnMarkers',
+      turnMarkersTurns: 'turnMarkers',
+      turnMarkersAutoCollapse: 'turnMarkers',
+    },
+    wiki: {
+      base: 'https://github.com/TheGenieOfTheCode/draw-steel-battle-log/wiki/',
+      pages: {
+        darkChat: 'Compact-Abilities#why-the-theme-fix-is-needed',
+        collapsibleAbilities: 'Compact-Abilities#folding-a-message',
+        speakerPicker: 'Clean-Comms#speaking-as',
+        compactSpeech: 'Clean-Comms#compact-messages',
+        blendSpeech: 'Clean-Comms#joining-messages',
+        mentionNames: 'Clean-Comms#highlighting-names',
+        effectLog: 'Effect-Log',
+      },
+    },
+  });
 });
-
-const SUB_SETTINGS = {
-  turnMarkers: ['turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns', 'turnMarkersAutoCollapse'],
-};
 
 Hooks.on('renderChatLog', scheduleDraw);
 Hooks.on('renderChatLog', () => { addSpeakerRow(); watchChatLogs(); scheduleBlend(); });

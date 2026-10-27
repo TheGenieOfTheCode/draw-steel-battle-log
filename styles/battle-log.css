@@ -997,16 +997,6 @@ body.dsp-improved-chat :is(.chat-sidebar, #chat-notifications, .chat-popout) .ch
   margin-right: 0.2em;
 }
 
-.dsbl-settings-header {
-  margin: 14px 0 4px;
-  padding-bottom: 3px;
-  border-bottom: 1px solid light-dark(rgba(122, 90, 20, 0.45), rgba(217, 166, 63, 0.45));
-  color: light-dark(#7a5a14, #d9a63f);
-  font-size: 1em;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
 .dsbl-res-row {
   --dsbl-res-ink: #3a3340;
   --dsbl-res-subtle: #6e6578;
@@ -1246,8 +1236,6 @@ body .theme-dark .dsbl-fx-img { background: none; padding: 0; }
 .dsbl-sum-table .dsbl-sum-gap td { padding-top: 5px; }
 .dsbl-sum-table .dsbl-sum-why { font-size: 0.9em; opacity: 0.8; }
 
-.dsbl-sub-setting { margin-left: 1.5em; }
-.dsbl-sub-setting.dsbl-sub-off { opacity: 0.5; }
 
 .dsbl-res-source { width: 1.1em; height: 1.1em; border: 0; border-radius: 50%; object-fit: cover; opacity: 0.9; cursor: pointer; justify-self: center; }
 
