@@ -327,6 +327,50 @@ const noteUndoneMove = (message) => {
   scheduleFlush();
 };
 
+const _moveLog = { undo: null, html: null };
+
+export const registerMoveLog = (source) => {
+  if (typeof source?.undo === 'function') _moveLog.undo = source.undo;
+  if (typeof source?.html === 'function') _moveLog.html = source.html;
+};
+
+export const logMove = ({ key, tokenUuid, action = 'walk', moved = 0, strikes = [], blueprint = null }) => {
+  const token = fromUuidSync(tokenUuid ?? '');
+  const actor = token?.actor;
+  if (!actor || !key) return false;
+  const combat = combatOf(token);
+  if (!combat && !setting('resourceLogOutOfCombat')) return false;
+  const who = { actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token), moved };
+  draftList().push({
+    id: foundry.utils.randomID(),
+    kind: 'move',
+    key,
+    tokenUuid,
+    after: anchor(),
+    turn: _currentTurn(),
+    at: Date.now(),
+    action,
+    moved,
+    strikes,
+    blueprint,
+    targets: [who],
+    party: !!who.party,
+    shown: true,
+    hidden: who.hidden,
+  });
+  scheduleFlush();
+  return true;
+};
+
+export const markMoveUndone = (key) => {
+  const list = draftList();
+  const original = list.find((e) => e.kind === 'move' && e.key === key && !e.undo);
+  if (!original || list.some((e) => e.kind === 'move' && e.key === key && e.undo)) return false;
+  list.push({ ...foundry.utils.deepClone(original), id: foundry.utils.randomID(), undo: true, blueprint: null, after: anchor(), turn: _currentTurn(), at: Date.now() });
+  scheduleFlush();
+  return true;
+};
+
 export const registerEffectRecording = ({ currentTurn }) => {
   _currentTurn = currentTurn;
 
@@ -511,6 +555,52 @@ export const fmRow = (e) => {
   return li;
 };
 
+export const moveRow = (e) => {
+  const li = document.createElement('li');
+  li.className = `message dsbl-res-row dsbl-fx-row dsbl-fm-row dsbl-move-row ${e.undo ? 'is-end' : 'is-start'}`;
+  li.dataset.dsblRes = e.id;
+  li.dataset.dsblLog = 'fx';
+  const t = e.targets[0] ?? {};
+  const undone = readEffectLog().some((x) => x.kind === 'move' && x.key === e.key && x.undo);
+  const canUndo = !e.undo && !undone && !!_moveLog.undo && (game.user.isGM || !!fromUuidSync(e.tokenUuid ?? '')?.isOwner);
+  const controls = (canUndo ? `<a class="dsbl-res-control" data-dsbl-move-undo="${esc(e.key)}" data-token="${esc(e.tokenUuid)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
+    + (game.user.isGM
+      ? `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+        + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
+      : '');
+  const verb = game.i18n.has(`DSBL.EffectLog.move.${e.action}`) ? L(`move.${e.action}`) : L('move.walk');
+  const title = `${verb} ${e.moved}`;
+  const strikes = e.strikes ?? [];
+  const lines = strikes.map((s) => L('move.strikeLine', { name: s.name, damage: s.damage ?? '' }));
+  const tip = tipAttrs(richTip('movement', { title, html: lines.map((l) => `<p>${esc(l)}</p>`).join('') }));
+  li.innerHTML = `<span class="dsbl-res-who">${faceStack([faceImg(t)])}<strong class="dsbl-res-name"${t.short && t.short !== t.name ? ` data-full="${esc(t.name)}" data-short="${esc(t.short)}"` : ''}>${esc(t.name ?? '')}</strong>${controls ? `<span class="dsbl-res-controls">${controls}</span>` : ''}</span>`
+    + `<span class="dsbl-fx-what" ${tip}>`
+    + `<i class="fa-solid ${e.undo ? 'fa-rotate-left' : e.action === 'shift' ? 'fa-shoe-prints' : 'fa-person-walking'} dsbl-fx-phase" inert></i>`
+    + `<span class="dsbl-fx-name">${esc(title)}</span>`
+    + (e.undo ? `<span class="dsbl-fx-reason">${esc(L('reason.undone'))}</span>` : '')
+    + (!e.undo && strikes.length ? `<span class="dsbl-fx-reason">${esc((strikes.length === 1 ? L('move.strike') : L('move.strikes', { n: strikes.length })))}</span>` : '')
+    + (!e.undo ? strikes.map((s) => (s.src ? `<img class="dsbl-fx-source" src="${esc(s.src)}" alt=""${s.tokenId && s.sceneId ? ` data-ctlib-face="Scene.${esc(s.sceneId)}.Token.${esc(s.tokenId)}"` : ''}>` : '')).join('') : '')
+    + `</span>`;
+  if (!e.undo && e.blueprint && _moveLog.html) {
+    const what = li.querySelector('.dsbl-fx-what');
+    what.addEventListener('pointerenter', () => {
+      const html = _moveLog.html(e);
+      if (!html) return;
+      setTip(what, richTip('movement', { title, html: html + lines.map((l) => `<p>${esc(l)}</p>`).join('') }));
+      const markup = what.dataset.dsctTip;
+      if (!markup) return;
+      setTimeout(() => {
+        if (!what.matches(':hover')) return;
+        const body = document.createElement('template');
+        body.innerHTML = markup;
+        game.tooltip.activate(what, { html: body.content, cssClass: what.dataset.dsctTipClass, direction: 'LEFT' });
+      }, 0);
+    });
+  }
+  if (e.hidden) li.classList.add('is-concealed');
+  return li;
+};
+
 export const editEffectEntry = async (id, change) => {
   if (!game.user.isGM) return;
   const list = foundry.utils.deepClone(readEffectLog());
@@ -529,6 +619,13 @@ export const rewriteEffectLog = async (change) => {
 };
 
 onEveryDocument((doc) => doc.addEventListener('click', (event) => {
+  const move = event.target.closest?.('[data-dsbl-move-undo]');
+  if (move) {
+    event.preventDefault();
+    event.stopPropagation();
+    _moveLog.undo?.({ key: move.dataset.dsblMoveUndo, tokenUuid: move.dataset.token });
+    return;
+  }
   const undo = event.target.closest?.('[data-dsbl-fm-undo]');
   if (undo) {
     event.preventDefault();

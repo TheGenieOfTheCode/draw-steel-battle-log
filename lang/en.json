@@ -143,6 +143,7 @@
       "undoGain": { "title": "Undo the Gain", "category": "Battle Log", "body": "Takes back what this line gained." },
       "hideLogs": { "category": "Battle Log", "body": "Hides or shows the Resource Log and Effect Log lines in chat." },
       "undoMove": { "title": "Undo the Move", "category": "Battle Log", "body": "Puts the creature back where it was moved from." },
+      "movement": { "category": "Movement" },
       "forcedMovement": { "category": "Forced Movement" },
       "fall": { "category": "Falling" },
       "effectStarted": { "category": "Effect Started" },
@@ -246,6 +247,20 @@
     },
     "EffectLog": {
       "undoMoveMissing": "That move's chat message isn't loaded, so it can't be undone from here.",
+      "move": {
+        "walk": "Moved",
+        "shift": "Shifted",
+        "fly": "Flew",
+        "climb": "Climbed",
+        "swim": "Swam",
+        "burrow": "Burrowed",
+        "crawl": "Crawled",
+        "jump": "Jumped",
+        "teleport": "Teleported",
+        "strike": "1 free strike",
+        "strikes": "{n} free strikes",
+        "strikeLine": "Free strike from {name}: {damage}"
+      },
       "fall": "Fall",
       "from": "From {source}",
       "fromAbility": "{ability}, from {source}",
