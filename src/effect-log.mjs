@@ -2,7 +2,7 @@ import { MODULE_ID } from './collapse.mjs';
 import { tokenOf, combatOf, hiddenFromPlayers, isParty, whoFor, faceStack } from './resource-log.mjs';
 import { isDirector } from './director.mjs';
 import { onEveryDocument } from './windows.mjs';
-import { tip as richTip, tipAttrs } from './tips.mjs';
+import { tip as richTip, tipAttrs, setTip } from './tips.mjs';
 
 const LOG = 'effectLogEntries';
 const MAX_ENTRIES = 600;
@@ -262,8 +262,18 @@ export const effectCovers = () => {
 
 export const coversEnd = (message) => !!message.flags?.[CT]?.grabEnded;
 
+const _moveSources = [];
+
+export const registerMoveSource = (source) => {
+  if (typeof source?.flags === 'function') _moveSources.push(source);
+};
+
+const moveSourceOf = (message) => (message ? _moveSources.find((s) => s.flags(message)) : null);
+
+const moveFlags = (message) => moveSourceOf(message)?.flags(message) ?? message.flags?.[CT];
+
 export const coversMove = (message) => {
-  const flags = message.flags?.[CT];
+  const flags = moveFlags(message);
   return !!flags?.fallLog || (!!flags?.isFmUndo && !!(flags.fmLog || flags.entries?.some?.((m) => m?.fmLog)));
 };
 
@@ -272,7 +282,7 @@ const asMove = (flags) => (flags?.fallLog
   : null);
 
 const noteForcedMovement = (message) => {
-  const flags = message.flags?.[CT];
+  const flags = moveFlags(message);
   if ((!flags?.isFmUndo && !flags?.fallLog) || flags.isUndone) return false;
   const moves = (asMove(flags) ?? (flags.isCombined ? flags.entries ?? [] : [flags])).filter((m) => m?.fmLog && m.targetTokenId);
   const targets = [];
@@ -287,7 +297,7 @@ const noteForcedMovement = (message) => {
   }
   if (!targets.length || (!inCombat && !setting('resourceLogOutOfCombat'))) return false;
   const first = moves[0].fmLog;
-  const lines = String(message.content ?? '').split(/<br\s*\/?>/i).map((l) => l.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  const lines = String(message.content ?? '').split(/<br\s*\/?>|<\/li>/i).map((l) => l.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
   draftList().push({
     id: foundry.utils.randomID(),
     kind: 'fm',
@@ -346,7 +356,8 @@ export const registerEffectRecording = ({ currentTurn }) => {
   });
 
   Hooks.on('updateChatMessage', (message, changes) => {
-    if (isDirector() && foundry.utils.getProperty(changes, `flags.${CT}.isUndone`) === true) noteUndoneMove(message);
+    if (!isDirector()) return;
+    if (foundry.utils.getProperty(changes, `flags.${CT}.isUndone`) === true || _moveSources.some((s) => s.undone?.(changes))) noteUndoneMove(message);
   });
 
   Hooks.on('createChatMessage', (message) => {
@@ -458,7 +469,7 @@ export const fmRow = (e) => {
   const names = many ? `${e.targets[0].name}s` : (e.targets[0]?.name ?? '');
   const short = many ? `${e.targets[0].short ?? e.targets[0].name}s` : (e.targets[0]?.short ?? names);
   const message = game.messages.get(e.covers?.[0]);
-  const canUndo = !e.undo && e.movement !== 'fall' && !!message && !message.getFlag(CT, 'isUndone') && (game.user.isGM || message.isAuthor);
+  const canUndo = !e.undo && e.movement !== 'fall' && !!message && !moveFlags(message)?.isUndone && (game.user.isGM || message.isAuthor);
   const controls = (canUndo ? `<a class="dsbl-res-control" data-dsbl-fm-undo="${esc(message.id)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
     + (game.user.isGM
       ? `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
@@ -467,7 +478,9 @@ export const fmRow = (e) => {
 
   const label = movementLabel(e);
   const distances = [...new Set(e.targets.map((t) => t.moved))];
-  const tip = tipAttrs(richTip(e.movement === 'fall' ? 'fall' : 'forcedMovement', { title: `${label} ${distances.join(' / ')}`, html: (e.lines ?? []).map((l) => `<p>${esc(l)}</p>`).join('') }));
+  const tipKey = e.movement === 'fall' ? 'fall' : 'forcedMovement';
+  const title = `${label} ${distances.join(' / ')}`;
+  const tip = tipAttrs(richTip(tipKey, { title, html: (e.lines ?? []).map((l) => `<p>${esc(l)}</p>`).join('') }));
   li.innerHTML = `<span class="dsbl-res-who">${faces}<strong class="dsbl-res-name"${short !== names ? ` data-full="${esc(names)}" data-short="${esc(short)}"` : ''}>${esc(names)}</strong>${controls ? `<span class="dsbl-res-controls">${controls}</span>` : ''}</span>`
     + `<span class="dsbl-fx-what" ${tip}>`
     + `<i class="fa-solid ${e.undo ? 'fa-rotate-left' : e.vertical ? 'fa-arrow-up-long' : FM_ICONS[e.movement] ?? 'fa-arrow-right-long'} dsbl-fx-phase" inert></i>`
@@ -477,6 +490,23 @@ export const fmRow = (e) => {
       ? `<img class="dsbl-fx-source" src="${esc(e.source.src)}" alt=""${e.source.tokenId && e.source.sceneId ? ` data-ctlib-face="Scene.${esc(e.source.sceneId)}.Token.${esc(e.source.tokenId)}"` : ''}>`
       : '')
     + `</span>`;
+  const full = moveSourceOf(message)?.html;
+  if (full) {
+    const what = li.querySelector('.dsbl-fx-what');
+    what.addEventListener('pointerenter', () => {
+      const html = full(message);
+      if (!html) return;
+      setTip(what, richTip(tipKey, { title, html }));
+      const markup = what.dataset.dsctTip;
+      if (!markup) return;
+      setTimeout(() => {
+        if (!what.matches(':hover')) return;
+        const body = document.createElement('template');
+        body.innerHTML = markup;
+        game.tooltip.activate(what, { html: body.content, cssClass: what.dataset.dsctTipClass, direction: 'LEFT' });
+      }, 0);
+    });
+  }
   if (e.hidden) li.classList.add('is-concealed');
   return li;
 };

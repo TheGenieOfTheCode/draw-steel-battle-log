@@ -5,7 +5,7 @@ import { flexMessageButtons } from './buttons.mjs';
 import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteMessage, olderCombatToolsLogs, currentTurn, watchClearAll, addMarkerMenu } from './turn-markers.mjs';
 import { registerResourceRecording, addResourceToggle, syncResourceToggle, markCovered } from './resource-log.mjs';
 import { registerChatTabs } from './chat-tabs.mjs';
-import { registerEffectRecording } from './effect-log.mjs';
+import { registerEffectRecording, registerMoveSource } from './effect-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
@@ -20,6 +20,7 @@ migrateLocalStorage(MODULE_ID);
 const setting = key => game.settings.get(MODULE_ID, key);
 
 Hooks.once('init', () => {
+  game.modules.get(MODULE_ID).api = { registerMoveSource };
   registerCompatibilityMenu();
   registerChatTabs();
 
@@ -302,7 +303,6 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
 });
 
 Hooks.on('renderChatMessageHTML', scheduleDraw);
-
 
 Hooks.on('renderChatPopout', (app) => {
   if (!setting('darkChat') || !document.getElementById('interface')?.classList.contains('theme-dark')) return;
