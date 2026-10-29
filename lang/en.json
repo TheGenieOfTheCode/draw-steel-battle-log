@@ -55,8 +55,8 @@
       "loadOlderMessages": {
         "name": "Load Older Messages",
         "hint": "With a button, older messages only load when you click the row at the top of the chat, not whenever you scroll there or fold a turn. Fewer loaded messages keep the chat quick.",
-        "button": "With a button",
-        "scroll": "On scroll"
+        "button": "With a Button",
+        "scroll": "On Scroll"
       },
       "speakerPicker": {
         "name": "Speaking As Row",
@@ -142,6 +142,11 @@
       "delete": { "title": "Delete", "category": "Battle Log", "body": "Removes this log line for everyone." },
       "undoGain": { "title": "Undo the Gain", "category": "Battle Log", "body": "Takes back what this line gained." },
       "undoMove": { "title": "Undo the Move", "category": "Battle Log", "body": "Puts the creature back where it was moved from." },
+      "tabAll": { "title": "All", "category": "Battle Log", "body": "Everything: chat messages, with log lines in place of the messages they cover." },
+      "tabAbilities": { "title": "Abilities", "category": "Battle Log", "body": "Only the chat messages of abilities used: no log lines and no talk." },
+      "tabLogs": { "title": "Logs", "category": "Battle Log", "body": "Only log lines, with a short line for each ability used." },
+      "tabChat": { "title": "Chat", "category": "Battle Log", "body": "Only what people say: in character, out of character, emotes and whispers." },
+      "stub": { "title": "Full Chat Message", "category": "Battle Log", "body": "Shows this ability's full chat message in the All tab." },
       "movement": { "category": "Movement" },
       "forcedMovement": { "category": "Forced Movement" },
       "fall": { "category": "Falling" },
@@ -187,13 +192,8 @@
       "abilities": "Abilities",
       "logs": "Logs",
       "chat": "Chat",
-      "allTip": "Everything: chat messages, with log lines in place of the messages they cover.",
-      "abilitiesTip": "Only the chat messages of abilities used: no log lines and no talk.",
-      "logsTip": "Only log lines, with a short line for each ability used.",
-      "chatTip": "Only what people say: in character, out of character, emotes and whispers.",
       "used": "{name} used {ability}",
-      "usedOn": "{name} used {ability} on {targets}",
-      "stubTip": "Show the full chat message"
+      "usedOn": "{name} used {ability} on {targets}"
     },
     "ResourceLog": {
       "conceal": "Hide from players",

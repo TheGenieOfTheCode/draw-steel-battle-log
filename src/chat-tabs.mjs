@@ -1,5 +1,6 @@
 import { MODULE_ID } from './collapse.mjs';
 import { queryAll, toggleBodyClass, onEveryDocument } from './windows.mjs';
+import { tip, tipAttrs, setTip } from './tips.mjs';
 
 const TABS = ['all', 'abilities', 'logs', 'chat'];
 const L = (key, data) => (data ? game.i18n.format(`DSBL.ChatTabs.${key}`, data) : game.i18n.localize(`DSBL.ChatTabs.${key}`));
@@ -47,7 +48,7 @@ const makeStub = (doc, message) => {
   const stub = doc.createElement('li');
   stub.className = 'message dsbl-stub';
   stub.dataset.dsblStub = message.id;
-  stub.dataset.tooltipText = L('stubTip');
+  setTip(stub, tip('stub'));
   return stub;
 };
 
@@ -104,7 +105,7 @@ const buildNav = (doc) => {
   const nav = doc.createElement('nav');
   nav.className = 'tabs dsbl-chat-tabs';
   nav.setAttribute('role', 'tablist');
-  nav.innerHTML = TABS.map((t) => `<a class="item" role="tab" data-dsbl-tab="${t}" data-tooltip-text="${esc(L(`${t}Tip`))}">${esc(L(t))}<span class="dsbl-tab-count"></span></a>`).join('');
+  nav.innerHTML = TABS.map((t) => `<a class="item" role="tab" data-dsbl-tab="${t}" data-tooltip-direction="LEFT" ${tipAttrs(tip(`tab${t[0].toUpperCase()}${t.slice(1)}`))}>${esc(L(t))}<span class="dsbl-tab-count"></span></a>`).join('');
   nav.addEventListener('click', (event) => {
     const t = event.target.closest('[data-dsbl-tab]')?.dataset.dsblTab;
     if (t && t !== current()) game.settings.set(MODULE_ID, 'chatTab', t);
