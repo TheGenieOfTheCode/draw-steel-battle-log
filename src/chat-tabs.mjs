@@ -11,7 +11,7 @@ const ITEMS = {
   all: ['li.chat-message:not(.dsbl-covered)', 'li.dsbl-res-row'],
   abilities: ['li.chat-message.dsbl-ability:not(.dsbl-covered)'],
   logs: ['li.dsbl-res-row', 'li.dsbl-stub'],
-  chat: ['li.chat-message:not(.dsbl-covered):not(.dsbl-ability)'],
+  chat: ['li.chat-message.dsbl-talk:not(.dsbl-covered)'],
 };
 
 const keyOf = (li) => li.dataset.messageId ?? li.dataset.dsblRes ?? li.dataset.dsblStub ?? null;
@@ -21,6 +21,9 @@ const seen = new Set();
 let primed = false;
 
 export const isAbilityMessage = (message) => [...(message?.system?.parts?.contents ?? [])].some((p) => p.type === 'abilityUse');
+
+const TALK_STYLES = () => [CONST.CHAT_MESSAGE_STYLES.IC, CONST.CHAT_MESSAGE_STYLES.OOC, CONST.CHAT_MESSAGE_STYLES.EMOTE];
+const isTalk = (message) => !!message && !message.rolls?.length && !isAbilityMessage(message) && TALK_STYLES().includes(message.style);
 
 const stubParts = (message) => {
   const part = [...(message.system?.parts?.contents ?? [])].find((p) => p.type === 'abilityUse');
@@ -53,6 +56,8 @@ const syncLog = (log) => {
     const message = game.messages.get(li.dataset.messageId);
     const ability = isAbilityMessage(message);
     if (li.classList.contains('dsbl-ability') !== ability) li.classList.toggle('dsbl-ability', ability);
+    const talk = isTalk(message);
+    if (li.classList.contains('dsbl-talk') !== talk) li.classList.toggle('dsbl-talk', talk);
     if (!ability) continue;
     let stub = log.querySelector(`:scope > li.dsbl-stub[data-dsbl-stub="${CSS.escape(message.id)}"]`);
     stub ??= makeStub(log.ownerDocument, message);

@@ -631,6 +631,9 @@ onEveryDocument((doc) => doc.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
     
+    const message = game.messages.get(undo.dataset.dsblFmUndo);
+    const source = moveSourceOf(message);
+    if (typeof source?.undo === 'function') return void source.undo(message);
     const button = doc.querySelector(`li.chat-message[data-message-id="${undo.dataset.dsblFmUndo}"] .dsct-undo-fm`);
     if (button && !button.disabled) button.click();
     else ui.notifications.warn(L('undoMoveMissing'));

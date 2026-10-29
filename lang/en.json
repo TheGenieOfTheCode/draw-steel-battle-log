@@ -76,7 +76,7 @@
       },
       "resourceLog": {
         "name": "Resource Log",
-        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. The heart beside Export Chat Log shows or hides both logs."
+        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. The Logs tab shows only these lines."
       },
       "resourceLogFullInfo": {
         "name": "Show Monster Stamina to Players",
@@ -88,7 +88,7 @@
       },
       "resourceLogTokenCards": {
         "name": "Replace Hero Token Messages",
-        "hint": "When Hero Tokens are given or spent, the Resource Log line shows who spent them and why, and the system's chat message is hidden behind it. The message shows again whenever the line doesn't: with the logs hidden, or the line hidden or deleted."
+        "hint": "When Hero Tokens are given or spent, the Resource Log line shows who spent them and why, and the system's chat message is hidden behind it. The message shows again if the line is hidden or deleted."
       },
       "resourceLogTurnGainCards": {
         "name": "Hide Resource Gain Rolls",
@@ -96,7 +96,7 @@
       },
       "effectLog": {
         "name": "Effect Log",
-        "hint": "Conditions and effects starting and ending appear in chat as one line entries, saying who applied them and why they ended. Players only see the ones from abilities on monsters."
+        "hint": "Conditions and effects starting and ending, forced movement and falls appear in chat as one line entries, saying who caused them and why they ended. Players only see the ones from abilities on monsters."
       }
     },
     "powerRoll": {
@@ -141,7 +141,6 @@
       "reveal": { "title": "Show to Players", "category": "Battle Log", "body": "Players can see this log line again." },
       "delete": { "title": "Delete", "category": "Battle Log", "body": "Removes this log line for everyone." },
       "undoGain": { "title": "Undo the Gain", "category": "Battle Log", "body": "Takes back what this line gained." },
-      "hideLogs": { "category": "Battle Log", "body": "Hides or shows the Resource Log and Effect Log lines in chat." },
       "undoMove": { "title": "Undo the Move", "category": "Battle Log", "body": "Puts the creature back where it was moved from." },
       "movement": { "category": "Movement" },
       "forcedMovement": { "category": "Forced Movement" },
@@ -191,14 +190,12 @@
       "allTip": "Everything: chat messages, with log lines in place of the messages they cover.",
       "abilitiesTip": "Only the chat messages of abilities used: no log lines and no talk.",
       "logsTip": "Only log lines, with a short line for each ability used.",
-      "chatTip": "Only talk: no ability chat messages and no log lines.",
+      "chatTip": "Only what people say: in character, out of character, emotes and whispers.",
       "used": "{name} used {ability}",
       "usedOn": "{name} used {ability} on {targets}",
       "stubTip": "Show the full chat message"
     },
     "ResourceLog": {
-      "show": "Show Logs",
-      "hide": "Hide Logs",
       "conceal": "Hide from players",
       "reveal": "Show to players",
       "delete": "Delete",
