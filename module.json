@@ -1,7 +1,7 @@
 {
   "id": "draw-steel-battle-log",
   "title": "Draw Steel: Battle Log",
-  "description": "Draws the shape of a fight into the chat log: every turn, round and encounter bracketed by a marker you can fold away. Fits the default Draw Steel chat cards to the Foundry dark theme, and lets you collapse an ability card down to its name by clicking it.",
+  "description": "Draws the shape of a fight into the chat log: every turn, round and encounter bracketed by a marker you can fold away. Fits the default Draw Steel chat messages to the Foundry dark theme, and lets you collapse an ability's chat message down to its name by clicking it.",
   "version": "1.5.0",
   "url": "https://github.com/TheGenieOfTheCode/draw-steel-battle-log",
   "manifest": "https://github.com/TheGenieOfTheCode/draw-steel-battle-log/releases/latest/download/module.json",
@@ -39,7 +39,7 @@
       {
         "id": "draw-steel-plus",
         "type": "module",
-        "reason": "Both restyle the same chat cards. Typed chat is matched up to it, but the ability cards can still clash, and fixing that is a low priority."
+        "reason": "Both restyle the same chat messages. Typed chat is matched up to it, but ability chat messages can still clash, and fixing that is a low priority."
       }
     ],
     "systems": [
