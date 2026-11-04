@@ -47,7 +47,8 @@
         "id": "draw-steel",
         "type": "system",
         "compatibility": {
-          "minimum": "1.2"
+          "minimum": "1.1.0",
+          "verified": "1.2"
         }
       }
     ]
