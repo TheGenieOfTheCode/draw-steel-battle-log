@@ -348,6 +348,16 @@ const messageSource = (message) => {
   };
 };
 
+const originSource = (origin) => (origin?.actorUuid || origin?.tokenUuid ? {
+  tokenUuid: origin.tokenUuid ?? null,
+  actorUuid: origin.actorUuid ?? null,
+  ability: origin.abilityUuid ? (fromUuidSync(origin.abilityUuid, { strict: false })?.name ?? null) : null,
+} : null);
+
+let _resultHit = null;
+Hooks.on('ctlib.preApplyTargetResult', (part, action) => { if (action === 'applyDamage') _resultHit = part?.tokenUuid ?? null; });
+Hooks.on('ctlib.applyTargetResult', (part, action) => { if (action === 'applyDamage') _resultHit = null; });
+
 let _applySource = null;
 const wrapApplyDamage = () => {
   const wrapper = async function (wrapped, event) {
@@ -371,7 +381,7 @@ const wrapTakeDamage = () => {
   const wrapper = async function (wrapped, damage, options = {}) {
     const actor = this.parent;
     
-    const source = options?.dsbl?.source ?? _applySource;
+    const source = options?.dsbl?.source ?? _applySource ?? originSource(options?.origin);
     if (actor && this.isMinion) {
       const outer = [_minionHit, _minionSource];
       _minionHit = actor.isToken ? actor.token : actor.getActiveTokens(false, true)[0] ?? null;
@@ -736,7 +746,9 @@ export const registerResourceRecording = ({ currentTurn }) => {
     const combat = group.parent;
     const hitId = options?.dstd?.primaryTargetId ?? null;
     const named = hitId ? (canvas.tokens?.get(hitId)?.document ?? fromUuidSync(String(hitId).replace(/__/g, '.'))) : null;
-    const hit = named ?? ([...group.members].some((m) => m.tokenId === _minionHit?.id) ? _minionHit : null);
+    const resultHit = _resultHit ? fromUuidSync(_resultHit, { strict: false }) : null;
+    const inGroup = (doc) => !!doc && [...group.members].some((m) => m.tokenId === doc.id);
+    const hit = named ?? (inGroup(_minionHit) ? _minionHit : null) ?? (inGroup(resultHit) ? resultHit : null);
     const member = (hit?.actor ? hit : null) ?? [...group.members].find((m) => !m.isDefeated)?.token ?? [...group.members][0]?.token ?? null;
     if (!member?.actor) return;
     const type = options?.ds?.damageType ?? null;
@@ -750,7 +762,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
       userId,
       who,
       hits: hit?.actor ? [{ ...who, kind: hit.actorId ?? hit.document?.actorId ?? hit.actor.id }] : null,
-      source: named ? null : sourceFace(_minionSource),
+      source: named ? null : sourceFace(_minionSource ?? originSource(options?.ds?.origin)),
       sourcePending: !!named,
       inCombat: !!combat?.started,
       hidden: hiddenFromPlayers(member),
