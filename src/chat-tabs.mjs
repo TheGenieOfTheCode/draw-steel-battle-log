@@ -30,7 +30,11 @@ const stubParts = (message) => {
   const part = [...(message.system?.parts?.contents ?? [])].find((p) => p.type === 'abilityUse');
   const ability = (part?.abilityUuid ? fromUuidSync(part.abilityUuid)?.name : null) ?? message.title ?? '';
   const name = message.speaker?.alias ?? message.speakerActor?.name ?? '';
-  const targets = (message.flags?.['draw-steel-target-damage']?.state?.targets ?? []).map((t) => t.name).filter(Boolean);
+  const listed = (message.flags?.['draw-steel-target-damage']?.state?.targets ?? []).map((t) => t.name).filter(Boolean);
+  const targets = listed.length ? listed : [...(message.system?.parts?.contents ?? [])]
+    .filter((p) => p.type === 'targetResult')
+    .map((p) => (p.tokenUuid ? fromUuidSync(p.tokenUuid, { strict: false })?.name : null) ?? p.actorTarget?.name)
+    .filter(Boolean);
   const scene = game.scenes.get(message.speaker?.scene);
   const img = scene?.tokens.get(message.speaker?.token)?.texture?.src ?? message.speakerActor?.img ?? null;
   const text = targets.length ? L('usedOn', { name, ability, targets: targets.join(', ') }) : L('used', { name, ability });

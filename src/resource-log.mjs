@@ -845,6 +845,17 @@ export const registerResourceRecording = ({ currentTurn }) => {
     }
   });
 
+  Hooks.on('updateChatMessage', (message, changes) => {
+    const changed = foundry.utils.getProperty(changes, 'flags.draw-steel-ctlib.journal');
+    if (!changed || !isDirector() || !setting('resourceLog')) return;
+    const journal = message.flags?.['draw-steel-ctlib']?.journal ?? {};
+    for (const [id, delta] of Object.entries(changed)) {
+      const entry = journal[id];
+      if (!delta?.undone || entry?.action !== 'applyDamage') continue;
+      cancelUndone((entry.targets ?? []).map((t) => t.uuid));
+    }
+  });
+
   Hooks.on('updateCombatantGroup', (group, changes, options, userId) => {
     if (foundry.utils.getProperty(changes, 'system.staminaValue') === undefined) return;
     const from = _groups.get(group.uuid) ?? null;
