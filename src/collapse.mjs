@@ -98,11 +98,24 @@ function syncSiblingPanels(root) {
   watchRoot(root, hide);
 }
 
+const _trailingQueue = new Map();
+let _trailingFrame = null;
+
 function scheduleTrailingPart(root, attempts = 10) {
-  requestAnimationFrame(() => {
-    if (root.isConnected) return markTrailingPart(root);
-    if (attempts > 0) scheduleTrailingPart(root, attempts - 1);
-  });
+  _trailingQueue.set(root, Math.max(attempts, _trailingQueue.get(root) ?? 0));
+  _trailingFrame ??= requestAnimationFrame(markQueuedTrailingParts);
+}
+
+function markQueuedTrailingParts() {
+  _trailingFrame = null;
+  const due = [];
+  for (const [root, attempts] of [..._trailingQueue]) {
+    _trailingQueue.delete(root);
+    if (root.isConnected) due.push(root);
+    else if (attempts > 0) scheduleTrailingPart(root, attempts - 1);
+  }
+  const lasts = due.map(root => [...root.children].filter(child => child.getClientRects().length > 0).at(-1));
+  due.forEach((root, i) => markTrailingPart(root, lasts[i]));
 }
 
 const _observers = new WeakMap();
@@ -120,10 +133,10 @@ function watchRoot(root, active) {
   _observers.set(root, observer);
 }
 
-function markTrailingPart(root) {
-  for (const marked of root.querySelectorAll('.dsbl-part-trailing')) marked.classList.remove('dsbl-part-trailing');
-  const last = [...root.children].filter(child => child.getClientRects().length > 0).at(-1);
-  if (last?.classList.contains('dsbl-part-collapsed')) last.classList.add('dsbl-part-trailing');
+function markTrailingPart(root, last) {
+  const keep = last?.classList.contains('dsbl-part-collapsed') ? last : null;
+  for (const marked of root.querySelectorAll('.dsbl-part-trailing')) if (marked !== keep) marked.classList.remove('dsbl-part-trailing');
+  keep?.classList.add('dsbl-part-trailing');
 }
 
 export function forgetMessage(messageId) {

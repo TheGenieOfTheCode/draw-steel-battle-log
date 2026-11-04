@@ -7,9 +7,14 @@
         "turnMarkers": "Turn Markers",
         "resourceLog": "Resource Log"
       },
+      "compatibilitySettings": {
+        "name": "Compatibility",
+        "label": "Configure Compatibility",
+        "hint": "Settings for compatibility with other installed modules."
+      },
       "darkChat": {
-        "name": "Dark Theme Chat Cards",
-        "hint": "Recolours the default Draw Steel chat cards, buttons and embeds to match the Foundry dark theme."
+        "name": "Dark Theme Chat Messages",
+        "hint": "Recolours the default Draw Steel chat messages, buttons and embeds to match the Foundry dark theme."
       },
       "compactAbilities": {
         "name": "Compact Ability Details",
@@ -17,11 +22,11 @@
       },
       "collapsibleAbilities": {
         "name": "Click Ability Name to Collapse",
-        "hint": "Clicking the name of an ability in chat collapses the card down to just its name. Remembered between reloads."
+        "hint": "Clicking the name of an ability in chat collapses its ability message down to just its name. Remembered between reloads."
       },
       "flexButtons": {
         "name": "Full Width Chat Buttons",
-        "hint": "Chat card buttons fill the width of the message, sharing a row when two or three fit, and always using the fewest rows with the most even split."
+        "hint": "Buttons in chat messages fill the width of the message, sharing a row when two or three fit, and always using the fewest rows with the most even split."
       },
       "powerRollResults": {
         "name": "Collapsible Power Roll Results",
@@ -47,12 +52,18 @@
         "name": "Auto Collapse",
         "hint": "Fold a combat, round or turn away once it ends."
       },
+      "loadOlderMessages": {
+        "name": "Load Older Messages",
+        "hint": "With a button, older messages only load when you click the row at the top of the chat, not whenever you scroll there or fold a turn. Fewer loaded messages keep the chat quick.",
+        "button": "With a Button",
+        "scroll": "On Scroll"
+      },
       "speakerPicker": {
         "name": "Speaking As Row",
         "hint": "A row above the chat buttons shows who your messages come from: your selected token, or you when nothing is selected. Click it to speak as yourself or another character."
       },
       "compactSpeech": {
-        "name": "Compact Chat Messages",
+        "name": "Compact User Chat Messages",
         "hint": "Typed messages fit on one line: the speaker's portrait, their name, and what they said. Emotes appear in italics."
       },
       "mentionNames": {
@@ -65,7 +76,7 @@
       },
       "resourceLog": {
         "name": "Resource Log",
-        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. The heart beside Export Chat Log shows or hides both logs."
+        "hint": "During combat, changes to Stamina, Heroic Resources, Surges, Recoveries, Malice and Hero Tokens appear in chat as one line entries. The Logs tab shows only these lines."
       },
       "resourceLogFullInfo": {
         "name": "Show Monster Stamina to Players",
@@ -76,20 +87,91 @@
         "hint": "Also log resource and effect changes on tokens that are not in a running encounter."
       },
       "resourceLogTokenCards": {
-        "name": "Replace Hero Token Cards",
-        "hint": "When Hero Tokens are given or spent, the Resource Log line shows who spent them and why, and the system's chat card is hidden behind it. The card shows again whenever the line doesn't: with the logs hidden, or the line hidden or deleted."
+        "name": "Replace Hero Token Messages",
+        "hint": "When Hero Tokens are given or spent, the Resource Log line shows who spent them and why, and the system's chat message is hidden behind it. The message shows again if the line is hidden or deleted."
       },
       "resourceLogTurnGainCards": {
         "name": "Hide Resource Gain Rolls",
-        "hint": "Hide the start of turn Heroic Resource roll, Gain links and Resources UI gain cards when a Resource Log line already shows the gain. Hover the line's number to see the roll."
+        "hint": "Hide the start of turn Heroic Resource roll, Gain links and Resources UI gain messages when a Resource Log line already shows the gain. Hover the line's number to see the roll."
       },
       "effectLog": {
         "name": "Effect Log",
-        "hint": "Conditions and effects starting and ending appear in chat as one line entries, saying who applied them and why they ended. Players only see the ones from abilities on monsters."
+        "hint": "Conditions and effects starting and ending, forced movement and falls appear in chat as one line entries, saying who caused them and why they ended. Players only see the ones from abilities on monsters."
       }
     },
     "powerRoll": {
       "heading": "Power Roll Results"
+    },
+    "Compat": {
+      "title": "Compatibility",
+      "none": "No supported modules are active.",
+      "cgmp": {
+        "name": "Commands and Speakers",
+        "hint": "/desc lines show as narration, and /as and /ooc keep the speaker they give. Draw Steel chat messages keep their speaker whatever its Speaker Mode says, so the logs still know who acted."
+      },
+      "dsPlus": {
+        "name": "Typed Chat",
+        "hint": "Typed lines show one name, Battle Log's, instead of a second one in Draw Steel Plus's header, and lines in a row from the same speaker still join up."
+      },
+      "polyglot": {
+        "name": "Languages",
+        "hint": "Lines spoken in a language keep their \"says:\" line above the text, so you can see who spoke even when you can't read what they said."
+      }
+    },
+    "Markers": {
+      "deleteMarker": "Delete Marker",
+      "deleteMessages": "Delete Contained Messages",
+      "messages": "{count} chat messages",
+      "oneMessage": "1 chat message",
+      "logLines": "{count} log lines",
+      "oneLogLine": "1 log line",
+      "both": "{first} and {second}",
+      "confirm": {
+        "turn": "Delete the {what} in {label}'s turn? This cannot be undone.",
+        "round": "Delete the {what} in {label}? This cannot be undone.",
+        "combat": "Delete the {what} in this combat? This cannot be undone."
+      }
+    },
+    "loadOlder": {
+      "button": "Load {count} older messages",
+      "title": "{count} older messages are not loaded yet."
+    },
+    "tip": {
+      "conceal": { "title": "Hide from Players", "category": "Battle Log", "body": "Players stop seeing this log line. You still see it, faded." },
+      "reveal": { "title": "Show to Players", "category": "Battle Log", "body": "Players can see this log line again." },
+      "delete": { "title": "Delete", "category": "Battle Log", "body": "Removes this log line for everyone." },
+      "undoGain": { "title": "Undo the Gain", "category": "Battle Log", "body": "Takes back what this line gained." },
+      "undoMove": { "title": "Undo the Move", "category": "Battle Log", "body": "Puts the creature back where it was moved from." },
+      "tabAll": { "title": "All", "category": "Battle Log", "body": "Everything: chat messages, with log lines in place of the messages they cover." },
+      "tabAbilities": { "title": "Abilities", "category": "Battle Log", "body": "Only the chat messages of abilities used: no log lines and no talk." },
+      "tabLogs": { "title": "Logs", "category": "Battle Log", "body": "Only log lines, with a short line for each ability used." },
+      "tabChat": { "title": "Chat", "category": "Battle Log", "body": "Only what people say: in character, out of character, emotes and whispers." },
+      "stub": { "title": "Full Chat Message", "category": "Battle Log", "body": "Shows this ability's full chat message in the All tab." },
+      "movement": { "category": "Movement" },
+      "forcedMovement": { "category": "Forced Movement" },
+      "fall": { "category": "Falling" },
+      "effectStarted": { "category": "Effect Started" },
+      "effectEnded": { "category": "Effect Ended" },
+      "summary": { "category": "Combat" },
+      "source": { "category": "Source" },
+      "change": { "category": "Change" },
+      "resource": { "category": "Resource" },
+      "recoveryHeal": { "title": "Recovery", "category": "Resource" },
+      "spent": { "category": "Spent On" },
+      "loadOlder": { "category": "Chat" },
+      "rollBonus": { "category": "Power Roll", "body": "Adds {bonus} to the roll." },
+      "speaker": { "title": "Speaking As", "category": "Chat" },
+      "targets": { "title": "Mention Targets", "category": "Chat" },
+      "folded": {
+        "title": "Folded Away",
+        "category": "Turn Marker",
+        "body": "{what} folded away under this marker.",
+        "message": "{n} message",
+        "messages": "{n} messages",
+        "logLine": "{n} log line",
+        "logLines": "{n} log lines",
+        "both": "{a} and {b}"
+      }
     },
     "notice": {
       "olderCombatTools": "Draw Steel: Combat Tools {version} still posts its own Combat Round Log and Combat Turn Log, so Battle Log's turn markers are off to avoid logging every turn twice. Update Combat Tools, or turn those logs off under its Combat Logs settings, and reload."
@@ -105,9 +187,15 @@
       "targetsTooltip": "Mention your targets. You can also type @targets in a message.",
       "targetsNone": "Target a token to mention it."
     },
+    "ChatTabs": {
+      "all": "All",
+      "abilities": "Abilities",
+      "logs": "Logs",
+      "chat": "Chat",
+      "used": "{name} used {ability}",
+      "usedOn": "{name} used {ability} on {targets}"
+    },
     "ResourceLog": {
-      "show": "Show Logs",
-      "hide": "Hide Logs",
       "conceal": "Hide from players",
       "reveal": "Show to players",
       "delete": "Delete",
@@ -155,6 +243,22 @@
       }
     },
     "EffectLog": {
+      "undoMoveMissing": "That move's chat message isn't loaded, so it can't be undone from here.",
+      "move": {
+        "walk": "Moved",
+        "shift": "Shifted",
+        "fly": "Flew",
+        "climb": "Climbed",
+        "swim": "Swam",
+        "burrow": "Burrowed",
+        "crawl": "Crawled",
+        "jump": "Jumped",
+        "teleport": "Teleported",
+        "strike": "1 free strike",
+        "strikes": "{n} free strikes",
+        "strikeLine": "Free strike from {name}: {damage}"
+      },
+      "fall": "Fall",
       "from": "From {source}",
       "fromAbility": "{ability}, from {source}",
       "by": "From {ability}",
@@ -164,7 +268,8 @@
         "removed": "removed",
         "cleansed": "cleansed",
         "disabled": "turned off",
-        "enabled": "turned back on"
+        "enabled": "turned back on",
+        "undone": "undone"
       },
       "expiry": {
         "turnEnd": "end of turn",

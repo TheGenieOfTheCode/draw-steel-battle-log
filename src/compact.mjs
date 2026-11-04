@@ -1,6 +1,6 @@
 const SEL = 'document-embed.draw-steel.ability .metadata dl';
 
-const MIN_SIZE = 11;
+const MIN_SIZE = 12.5;
 const STEP = 0.5;
 
 function wraps(cell) {
@@ -51,11 +51,21 @@ function rowify(dl) {
   row.append(keywords, type);
 }
 
-function balanceKeywords(cell) {
-  const pills = [...cell.querySelectorAll('.dsbl-kw')];
+function resetKeywords(cell) {
   for (const br of cell.querySelectorAll('br')) br.remove();
   cell.style.whiteSpace = 'normal';
-  if (pills.length < 2) return;
+}
+
+function applyKeywords(cell, breaks) {
+  if (!breaks) return;
+  const pills = [...cell.querySelectorAll('.dsbl-kw')];
+  for (const at of breaks) pills[at].before(document.createElement('br'));
+  cell.style.whiteSpace = 'nowrap';
+}
+
+function planKeywords(cell) {
+  const pills = [...cell.querySelectorAll('.dsbl-kw')];
+  if (pills.length < 2) return null;
 
   const avail = cell.clientWidth;
   const widths = pills.map(p => p.offsetWidth + (parseFloat(getComputedStyle(p).marginRight) || 0));
@@ -66,7 +76,7 @@ function balanceKeywords(cell) {
   for (const w of widths) {
     if (current && current + w > avail) { lines++; current = w; } else current += w;
   }
-  if (lines === 1) return;
+  if (lines === 1) return null;
 
   const n = widths.length;
   const base = Math.floor(n / lines);
@@ -109,38 +119,45 @@ function balanceKeywords(cell) {
         }
       }
     }
-    if (cost[lines][n] === INF) return;
+    if (cost[lines][n] === INF) return null;
     const breaks = [];
     for (let k = lines, i = n; k > 1; k--) { i = cut[k][i]; breaks.unshift(i); }
     best = { breaks };
   }
-
-  for (const at of best.breaks) pills[at].before(document.createElement('br'));
-  cell.style.whiteSpace = 'nowrap';
+  return best.breaks;
 }
 
-function fit(dl) {
-  const embed = dl.closest('document-embed');
-  if (!embed) return;
-
-  pillify(dl);
-  rowify(dl);
-  embed.style.removeProperty('--dsbl-meta-size');
-
-  const keywords = dl.querySelector('dd.keywords');
-  const cells = [...dl.children].filter(cell => !cell.classList.contains('keywords') && !cell.classList.contains('dsbl-kw-row') && !cell.classList.contains('dsbl-trigger-row'));
-  const type = dl.querySelector('.dsbl-kw-row > dd.type');
-  if (type) cells.push(type);
-  const wrapped = () => cells.some(wraps);
-
-  if (!wrapped()) { if (keywords) balanceKeywords(keywords); return; }
-
-  const base = parseFloat(getComputedStyle(dl).fontSize) || 13;
-  for (let size = base - STEP; size >= MIN_SIZE; size -= STEP) {
-    embed.style.setProperty('--dsbl-meta-size', `${size}px`);
-    if (!wrapped()) break;
+function fitAll(dls) {
+  const jobs = [];
+  for (const dl of dls) {
+    const embed = dl.isConnected ? dl.closest('document-embed') : null;
+    if (!embed) continue;
+    pillify(dl);
+    rowify(dl);
+    embed.style.removeProperty('--dsbl-meta-size');
+    const cells = [...dl.children].filter(cell => !cell.classList.contains('keywords') && !cell.classList.contains('dsbl-kw-row') && !cell.classList.contains('dsbl-trigger-row'));
+    const type = dl.querySelector('.dsbl-kw-row > dd.type');
+    if (type) cells.push(type);
+    jobs.push({ dl, embed, cells, keywords: dl.querySelector('dd.keywords') });
   }
-  if (keywords) balanceKeywords(keywords);
+
+  let shrinking = jobs.filter(j => j.cells.some(wraps));
+  for (const j of shrinking) j.size = parseFloat(getComputedStyle(j.dl).fontSize) || 13;
+  while (shrinking.length) {
+    shrinking = shrinking.filter(j => (j.size -= STEP) >= MIN_SIZE);
+    for (const j of shrinking) j.embed.style.setProperty('--dsbl-meta-size', `${j.size}px`);
+    shrinking = shrinking.filter(j => j.cells.some(wraps));
+  }
+
+  const withKeywords = jobs.filter(j => j.keywords);
+  for (const j of withKeywords) resetKeywords(j.keywords);
+  const plans = withKeywords.map(j => planKeywords(j.keywords));
+  withKeywords.forEach((j, i) => applyKeywords(j.keywords, plans[i]));
+
+  for (const j of jobs) {
+    const key = fitKey(j.dl);
+    if (key) _fitted.set(key, { size: j.embed.style.getPropertyValue('--dsbl-meta-size') || null, breaks: plans[withKeywords.indexOf(j)] ?? null });
+  }
 }
 
 let _observer = null;
@@ -148,23 +165,35 @@ const _widths = new WeakMap();
 
 function watch(dl) {
   _observer ??= new ResizeObserver(entries => {
+    const due = [];
     for (const entry of entries) {
       const width = Math.round(entry.contentRect.width);
-      if (_widths.get(entry.target) === width) continue;
+      if (!width || _widths.get(entry.target) === width) continue;
       _widths.set(entry.target, width);
-      fit(entry.target);
+      due.push(entry.target);
     }
+    if (due.length) fitAll(due);
   });
   _observer.observe(dl);
 }
 
+
+const _fitted = new Map();
+const fitKey = (dl) => {
+  const li = dl.closest('[data-message-id]');
+  return li ? `${li.dataset.messageId}|${[...li.querySelectorAll(SEL)].indexOf(dl)}` : null;
+};
+
 export function compactAbilityMetadata(html) {
   for (const dl of html.querySelectorAll(SEL)) {
-    requestAnimationFrame(() => {
-      if (!dl.isConnected) return;
-      fit(dl);
-      watch(dl);
-    });
+    
+    pillify(dl);
+    rowify(dl);
+    const fit = _fitted.get(fitKey(dl));
+    if (fit?.size) dl.closest('document-embed')?.style.setProperty('--dsbl-meta-size', fit.size);
+    const keywords = dl.querySelector('dd.keywords');
+    if (fit?.breaks && keywords) applyKeywords(keywords, fit.breaks);
+    watch(dl);
   }
 }
 

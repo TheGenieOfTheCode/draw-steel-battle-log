@@ -2,12 +2,16 @@ import { makeAbilitiesCollapsible, forgetMessage, pruneCollapsedState } from './
 import { compactAbilityMetadata, inlineEffectLabels } from './compact.mjs';
 import { collapsePowerRolls } from './power-roll.mjs';
 import { flexMessageButtons } from './buttons.mjs';
-import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteMessage, olderCombatToolsLogs, currentTurn, watchClearAll } from './turn-markers.mjs';
+import { registerTurnRecording, scheduleDraw, draw, pruneBoundaries, pruneEmptySections, schedulePrune, noteMessage, olderCombatToolsLogs, currentTurn, watchClearAll, addMarkerMenu } from './turn-markers.mjs';
 import { registerResourceRecording, addResourceToggle, syncResourceToggle, markCovered } from './resource-log.mjs';
-import { registerEffectRecording } from './effect-log.mjs';
+import { registerChatTabs } from './chat-tabs.mjs';
+import { registerEffectRecording, registerMoveSource, registerMoveLog, logMove, markMoveUndone } from './effect-log.mjs';
 import { MODULE_ID } from './collapse.mjs';
 import { migrateLocalStorage, migrateWorldSettings, MIGRATED } from './migrate.mjs';
 import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, watchChatLogs } from './speech.mjs';
+import { registerCompatibilityMenu } from './compat-menu.mjs';
+import { registerLoadOlder } from './load-older.mjs';
+import { onEveryDocument, toggleBodyClass } from './windows.mjs';
 
 export { MODULE_ID };
 
@@ -16,6 +20,10 @@ migrateLocalStorage(MODULE_ID);
 const setting = key => game.settings.get(MODULE_ID, key);
 
 Hooks.once('init', () => {
+  game.modules.get(MODULE_ID).api = { registerMoveSource, registerMoveLog, logMove, markMoveUndone };
+  registerCompatibilityMenu();
+  registerChatTabs();
+
   game.settings.register(MODULE_ID, 'darkChat', {
     name: 'DSBL.Settings.darkChat.name',
     hint: 'DSBL.Settings.darkChat.hint',
@@ -128,6 +136,20 @@ Hooks.once('init', () => {
     });
   }
 
+  game.settings.register(MODULE_ID, 'loadOlderMessages', {
+    name: 'DSBL.Settings.loadOlderMessages.name',
+    hint: 'DSBL.Settings.loadOlderMessages.hint',
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: {
+      button: 'DSBL.Settings.loadOlderMessages.button',
+      scroll: 'DSBL.Settings.loadOlderMessages.scroll',
+    },
+    default: 'button',
+    onChange: () => draw(),
+  });
+
   game.settings.register(MODULE_ID, 'resourceLog', {
     name: 'DSBL.Settings.resourceLog.name',
     hint: 'DSBL.Settings.resourceLog.hint',
@@ -213,6 +235,7 @@ Hooks.once('ready', async () => {
   } else registerTurnRecording();
   registerResourceRecording({ currentTurn });
   registerEffectRecording({ currentTurn });
+  registerLoadOlder();
   addResourceToggle();
   watchClearAll();
 
@@ -222,47 +245,44 @@ Hooks.once('ready', async () => {
   scheduleDraw();
 });
 
-const SETTING_HEADERS = {
-  darkChat: 'chatCards',
-  speakerPicker: 'typedChat',
-  turnMarkers: 'turnMarkers',
-  resourceLog: 'resourceLog',
-};
-
 Hooks.on('renderChatInput', (_app, elements) => {
   addResourceToggle(elements?.['#chat-controls']);
 });
 
-Hooks.on('renderSettingsConfig', (_app, html) => {
-  const root = html instanceof HTMLElement ? html : html?.[0];
-  if (!root) return;
-  for (const [key, header] of Object.entries(SETTING_HEADERS)) {
-    const el = root.querySelector(`[name="${MODULE_ID}.${key}"]`)?.closest('.form-group')
-      ?? root.querySelector(`[data-setting-id="${MODULE_ID}.${key}"]`);
-    if (!el || el.previousElementSibling?.classList?.contains('dsbl-settings-header')) continue;
-    const h = document.createElement('h3');
-    h.className = 'dsbl-settings-header';
-    h.textContent = game.i18n.localize(`DSBL.Settings.Headers.${header}`);
-    el.insertAdjacentElement('beforebegin', h);
-  }
-
-  
-  for (const [parent, children] of Object.entries(SUB_SETTINGS)) {
-    const box = root.querySelector(`[name="${MODULE_ID}.${parent}"]`);
-    const groups = children.map((key) => root.querySelector(`[name="${MODULE_ID}.${key}"]`)?.closest('.form-group')).filter(Boolean);
-    for (const g of groups) g.classList.add('dsbl-sub-setting');
-    const sync = () => { for (const g of groups) g.classList.toggle('dsbl-sub-off', !box?.checked); };
-    box?.addEventListener('change', sync);
-    sync();
-  }
+Hooks.once('ready', () => {
+  const H = (key) => `DSBL.Settings.Headers.${key}`;
+  game.modules.get('draw-steel-ctlib')?.api?.registerSettingsLayout?.(MODULE_ID, [
+    { label: H('chatCards'), wiki: 'Compact-Abilities', items: ['darkChat', 'compactAbilities', 'collapsibleAbilities', 'powerRollResults', 'flexButtons'] },
+    { label: H('typedChat'), wiki: 'Clean-Comms', items: ['speakerPicker', 'compactSpeech', 'blendSpeech', 'mentionNames'] },
+    { label: H('turnMarkers'), wiki: 'Turn-Markers', items: ['turnMarkers', 'turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns',
+      'turnMarkersAutoCollapse', 'loadOlderMessages'] },
+    { label: H('resourceLog'), wiki: 'Resource-Log', items: ['resourceLog', 'resourceLogFullInfo', 'resourceLogOutOfCombat', 'resourceLogTokenCards',
+      'resourceLogTurnGainCards', 'effectLog'] },
+  ], {
+    dependencies: {
+      turnMarkersCombats: 'turnMarkers',
+      turnMarkersRounds: 'turnMarkers',
+      turnMarkersTurns: 'turnMarkers',
+      turnMarkersAutoCollapse: 'turnMarkers',
+    },
+    wiki: {
+      base: 'https://github.com/TheGenieOfTheCode/draw-steel-battle-log/wiki/',
+      pages: {
+        darkChat: 'Compact-Abilities#why-the-theme-fix-is-needed',
+        collapsibleAbilities: 'Compact-Abilities#folding-a-message',
+        speakerPicker: 'Clean-Comms#speaking-as',
+        compactSpeech: 'Clean-Comms#compact-messages',
+        blendSpeech: 'Clean-Comms#joining-messages',
+        mentionNames: 'Clean-Comms#highlighting-names',
+        effectLog: 'Effect-Log',
+      },
+    },
+  });
 });
-
-const SUB_SETTINGS = {
-  turnMarkers: ['turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns', 'turnMarkersAutoCollapse'],
-};
 
 Hooks.on('renderChatLog', scheduleDraw);
 Hooks.on('renderChatLog', () => { addSpeakerRow(); watchChatLogs(); scheduleBlend(); });
+Hooks.on('renderChatLog', (_app, html) => addMarkerMenu(html));
 
 Hooks.on('canvasReady', scheduleDraw);
 
@@ -284,24 +304,29 @@ Hooks.on('renderChatMessageHTML', (message, html) => {
 
 Hooks.on('renderChatMessageHTML', scheduleDraw);
 
+Hooks.on('renderChatPopout', (app) => {
+  if (!setting('darkChat') || !document.getElementById('interface')?.classList.contains('theme-dark')) return;
+  app.element?.classList.replace('theme-light', 'theme-dark');
+});
+
 Hooks.on('deleteChatMessage', message => forgetMessage(message.id));
 
 function syncBodyClasses() {
-  document.body.classList.toggle('dsbl-dark-chat', setting('darkChat'));
-  document.body.classList.toggle('dsbl-collapse', setting('collapsibleAbilities'));
-  document.body.classList.toggle('dsbl-compact', setting('compactAbilities'));
-  document.body.classList.toggle('dsbl-power-roll', setting('powerRollResults'));
-  document.body.classList.toggle('dsbl-flex-buttons', setting('flexButtons'));
-  document.body.classList.toggle('dsbl-turn-markers', setting('turnMarkers'));
+  toggleBodyClass('dsbl-dark-chat', setting('darkChat'));
+  toggleBodyClass('dsbl-collapse', setting('collapsibleAbilities'));
+  toggleBodyClass('dsbl-compact', setting('compactAbilities'));
+  toggleBodyClass('dsbl-power-roll', setting('powerRollResults'));
+  toggleBodyClass('dsbl-flex-buttons', setting('flexButtons'));
+  toggleBodyClass('dsbl-turn-markers', setting('turnMarkers'));
 }
 
-document.addEventListener('scroll', (event) => {
+onEveryDocument((doc) => doc.addEventListener('scroll', (event) => {
   const log = event.target;
-  if (!(log instanceof HTMLElement) || !log.classList.contains('chat-scroll')) return;
+  if (!log?.classList?.contains('chat-scroll')) return;
   const pct = log.scrollTop / (log.scrollHeight - log.clientHeight);
   if (!(pct < 0.01)) return;
   if (log.closest('.chat-sidebar, #chat, .application')?.querySelector('.jump-to-bottom')?.hidden) return;
   const loaded = log.querySelectorAll('li.chat-message[data-message-id]').length;
   if (loaded < game.messages.contents.filter((m) => m.visible).length) return;
   event.stopPropagation();
-}, { capture: true, passive: true });
+}, { capture: true, passive: true }));

@@ -1,8 +1,10 @@
 
 
-import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown } from './resource-log.mjs';
-import { readEffectLog, visibleEffect, effectRow, pruneEffectLog } from './effect-log.mjs';
+import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown, rewriteResourceLog } from './resource-log.mjs';
+import { readEffectLog, visibleEffect, effectRow, fmRow, moveRow, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
 import { isDirector, primaryGM } from './director.mjs';
+import { syncLoadOlder } from './load-older.mjs';
+import { setTip, tip } from './tips.mjs';
 
 export const MODULE_ID = 'draw-steel-battle-log';
 
@@ -194,8 +196,10 @@ export const registerTurnRecording = () => {
   Hooks.on('updateCombat', (combat, changes) => {
     if (changes.round !== undefined && combat.started && changes.round > 1) round(`Round ${changes.round}`, 'round');
   });
-  Hooks.on('deleteCombat', async () => {
-    await round('Combat Ends', 'end');
+  Hooks.on('deleteCombat', async (combat) => {
+    
+    const last = readBoundaries().findLast((e) => e.kind === 'round' && depthOf(e) <= 1);
+    if (combat.started || last?.mark === 'begin') await round('Combat Ends', 'end');
     await pruneEmptySections();
   });
 };
@@ -294,10 +298,10 @@ const marker = (entry, kind, isCurrent) => {
   return el;
 };
 
-const logElement = () => {
-  
-  const log = ui.chat?.element?.querySelector('.chat-log');
-  return log?.closest('#chat-notifications') ? null : (log ?? null);
+const logElements = () => {
+  const ChatLog = foundry.applications.sidebar.tabs.ChatLog;
+  const apps = new Set([ui.chat, ...[...foundry.applications.instances.values()].filter((a) => a instanceof ChatLog && a.rendered)]);
+  return [...apps].map((app) => app?.element?.querySelector('.chat-log')).filter((log) => log && !log.closest('#chat-notifications'));
 };
 
 let _drawing = false;
@@ -311,6 +315,7 @@ const keepTopRow = (log) => {
     top.setAttribute('aria-hidden', 'true');
   }
   if (log.firstElementChild !== top) log.prepend(top);
+  syncLoadOlder(log);
 };
 
 const KINDS = /^dsbl-turn-(start|end|round|roundend)$/;
@@ -322,7 +327,7 @@ const selectorFor = (el) => {
   return null;
 };
 
-let _last = null;
+const _lastFor = new WeakMap();
 
 const drawSignature = (log) => JSON.stringify([setting('resourceLog'), setting('effectLog'), setting('turnMarkers'), olderCombatToolsLogs(),
   document.body.classList.contains('dsbl-res-off'), logStartShown(log), readBoundaries(), [...folds()]]);
@@ -332,7 +337,7 @@ const logEntries = () => [
   ...(setting('effectLog') ? readEffectLog().filter(visibleEffect) : []),
 ].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
 
-const rowOf = (e) => (e.kind === 'fx' ? effectRow(e) : resourceRow(e));
+const rowOf = (e) => (e.kind === 'fx' ? effectRow(e) : e.kind === 'fm' ? fmRow(e) : e.kind === 'move' ? moveRow(e) : resourceRow(e));
 const messageRows = (log) => [...log.querySelectorAll(':scope > .chat-message[data-message-id]')];
 const TURN_CLASSES = ['dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden'];
 
@@ -344,22 +349,23 @@ const remember = (log, sig, current) => {
     assign.set(li.dataset.messageId, { turn: li.dataset.dscpTurn, cls: TURN_CLASSES.filter((c) => li.classList.contains(c)) });
   }
   const entries = logEntries();
-  _last = { log, sig, current, assign, ids: lis.map((li) => li.dataset.messageId), res: entries.map((e) => e.id), resJson: JSON.stringify(entries),
-    markers: log.querySelectorAll(':scope > .dsbl-turn-marker').length, rows: log.querySelectorAll(':scope > .dsbl-res-row').length };
+  _lastFor.set(log, { sig, current, assign, ids: lis.map((li) => li.dataset.messageId), res: entries.map((e) => e.id), resJson: JSON.stringify(entries),
+    markers: log.querySelectorAll(':scope > .dsbl-turn-marker').length, rows: log.querySelectorAll(':scope > .dsbl-res-row').length });
 };
 
 const appendOnly = (log, scroller, atBottom) => {
-  if (!_last || _last.log !== log || _last.current === false) return false;
+  const last = _lastFor.get(log);
+  if (!last || last.current === false) return false;
   const sig = drawSignature(log);
-  if (sig !== _last.sig) return false;
-  if (log.querySelectorAll(':scope > .dsbl-turn-marker').length !== _last.markers || log.querySelectorAll(':scope > .dsbl-res-row').length !== _last.rows) return false;
+  if (sig !== last.sig) return false;
+  if (log.querySelectorAll(':scope > .dsbl-turn-marker').length !== last.markers || log.querySelectorAll(':scope > .dsbl-res-row').length !== last.rows) return false;
   const lis = messageRows(log);
   const ids = lis.map((li) => li.dataset.messageId);
-  const n = _last.ids.length;
-  if (ids.length < n || _last.ids.some((id, i) => ids[i] !== id)) return false;
+  const n = last.ids.length;
+  if (ids.length < n || last.ids.some((id, i) => ids[i] !== id)) return false;
   const entries = logEntries();
-  const m = _last.res.length;
-  if (entries.length < m || JSON.stringify(entries.slice(0, m)) !== _last.resJson) return false;
+  const m = last.res.length;
+  if (entries.length < m || JSON.stringify(entries.slice(0, m)) !== last.resJson) return false;
   const fresh = new Set(ids.slice(n));
   const added = entries.slice(m);
   if (added.some((e) => !fresh.has(e.after))) return false;
@@ -367,7 +373,7 @@ const appendOnly = (log, scroller, atBottom) => {
   try {
     placeResourceRows(log, added, rowOf);
     refreshCovered();
-    const tag = (el) => { if (!_last.current) return; el.classList.add('dsbl-in-turn'); el.dataset.dscpTurn = _last.current; };
+    const tag = (el) => { if (!last.current) return; el.classList.add('dsbl-in-turn'); el.dataset.dscpTurn = last.current; };
     for (const li of lis.slice(n)) tag(li);
     for (const e of added) {
       const row = log.querySelector(`:scope > .dsbl-res-row[data-dsbl-res="${CSS.escape(e.id)}"]`);
@@ -376,12 +382,12 @@ const appendOnly = (log, scroller, atBottom) => {
     
     for (let i = 0; i < n; i++) {
       const li = lis[i];
-      const was = li.dataset.dscpTurn === undefined ? _last.assign.get(ids[i]) : null;
+      const was = li.dataset.dscpTurn === undefined ? last.assign.get(ids[i]) : null;
       if (!was) continue;
       li.classList.add(...was.cls);
       li.dataset.dscpTurn = was.turn;
     }
-    remember(log, sig, _last.current);
+    remember(log, sig, last.current);
   } finally {
     _drawing = false;
     keepTopRow(log);
@@ -392,13 +398,14 @@ const appendOnly = (log, scroller, atBottom) => {
 
 export const draw = () => {
   if (_drawing) return;
-  const log = logElement();
-  if (!log) return;
+  for (const log of logElements()) drawLog(log);
+};
 
+const drawLog = (log) => {
   const scroller = log.closest('.chat-scroll') ?? log;
   const atBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 4;
   if (appendOnly(log, scroller, atBottom)) return;
-  _last = null;
+  _lastFor.delete(log);
   const sig = drawSignature(log);
   let current = null;
   let drawn = false;
@@ -434,9 +441,9 @@ export const draw = () => {
       const shown = rows.slice(s, e).filter(counted);
       const logs = shown.filter(isRes).length;
       const msgs = shown.length - logs;
-      const part = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-      const parts = [msgs ? part(msgs, 'message', 'messages') : null, logs ? part(logs, 'log line', 'log lines') : null].filter(Boolean);
-      return `${parts.join(' and ')} folded away`;
+      const F = (key, data) => game.i18n.format(`DSBL.tip.folded.${key}`, data);
+      const parts = [msgs ? F(msgs === 1 ? 'message' : 'messages', { n: msgs }) : null, logs ? F(logs === 1 ? 'logLine' : 'logLines', { n: logs }) : null].filter(Boolean);
+      return tip('folded', { body: F('body', { what: parts.length > 1 ? F('both', { a: parts[0], b: parts[1] }) : (parts[0] ?? '') }) });
     };
 
     const entries = readBoundaries();
@@ -504,7 +511,7 @@ export const draw = () => {
         const count = document.createElement('span');
         count.className = 'dsbl-turn-count';
         count.textContent = String(folded);
-        count.title = foldedTitle(start, end);
+        setTip(count, foldedTitle(start, end));
         head.append(count);
       }
 
@@ -517,10 +524,13 @@ export const draw = () => {
       }
     }
     
+    
+    const orphans = [];
     for (let i = 0; i < sections.length; i++) {
       if (sections[i].depth !== 0) continue;
-      const owner = sections.slice(0, i).reverse().find((x) => x.depth === 1);
-      if (!owner || owner.isOpen) continue;
+      const owner = sections.slice(0, i).reverse().find((x) => x.depth <= 1);
+      if (owner?.depth !== 1) { orphans.push(sections[i].line); continue; }
+      if (owner.isOpen) continue;
       const line = sections[i].line;
       line.classList.remove('dsbl-turn-live');
       line.addEventListener('click', () => {
@@ -573,7 +583,7 @@ export const draw = () => {
         const count = document.createElement('span');
         count.className = 'dsbl-turn-count';
         count.textContent = String(hiddenCount);
-        count.title = foldedTitle(start, end);
+        setTip(count, foldedTitle(start, end));
         line.append(count);
 
         
@@ -583,6 +593,7 @@ export const draw = () => {
         line.prepend(twin);
       }
     }
+    for (const line of orphans) line.remove();
     drawn = true;
   } finally {
     _drawing = false;
@@ -647,9 +658,13 @@ export const pruneEmptySections = async () => {
     if (entries[i].kind !== 'round' || depthOf(entries[i]) !== 0) continue;
     let ownerAt = -1;
     for (let j = i - 1; j >= 0; j--) {
-      if (entries[j].kind === 'round' && depthOf(entries[j]) === 1) { ownerAt = j; break; }
+      if (entries[j].kind !== 'round' || depthOf(entries[j]) > 1) continue;
+      if (depthOf(entries[j]) === 1) ownerAt = j;
+      break;
     }
-    if (ownerAt < 0 || drop.has(ownerAt)) drop.add(i);
+    const prev = entries[i - 1];
+    const closes = !!prev && !(prev.kind === 'round' && depthOf(prev) === 0);
+    if (ownerAt < 0 ? !closes : drop.has(ownerAt)) drop.add(i);
   }
 
   if (!drop.size) return;
@@ -700,4 +715,122 @@ let _pruning = null;
 export const schedulePrune = () => {
   if (!isDirector() || _pruning) return;
   _pruning = setTimeout(() => { _pruning = null; pruneBoundaries(); }, 500);
+};
+
+const levelOf = (entry) => (entry.kind === 'round' ? depthOf(entry) : 3);
+const closerAt = (entries, i) => entries.findIndex((x, j) => j > i && levelOf(x) <= levelOf(entries[i]));
+
+const openerAt = (entries, id) => {
+  const i = entries.findIndex((e) => e.id === id);
+  if (i < 0 || levelOf(entries[i]) !== 0) return i;
+  for (let j = i - 1; j >= 0; j--) {
+    const level = levelOf(entries[j]);
+    if (level > 1) continue;
+    return level === 1 ? j : -1;
+  }
+  return -1;
+};
+
+const contentsOf = (entries, i) => {
+  const all = game.messages.contents;
+  const index = new Map(all.map((m, n) => [m.id, n]));
+  const order = new Map(entries.map((e, n) => [e.id, n]));
+  const pos = (after) => (after === null ? -1 : index.get(after));
+  const c = closerAt(entries, i);
+  const from = pos(entries[i].after);
+  const to = c < 0 ? null : pos(entries[c].after);
+  if (from === undefined || to === undefined) return null;
+  const past = (a, t, j, at) => a > at || (a === at && t >= j);
+  const within = (a, t) => a !== undefined && past(a, t, i, from) && (c < 0 || !past(a, t, c, to));
+  const turnOf = (e) => (e.turn == null ? -1 : (order.get(e.turn) ?? -1));
+  const logged = (on, list) => new Set(on ? list.filter((e) => within(pos(e.after), turnOf(e))).map((e) => e.id) : []);
+  return {
+    messages: all.filter((_, n) => within(n, -1)).map((m) => m.id),
+    resources: logged(setting('resourceLog'), readResourceLog()),
+    effects: logged(setting('effectLog'), readEffectLog()),
+  };
+};
+
+const contentsAt = (id) => {
+  const entries = readBoundaries();
+  const i = openerAt(entries, id);
+  return i < 0 ? null : { entry: entries[i], ...contentsOf(entries, i) };
+};
+
+const deleteMarker = async (id) => {
+  if (!game.user.isGM) return;
+  const entries = readBoundaries();
+  const i = openerAt(entries, id);
+  if (i < 0) return;
+  const drop = new Set([i]);
+  const c = closerAt(entries, i);
+  if (levelOf(entries[i]) === 1 && c >= 0 && levelOf(entries[c]) === 0) drop.add(c);
+
+  
+  const home = new Map();
+  for (const k of drop) {
+    let j = k - 1;
+    while (j >= 0 && drop.has(j)) j--;
+    home.set(entries[k].id, entries[j]?.id ?? null);
+  }
+  const rehome = (e) => (home.has(e.turn) ? { ...e, turn: home.get(e.turn) } : e);
+
+  await game.settings.set(MODULE_ID, BOUNDARIES, entries.filter((_, k) => !drop.has(k)));
+  await rewriteResourceLog(rehome);
+  await rewriteEffectLog(rehome);
+};
+
+const L = (key, data) => (data ? game.i18n.format(`DSBL.Markers.${key}`, data) : game.i18n.localize(`DSBL.Markers.${key}`));
+
+const deleteContents = async (id) => {
+  if (!game.user.isGM) return;
+  const found = contentsAt(id);
+  if (!found) return;
+  const { entry, messages, resources, effects } = found;
+  const logs = resources.size + effects.size;
+  if (!messages.length && !logs) return;
+
+  const parts = [
+    messages.length ? (messages.length === 1 ? L('oneMessage') : L('messages', { count: messages.length })) : null,
+    logs ? (logs === 1 ? L('oneLogLine') : L('logLines', { count: logs })) : null,
+  ].filter(Boolean);
+  const what = parts.length > 1 ? L('both', { first: parts[0], second: parts[1] }) : parts[0];
+  const scope = entry.kind !== 'round' ? 'turn' : entry.mark === 'begin' ? 'combat' : 'round';
+  const label = foundry.utils.escapeHTML(String(entry.label ?? ''));
+
+  const ok = await foundry.applications.api.DialogV2.confirm({
+    window: { title: 'DSBL.Markers.deleteMessages', icon: 'fa-solid fa-trash' },
+    content: `<p>${L(`confirm.${scope}`, { what, label })}</p>`,
+  });
+  if (ok !== true) return;
+
+  if (resources.size) await rewriteResourceLog((e) => (resources.has(e.id) ? null : e));
+  if (effects.size) await rewriteEffectLog((e) => (effects.has(e.id) ? null : e));
+  const ids = messages.filter((m) => game.messages.has(m));
+  if (ids.length) await ChatMessage.implementation.deleteDocuments(ids);
+};
+
+const _menus = new WeakSet();
+
+export const addMarkerMenu = (root) => {
+  if (!game.user.isGM || !root?.querySelector || _menus.has(root)) return;
+  _menus.add(root);
+  const holds = (li) => {
+    const found = contentsAt(li.dataset.dscpTurn);
+    return !!found && found.messages.length + found.resources.size + found.effects.size > 0;
+  };
+  new foundry.applications.ux.ContextMenu.implementation(root, '.dsbl-turn-marker[data-dscp-turn]', [
+    {
+      label: 'DSBL.Markers.deleteMarker',
+      icon: 'fa-solid fa-eraser',
+      visible: (li) => openerAt(readBoundaries(), li.dataset.dscpTurn) >= 0,
+      onClick: (_event, li) => deleteMarker(li.dataset.dscpTurn),
+    },
+    {
+      label: 'DSBL.Markers.deleteMessages',
+      icon: 'fa-solid fa-trash',
+      visible: holds,
+      onClick: (_event, li) => deleteContents(li.dataset.dscpTurn),
+    },
+  ], { jQuery: false, fixed: true });
 };

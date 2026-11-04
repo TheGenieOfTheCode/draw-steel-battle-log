@@ -1,6 +1,8 @@
 import { MODULE_ID } from './collapse.mjs';
 import { tokenOf, combatOf, hiddenFromPlayers, isParty, whoFor, faceStack } from './resource-log.mjs';
 import { isDirector } from './director.mjs';
+import { onEveryDocument } from './windows.mjs';
+import { tip as richTip, tipAttrs, setTip } from './tips.mjs';
 
 const LOG = 'effectLogEntries';
 const MAX_ENTRIES = 600;
@@ -20,8 +22,10 @@ export const readEffectLog = () => {
 let _currentTurn = () => null;
 let _draft = null;
 let _flush = null;
+
+let _writing = null;
 const draftList = () => {
-  if (!_draft) _draft = foundry.utils.deepClone(readEffectLog());
+  if (!_draft) _draft = foundry.utils.deepClone(_writing ?? readEffectLog());
   return _draft;
 };
 const scheduleFlush = () => {
@@ -32,9 +36,17 @@ const scheduleFlush = () => {
     _draft = null;
     if (!list) return;
     while (list.length > MAX_ENTRIES) list.shift();
-    await game.settings.set(MODULE_ID, LOG, list);
+    _writing = list;
+    try { await game.settings.set(MODULE_ID, LOG, list, { dsblOwn: true }); }
+    finally { if (_writing === list) _writing = null; }
   }, 200);
 };
+
+Hooks.on('updateSetting', (setting, _changes, options) => {
+  if (setting.key !== `${MODULE_ID}.${LOG}` || options?.dsblOwn) return;
+  _draft = null;
+  _writing = null;
+});
 
 const CT = 'draw-steel-combat-tools';
 const flagsOf = (effect, scope) => effect.flags?.[scope] ?? {};
@@ -57,6 +69,9 @@ export const isInternal = (effect) => {
   if ([...(effect.statuses ?? [])].some((s) => String(s).startsWith('dsct') && !registeredStatus(s))) return true;
   return false;
 };
+
+const gmOnly = (effect) => !!(flagsOf(effect, MODULE_ID).gmOnly || flagsOf(effect, 'draw-steel-ctlib').gmOnly
+  || flagsOf(effect, CT).expiryReminderFor || flagsOf(effect, 'draw-steel-triggers').abilityUse);
 
 const DEFEATED = () => CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
 const isMinion = (actor) => !!actor.system?.isMinion;
@@ -161,7 +176,7 @@ const noteEffect = (effect, phase, reason = null) => {
   }
 
   const source = phase === 'start' ? sourceOf(effect) : null;
-  const target = { effect: key, actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token) };
+  const target = { effect: key, actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token) || gmOnly(effect) };
   const party = isParty(actor);
   const shown = party || publicEffect(effect, source);
   const after = anchor();
@@ -247,6 +262,115 @@ export const effectCovers = () => {
 
 export const coversEnd = (message) => !!message.flags?.[CT]?.grabEnded;
 
+const _moveSources = [];
+
+export const registerMoveSource = (source) => {
+  if (typeof source?.flags === 'function') _moveSources.push(source);
+};
+
+const moveSourceOf = (message) => (message ? _moveSources.find((s) => s.flags(message)) : null);
+
+const moveFlags = (message) => moveSourceOf(message)?.flags(message) ?? message.flags?.[CT];
+
+export const coversMove = (message) => {
+  const flags = moveFlags(message);
+  return !!flags?.fallLog || (!!flags?.isFmUndo && !!(flags.fmLog || flags.entries?.some?.((m) => m?.fmLog)));
+};
+
+const asMove = (flags) => (flags?.fallLog
+  ? [{ ...flags.fallLog, fmLog: { movement: 'fall', moved: flags.fallLog.fell, vertical: false, source: null } }]
+  : null);
+
+const noteForcedMovement = (message) => {
+  const flags = moveFlags(message);
+  if ((!flags?.isFmUndo && !flags?.fallLog) || flags.isUndone) return false;
+  const moves = (asMove(flags) ?? (flags.isCombined ? flags.entries ?? [] : [flags])).filter((m) => m?.fmLog && m.targetTokenId);
+  const targets = [];
+  let inCombat = false;
+  for (const m of moves) {
+    const token = game.scenes.get(m.targetSceneId)?.tokens.get(m.targetTokenId) ?? null;
+    const actor = token?.actor;
+    if (!actor) continue;
+    const combat = combatOf(token);
+    inCombat ||= !!combat;
+    targets.push({ actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token), moved: m.fmLog.moved });
+  }
+  if (!targets.length || (!inCombat && !setting('resourceLogOutOfCombat'))) return false;
+  const first = moves[0].fmLog;
+  const lines = String(message.content ?? '').split(/<br\s*\/?>|<\/li>/i).map((l) => l.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  draftList().push({
+    id: foundry.utils.randomID(),
+    kind: 'fm',
+    after: message.id,
+    turn: _currentTurn(),
+    at: Date.now(),
+    movement: first.movement,
+    vertical: !!first.vertical,
+    source: first.source ?? null,
+    targets,
+    lines,
+    party: targets.some((t) => t.party),
+    shown: true,
+    hidden: targets.every((t) => t.hidden),
+    covers: [message.id],
+  });
+  scheduleFlush();
+  return true;
+};
+
+const noteUndoneMove = (message) => {
+  const list = draftList();
+  const mine = list.filter((e) => e.kind === 'fm' && e.covers?.includes(message.id));
+  const original = mine.find((e) => !e.undo);
+  if (!original || mine.some((e) => e.undo)) return;
+  list.push({ ...foundry.utils.deepClone(original), id: foundry.utils.randomID(), undo: true, after: anchor(), turn: _currentTurn(), at: Date.now() });
+  scheduleFlush();
+};
+
+const _moveLog = { undo: null, html: null };
+
+export const registerMoveLog = (source) => {
+  if (typeof source?.undo === 'function') _moveLog.undo = source.undo;
+  if (typeof source?.html === 'function') _moveLog.html = source.html;
+};
+
+export const logMove = ({ key, tokenUuid, action = 'walk', moved = 0, strikes = [], blueprint = null }) => {
+  const token = fromUuidSync(tokenUuid ?? '');
+  const actor = token?.actor;
+  if (!actor || !key) return false;
+  const combat = combatOf(token);
+  if (!combat && !setting('resourceLogOutOfCombat')) return false;
+  const who = { actor: actor.uuid, ...whoFor(actor, token, combat), hidden: hiddenFromPlayers(token), moved };
+  draftList().push({
+    id: foundry.utils.randomID(),
+    kind: 'move',
+    key,
+    tokenUuid,
+    after: anchor(),
+    turn: _currentTurn(),
+    at: Date.now(),
+    action,
+    moved,
+    strikes,
+    blueprint,
+    targets: [who],
+    party: !!who.party,
+    shown: true,
+    hidden: who.hidden,
+  });
+  scheduleFlush();
+  return true;
+};
+
+export const markMoveUndone = (key) => {
+  const list = draftList();
+  const original = list.find((e) => e.kind === 'move' && e.key === key && !e.undo);
+  if (!original || list.some((e) => e.kind === 'move' && e.key === key && e.undo)) return false;
+  list.push({ ...foundry.utils.deepClone(original), id: foundry.utils.randomID(), undo: true, blueprint: null, after: anchor(), turn: _currentTurn(), at: Date.now() });
+  scheduleFlush();
+  return true;
+};
+
 export const registerEffectRecording = ({ currentTurn }) => {
   _currentTurn = currentTurn;
 
@@ -275,9 +399,15 @@ export const registerEffectRecording = ({ currentTurn }) => {
     noteEffect(effect, 'end', options?.ctlib?.endReason ?? options?.[MODULE_ID]?.endReason ?? 'removed');
   });
 
+  Hooks.on('updateChatMessage', (message, changes) => {
+    if (!isDirector()) return;
+    if (foundry.utils.getProperty(changes, `flags.${CT}.isUndone`) === true || _moveSources.some((s) => s.undone?.(changes))) noteUndoneMove(message);
+  });
+
   Hooks.on('createChatMessage', (message) => {
     if (!isDirector()) return;
     if (coverEndMessage(message)) return;
+    if (setting('effectLog') && noteForcedMovement(message)) return;
     const parts = [...(message.system?.parts?.contents ?? message.system?.parts ?? [])];
     let linked = false;
     for (const part of parts) {
@@ -342,15 +472,15 @@ export const effectRow = (e) => {
 
   const controls = game.user.isGM
     ? `<span class="dsbl-res-controls">`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" data-tooltip="${esc(game.i18n.localize(e.hidden ? 'DSBL.ResourceLog.reveal' : 'DSBL.ResourceLog.conceal'))}"><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(game.i18n.localize('DSBL.ResourceLog.delete'))}"><i class="fa-solid fa-trash" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
       + `</span>`
     : '';
 
   const reason = ends || e.reason === 'enabled' ? reasonText(e) : '';
   const tip = tipFor(e);
   li.innerHTML = `<span class="dsbl-res-who">${faces}<strong class="dsbl-res-name"${short !== names ? ` data-full="${esc(names)}" data-short="${esc(short)}"` : ''}>${esc(names)}</strong>${controls}</span>`
-    + `<span class="dsbl-fx-what"${tip ? ` data-tooltip="${esc(tip)}"` : ''}>`
+    + `<span class="dsbl-fx-what"${tip ? ` ${tipAttrs(richTip(ends ? 'effectEnded' : 'effectStarted', { title: e.name, html: tip.split('<br>').map((l) => `<p>${l}</p>`).join('') }))}` : ''}>`
     + `<i class="fa-solid ${ends ? 'fa-minus' : 'fa-plus'} dsbl-fx-phase" inert></i>`
     + (e.img ? `<img class="dsbl-fx-img" src="${esc(e.img)}" alt="">` : '')
     + `<span class="dsbl-fx-name">${esc(e.name)}</span>`
@@ -359,6 +489,114 @@ export const effectRow = (e) => {
       ? `<img class="dsbl-fx-source" src="${esc(e.source.src)}" alt=""${e.source.tokenId && e.source.sceneId ? ` data-ctlib-face="Scene.${esc(e.source.sceneId)}.Token.${esc(e.source.tokenId)}"` : ''}>`
       : '')
     + `</span>`;
+  if (e.hidden) li.classList.add('is-concealed');
+  return li;
+};
+
+const FM_ICONS = { push: 'fa-arrow-right-long', pull: 'fa-arrow-left-long', slide: 'fa-arrows-left-right', fall: 'fa-arrow-down-long' };
+
+const movementLabel = (e) => {
+  if (e.movement === 'fall') return L('fall');
+  const cfg = globalThis.ds?.CONFIG?.abilities?.forcedMovement?.[e.movement];
+  const key = cfg ? (e.vertical ? cfg.vertical : cfg.label) : null;
+  return key ? game.i18n.localize(key) : e.movement.charAt(0).toUpperCase() + e.movement.slice(1);
+};
+
+export const fmRow = (e) => {
+  const li = document.createElement('li');
+  li.className = `message dsbl-res-row dsbl-fx-row dsbl-fm-row ${e.undo ? 'is-end' : 'is-start'}`;
+  li.dataset.dsblRes = e.id;
+  li.dataset.dsblLog = 'fx';
+
+  const faces = faceStack(e.targets.map(faceImg));
+  const many = e.targets.length > 1;
+  const names = many ? `${e.targets[0].name}s` : (e.targets[0]?.name ?? '');
+  const short = many ? `${e.targets[0].short ?? e.targets[0].name}s` : (e.targets[0]?.short ?? names);
+  const message = game.messages.get(e.covers?.[0]);
+  const canUndo = !e.undo && e.movement !== 'fall' && !!message && !moveFlags(message)?.isUndone && (game.user.isGM || message.isAuthor);
+  const controls = (canUndo ? `<a class="dsbl-res-control" data-dsbl-fm-undo="${esc(message.id)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
+    + (game.user.isGM
+      ? `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+        + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
+      : '');
+
+  const label = movementLabel(e);
+  const distances = [...new Set(e.targets.map((t) => t.moved))];
+  const tipKey = e.movement === 'fall' ? 'fall' : 'forcedMovement';
+  const title = `${label} ${distances.join(' / ')}`;
+  const tip = tipAttrs(richTip(tipKey, { title, html: (e.lines ?? []).map((l) => `<p>${esc(l)}</p>`).join('') }));
+  li.innerHTML = `<span class="dsbl-res-who">${faces}<strong class="dsbl-res-name"${short !== names ? ` data-full="${esc(names)}" data-short="${esc(short)}"` : ''}>${esc(names)}</strong>${controls ? `<span class="dsbl-res-controls">${controls}</span>` : ''}</span>`
+    + `<span class="dsbl-fx-what" ${tip}>`
+    + `<i class="fa-solid ${e.undo ? 'fa-rotate-left' : e.vertical ? 'fa-arrow-up-long' : FM_ICONS[e.movement] ?? 'fa-arrow-right-long'} dsbl-fx-phase" inert></i>`
+    + `<span class="dsbl-fx-name">${esc(label)} ${esc(distances.join(' / '))}</span>`
+    + (e.undo ? `<span class="dsbl-fx-reason">${esc(L('reason.undone'))}</span>` : '')
+    + (!e.undo && e.source?.src
+      ? `<img class="dsbl-fx-source" src="${esc(e.source.src)}" alt=""${e.source.tokenId && e.source.sceneId ? ` data-ctlib-face="Scene.${esc(e.source.sceneId)}.Token.${esc(e.source.tokenId)}"` : ''}>`
+      : '')
+    + `</span>`;
+  const full = moveSourceOf(message)?.html;
+  if (full) {
+    const what = li.querySelector('.dsbl-fx-what');
+    what.addEventListener('pointerenter', () => {
+      const html = full(message);
+      if (!html) return;
+      setTip(what, richTip(tipKey, { title, html }));
+      const markup = what.dataset.dsctTip;
+      if (!markup) return;
+      setTimeout(() => {
+        if (!what.matches(':hover')) return;
+        const body = document.createElement('template');
+        body.innerHTML = markup;
+        game.tooltip.activate(what, { html: body.content, cssClass: what.dataset.dsctTipClass, direction: 'LEFT' });
+      }, 0);
+    });
+  }
+  if (e.hidden) li.classList.add('is-concealed');
+  return li;
+};
+
+export const moveRow = (e) => {
+  const li = document.createElement('li');
+  li.className = `message dsbl-res-row dsbl-fx-row dsbl-fm-row dsbl-move-row ${e.undo ? 'is-end' : 'is-start'}`;
+  li.dataset.dsblRes = e.id;
+  li.dataset.dsblLog = 'fx';
+  const t = e.targets[0] ?? {};
+  const undone = readEffectLog().some((x) => x.kind === 'move' && x.key === e.key && x.undo);
+  const canUndo = !e.undo && !undone && !!_moveLog.undo && (game.user.isGM || !!fromUuidSync(e.tokenUuid ?? '')?.isOwner);
+  const controls = (canUndo ? `<a class="dsbl-res-control" data-dsbl-move-undo="${esc(e.key)}" data-token="${esc(e.tokenUuid)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
+    + (game.user.isGM
+      ? `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+        + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
+      : '');
+  const verb = game.i18n.has(`DSBL.EffectLog.move.${e.action}`) ? L(`move.${e.action}`) : L('move.walk');
+  const title = `${verb} ${e.moved}`;
+  const strikes = e.strikes ?? [];
+  const lines = strikes.map((s) => L('move.strikeLine', { name: s.name, damage: s.damage ?? '' }));
+  const tip = tipAttrs(richTip('movement', { title, html: lines.map((l) => `<p>${esc(l)}</p>`).join('') }));
+  li.innerHTML = `<span class="dsbl-res-who">${faceStack([faceImg(t)])}<strong class="dsbl-res-name"${t.short && t.short !== t.name ? ` data-full="${esc(t.name)}" data-short="${esc(t.short)}"` : ''}>${esc(t.name ?? '')}</strong>${controls ? `<span class="dsbl-res-controls">${controls}</span>` : ''}</span>`
+    + `<span class="dsbl-fx-what" ${tip}>`
+    + `<i class="fa-solid ${e.undo ? 'fa-rotate-left' : e.action === 'shift' ? 'fa-shoe-prints' : 'fa-person-walking'} dsbl-fx-phase" inert></i>`
+    + `<span class="dsbl-fx-name">${esc(title)}</span>`
+    + (e.undo ? `<span class="dsbl-fx-reason">${esc(L('reason.undone'))}</span>` : '')
+    + (!e.undo && strikes.length ? `<span class="dsbl-fx-reason">${esc((strikes.length === 1 ? L('move.strike') : L('move.strikes', { n: strikes.length })))}</span>` : '')
+    + (!e.undo ? strikes.map((s) => (s.src ? `<img class="dsbl-fx-source" src="${esc(s.src)}" alt=""${s.tokenId && s.sceneId ? ` data-ctlib-face="Scene.${esc(s.sceneId)}.Token.${esc(s.tokenId)}"` : ''}>` : '')).join('') : '')
+    + `</span>`;
+  if (!e.undo && e.blueprint && _moveLog.html) {
+    const what = li.querySelector('.dsbl-fx-what');
+    what.addEventListener('pointerenter', () => {
+      const html = _moveLog.html(e);
+      if (!html) return;
+      setTip(what, richTip('movement', { title, html: html + lines.map((l) => `<p>${esc(l)}</p>`).join('') }));
+      const markup = what.dataset.dsctTip;
+      if (!markup) return;
+      setTimeout(() => {
+        if (!what.matches(':hover')) return;
+        const body = document.createElement('template');
+        body.innerHTML = markup;
+        game.tooltip.activate(what, { html: body.content, cssClass: what.dataset.dsctTipClass, direction: 'LEFT' });
+      }, 0);
+    });
+  }
   if (e.hidden) li.classList.add('is-concealed');
   return li;
 };
@@ -373,14 +611,41 @@ export const editEffectEntry = async (id, change) => {
   await game.settings.set(MODULE_ID, LOG, list);
 };
 
-document.addEventListener('click', (event) => {
+export const rewriteEffectLog = async (change) => {
+  if (!game.user.isGM) return;
+  const list = readEffectLog();
+  const next = list.map(change).filter(Boolean);
+  if (next.length !== list.length || next.some((e, i) => e !== list[i])) await game.settings.set(MODULE_ID, LOG, next);
+};
+
+onEveryDocument((doc) => doc.addEventListener('click', (event) => {
+  const move = event.target.closest?.('[data-dsbl-move-undo]');
+  if (move) {
+    event.preventDefault();
+    event.stopPropagation();
+    _moveLog.undo?.({ key: move.dataset.dsblMoveUndo, tokenUuid: move.dataset.token });
+    return;
+  }
+  const undo = event.target.closest?.('[data-dsbl-fm-undo]');
+  if (undo) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const message = game.messages.get(undo.dataset.dsblFmUndo);
+    const source = moveSourceOf(message);
+    if (typeof source?.undo === 'function') return void source.undo(message);
+    const button = doc.querySelector(`li.chat-message[data-message-id="${undo.dataset.dsblFmUndo}"] .dsct-undo-fm`);
+    if (button && !button.disabled) button.click();
+    else ui.notifications.warn(L('undoMoveMissing'));
+    return;
+  }
   const control = event.target.closest?.('[data-dsbl-res-action]');
   const row = control?.closest('.dsbl-res-row');
   if (!row || row.dataset.dsblLog !== 'fx') return;
   event.preventDefault();
   event.stopPropagation();
   editEffectEntry(row.dataset.dsblRes, control.dataset.dsblResAction);
-});
+}));
 
 export const pruneEffectLog = async (survivingAnchor, empty) => {
   if (!isDirector()) return;

@@ -1,6 +1,9 @@
 import { MODULE_ID } from './collapse.mjs';
 import { isDirector } from './director.mjs';
-import { effectCovers, coversEnd } from './effect-log.mjs';
+import { effectCovers, coversEnd, coversMove } from './effect-log.mjs';
+import { onEveryDocument, queryAll, toggleBodyClass } from './windows.mjs';
+import { setTip, tip as richTip, tipAttrs } from './tips.mjs';
+import { addChatTabs } from './chat-tabs.mjs';
 
 const LOG = 'resourceLogEntries';
 const MAX_ENTRIES = 600;
@@ -140,6 +143,58 @@ const draftList = () => {
   return _draft;
 };
 
+const UNDO_MS = 8000;
+
+const cancelUndone = (keys) => {
+  const list = draftList();
+  const now = Date.now();
+  for (const key of keys.filter(Boolean)) {
+    const heals = [];
+    let hit = null;
+    for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
+      const e = list[i];
+      if (e.key !== key || (e.res !== 'stamina' && e.res !== 'temporary')) continue;
+      if (e.to > e.from && !hit) {
+        if (now - e.at > UNDO_MS || heals.some((h) => h.res === e.res)) break;
+        heals.push(e);
+        continue;
+      }
+      if (e.to < e.from || (e.temp && e.temp.to < e.temp.from)) hit = e;
+      break;
+    }
+    if (!hit || !heals.length) continue;
+    const healOf = (res) => heals.find((h) => h.res === res);
+    const back = (res, span) => { const h = healOf(res); return !!h && h.from === span.to && h.to === span.from; };
+    const stamina = hit.res === 'temporary' ? null : { from: hit.from, to: hit.to };
+    const temp = hit.res === 'temporary' ? { from: hit.from, to: hit.to } : hit.temp;
+    const ok = (!stamina || stamina.from === stamina.to || back('stamina', stamina))
+      && (!temp || temp.from === temp.to || back('temporary', temp))
+      && heals.every((h) => (h.res === 'stamina' ? stamina && stamina.from !== stamina.to : temp && temp.from !== temp.to));
+    if (!ok) continue;
+    for (const e of [hit, ...heals]) list.splice(list.indexOf(e), 1);
+    scheduleFlush();
+  }
+};
+
+const _undoneSeen = new Set();
+
+const undoneRecords = (message) => {
+  const apps = message.flags?.['draw-steel-target-damage']?.state?.applications ?? {};
+  const out = [];
+  for (const [opId, entry] of Object.entries(apps)) {
+    for (const rec of [entry, ...(entry?.history ?? []), ...(entry?.records ?? [])].filter(Boolean)) {
+      for (const r of [rec, ...(Array.isArray(rec.records) ? rec.records : [])]) {
+        if (r?.status !== 'undone' || !r.undoneAt || Date.now() - r.undoneAt > UNDO_MS) continue;
+        const id = `${message.id}:${opId}:${r.undoneAt}:${r.target?.tokenUuid ?? r.target?.actorUuid ?? ''}`;
+        if (_undoneSeen.has(id)) continue;
+        _undoneSeen.add(id);
+        out.push(r);
+      }
+    }
+  }
+  return out;
+};
+
 const scheduleFlush = () => {
   if (_flush) return;
   _flush = setTimeout(async () => {
@@ -149,7 +204,7 @@ const scheduleFlush = () => {
     if (!list) return;
     while (list.length > MAX_ENTRIES) list.shift();
     _writing = list;
-    try { await game.settings.set(MODULE_ID, LOG, list); }
+    try { await game.settings.set(MODULE_ID, LOG, list, { dsblOwn: true }); }
     finally { if (_writing === list) _writing = null; }
   }, 200);
 };
@@ -161,6 +216,37 @@ const addCover = (e, messageId, delta) => {
 };
 
 const lossOf = (e) => (e.from - e.to) + (e.temp ? e.temp.from - e.temp.to : 0);
+
+const CT = 'draw-steel-combat-tools';
+
+const _recurringWaiting = new Map();
+const RECURRING_WAIT_MS = 120000;
+
+const linkRecurring = (message) => {
+  const data = message.flags?.[CT]?.recurring;
+  if (!data?.record) return;
+  const keys = [data.actorUuid, data.record.squadGroupUuid].filter(Boolean);
+  const list = draftList();
+  const now = Date.now();
+  for (let i = list.length - 1; i >= Math.max(0, list.length - 30); i--) {
+    const e = list[i];
+    if (!keys.includes(e.key) || !['stamina', 'temporary'].includes(e.res)) continue;
+    if (now - e.at > 10000) break;
+    if (!e.covers?.includes(message.id)) {
+      addCover(e, message.id, 'all');
+      scheduleFlush();
+    }
+    return;
+  }
+  for (const key of keys) _recurringWaiting.set(key, { messageId: message.id, at: now });
+};
+
+const takeRecurring = (key) => {
+  const waiting = _recurringWaiting.get(key);
+  if (!waiting) return null;
+  _recurringWaiting.delete(key);
+  return Date.now() - waiting.at < RECURRING_WAIT_MS && game.messages.has(waiting.messageId) ? waiting.messageId : null;
+};
 
 const SUMMARY_MS = 5000;
 const summaryPhase = (key, why) => {
@@ -230,12 +316,15 @@ const note = (change) => {
   }
 
   const covers = coverOf(after, res);
+  const recurring = (res === 'stamina' || res === 'temporary') && to < from ? takeRecurring(key) : null;
   const source = change.source && !(change.source.tokenId && change.source.tokenId === change.who?.tokenId) ? change.source : null;
 
   for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
     const e = list[i];
     if (e.key !== key || e.res !== res || e.user !== change.userId) continue;
     if (now - e.at > MERGE_MS || (e.turn !== turn && !change.acrossTurns)) break;
+    
+    if (e.to !== e.from && Math.sign(to - from) !== Math.sign(e.to - e.from)) break;
     if (res === 'heroTokens' && (_tokenCall?.kind === 'spendToken' || e.reasons?.length)) break;
     
     if (why?.length || e.why?.length) break;
@@ -263,13 +352,14 @@ const note = (change) => {
     if (change.immune) e.immune = true;
     if (change.hidden) e.hidden = true;
     if (covers) addCover(e, covers, to - from);
+    if (recurring) addCover(e, recurring, 'all');
     e.why = e.why && why ? [...e.why, ...why] : null;
     if (e.to === e.from && !e.temp && !e.immune && !e.incoming) list.splice(list.indexOf(e), 1);
     scheduleFlush();
     return;
   }
 
-  list.push({
+  const entry = {
     id: foundry.utils.randomID(),
     after,
     turn,
@@ -293,7 +383,9 @@ const note = (change) => {
     ...(change.hits?.length ? { hits: change.hits } : {}),
     ...(source ? { source } : {}),
     ...(change.hidden ? { hidden: true } : {}),
-  });
+  };
+  if (recurring) addCover(entry, recurring, 'all');
+  list.push(entry);
   scheduleFlush();
 };
 
@@ -642,8 +734,12 @@ export const registerResourceRecording = ({ currentTurn }) => {
   Hooks.on('preCreateChatMessage', (doc) => {
     if (_turnGainFor && (doc.rolls?.length || rollParts(doc).length)) doc.updateSource({ [`flags.${MODULE_ID}.turnGain`]: true });
   });
+  Hooks.on('updateChatMessage', (message, changes) => {
+    if (isDirector() && setting('resourceLog') && foundry.utils.hasProperty(changes, `flags.${CT}.recurring.record`)) linkRecurring(message);
+  });
   Hooks.on('createChatMessage', (message) => {
     if (!isDirector() || !setting('resourceLog')) return;
+    if (message.flags?.[CT]?.recurring) return void linkRecurring(message);
     const card = message.flags?.[MODULE_ID]?.coveredBy;
     if (card) {
       const e = draftList().find((x) => x.id === card);
@@ -736,6 +832,17 @@ export const registerResourceRecording = ({ currentTurn }) => {
         always: res === 'recovery' && lost,
       });
     }
+    if (options?.dsblUndo) cancelUndone([actor.uuid]);
+  });
+
+  Hooks.on('updateChatMessage', (message, changes) => {
+    if (!isDirector() || !setting('resourceLog') || !foundry.utils.hasProperty(changes, 'flags.draw-steel-target-damage')) return;
+    for (const r of undoneRecords(message)) {
+      const token = r.target?.tokenUuid ? fromUuidSync(r.target.tokenUuid) : null;
+      const actor = token?.actor ?? (r.target?.actorUuid ? fromUuidSync(r.target.actorUuid) : null);
+      const group = token ? game.combat?.groups?.find((g) => [...(g.members ?? [])].some((m) => m.tokenId === token.id)) : null;
+      cancelUndone([actor?.uuid, group?.uuid]);
+    }
   });
 
   Hooks.on('updateCombatantGroup', (group, changes, options, userId) => {
@@ -768,6 +875,7 @@ export const registerResourceRecording = ({ currentTurn }) => {
       hidden: hiddenFromPlayers(member),
       ...(type && from !== null && to < from ? damageDetail(member.actor, type, null) : {}),
     });
+    if (options?.dsblUndo) cancelUndone([group.uuid]);
   });
 
   const onWorld = (setting, userId, options) => {
@@ -791,6 +899,12 @@ export const registerResourceRecording = ({ currentTurn }) => {
     });
   };
   Hooks.on('updateSetting', (setting, _changes, options, userId) => onWorld(setting, userId, options));
+  
+  Hooks.on('updateSetting', (setting, _changes, options) => {
+    if (setting.key !== `${MODULE_ID}.${LOG}` || options?.dsblOwn) return;
+    _draft = null;
+    _writing = null;
+  });
   Hooks.on('createSetting', (setting, options, userId) => onWorld(setting, userId, options));
 };
 
@@ -852,23 +966,41 @@ const WHO_ICONS = {
   heroTokens: 'fa-solid fa-users',
 };
 
-export const fitNames = (scope) => {
-  const SEL = '.dsbl-res-name[data-short]';
-  const names = Array.isArray(scope) ? scope.flatMap((el) => [...(el.matches?.(SEL) ? [el] : []), ...el.querySelectorAll(SEL)]) : [...scope.querySelectorAll(SEL)];
-  for (const name of names) name.textContent = name.dataset.full;
-  const tight = names.filter((name) => name.offsetParent && name.scrollWidth > name.clientWidth + 1);
+const NAME_SEL = '.dsbl-res-name[data-short]';
+const _fitQueue = new Set();
+let _fitFrame = null;
+
+const fitQueued = () => {
+  _fitFrame = null;
+  const names = [];
+  for (const scope of _fitQueue) {
+    if (!scope.isConnected) continue;
+    if (scope.matches?.(NAME_SEL)) names.push(scope);
+    names.push(...scope.querySelectorAll(NAME_SEL));
+  }
+  _fitQueue.clear();
+  const shown = [...new Set(names)].filter((name) => name.offsetParent);
+  for (const name of shown) name.textContent = name.dataset.full;
+  const tight = shown.filter((name) => name.scrollWidth > name.clientWidth + 1);
   for (const name of tight) name.textContent = name.dataset.short;
+};
+
+export const fitNames = (scope) => {
+  for (const el of Array.isArray(scope) ? scope : [scope]) if (el) _fitQueue.add(el);
+  _fitFrame ??= requestAnimationFrame(fitQueued);
 };
 
 const _fitted = new WeakSet();
 const watchWidth = (log) => {
   if (_fitted.has(log)) return;
   _fitted.add(log);
-  let last = log.clientWidth;
-  new ResizeObserver(() => {
-    if (Math.abs(log.clientWidth - last) < 2) return;
-    last = log.clientWidth;
-    fitNames(log);
+  let last = null;
+  new ResizeObserver(([entry]) => {
+    const width = entry.contentRect.width;
+    if (!width || (last !== null && Math.abs(width - last) < 2)) return;
+    const first = last === null;
+    last = width;
+    if (!first) fitNames(log);
   }).observe(log);
 };
 
@@ -923,11 +1055,11 @@ const summaryRow = (e) => {
   if (heroes) parts.push(heroes === 1 ? L('summary.hero') : L('summary.heroes', { count: heroes }));
   if (malice) parts.push(`${L('res.malice')} ${malice.from} → ${malice.to}`);
   const controls = game.user.isGM
-    ? `<span class="dsbl-res-controls"><a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a></span>`
+    ? `<span class="dsbl-res-controls"><a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a></span>`
     : '';
   li.innerHTML = `<span class="dsbl-res-who"><i class="fa-solid fa-swords dsbl-res-who-icon"></i>`
     + `<strong class="dsbl-res-name">${esc(L(`summary.${e.phase}`))}</strong>${controls}</span>`
-    + `<span class="dsbl-res-summary-text" data-tooltip="${esc(tip)}" data-tooltip-class="dsbl-sum-tip">${esc(parts.join(' · '))}</span>`;
+    + `<span class="dsbl-res-summary-text" ${tipAttrs(richTip('summary', { title: L(`summary.${e.phase}`), html: tip }))}>${esc(parts.join(' · '))}</span>`;
   return li;
 };
 
@@ -974,7 +1106,7 @@ export const resourceRow = (e) => {
         : game.i18n.format('DSBL.EffectLog.by', { ability: by.ability }))
     : '';
   const sourceCell = by?.src
-    ? `<img class="dsbl-res-source" src="${esc(by.src)}" alt="" data-tooltip="${esc(byLabel)}"${by.tokenId && by.sceneId ? ` data-ctlib-face="Scene.${esc(by.sceneId)}.Token.${esc(by.tokenId)}"` : ''}>`
+    ? `<img class="dsbl-res-source" src="${esc(by.src)}" alt="" ${tipAttrs(richTip('source', { title: by.name || by.ability || '', body: byLabel }))}${by.tokenId && by.sceneId ? ` data-ctlib-face="Scene.${esc(by.sceneId)}.Token.${esc(by.tokenId)}"` : ''}>`
     : '<span class="dsbl-res-source-none"></span>';
   const face = bare;
 
@@ -996,7 +1128,7 @@ export const resourceRow = (e) => {
     : '';
   if (e.immune && delta === 0) notes.unshift(L('immune'));
   const amount = `${sign}${Math.abs(delta)}`;
-  const deltaCell = `<span class="dsbl-res-delta ${delta < 0 ? 'is-loss' : delta > 0 ? 'is-gain' : 'is-none'}"${notes.length ? ` data-tooltip="${esc(notes.join('<br>'))}"` : ''}>${struck}${amount}</span>`;
+  const deltaCell = `<span class="dsbl-res-delta ${delta < 0 ? 'is-loss' : delta > 0 ? 'is-gain' : 'is-none'}"${notes.length ? ` ${tipAttrs(richTip('change', { title: amount, category: e.res === 'heroic' && e.label ? e.label : L(`res.${e.res}`), html: notes.map((n) => `<p>${n}</p>`).join('') }))}` : ''}>${struck}${amount}</span>`;
 
   const resName = e.res === 'heroic' && e.label ? e.label : L(`res.${e.res}`);
   const iconTip = e.res === 'recovery' ? L('recoveries', { from: e.from, to: e.to }) : resName;
@@ -1005,12 +1137,13 @@ export const resourceRow = (e) => {
   if (e.temp) {
     const heart = token('stamina') || `<i class="${ICONS.stamina}"></i>`;
     const badge = token('temporary', 'dsbl-res-icon-badge') || `<i class="${ICONS.temporary} dsbl-res-icon-badge"></i>`;
-    icon = `<span class="dsbl-res-icon dsbl-res-icon-stack" data-tooltip="${esc(L('res.stamina'))}">${heart}${badge}</span>`;
+    icon = `<span class="dsbl-res-icon dsbl-res-icon-stack" ${tipAttrs(richTip('resource', { title: L('res.stamina'), body: L('split', { temp: e.temp.from - e.temp.to, stamina: e.from - e.to }) }))}>${heart}${badge}</span>`;
   } else {
     const drawn = token(e.res);
+    const iconAttrs = tipAttrs(richTip('resource', { title: resName, body: iconTip !== resName ? iconTip : undefined }));
     icon = drawn
-      ? `<span class="dsbl-res-icon dsbl-res-icon-token" data-tooltip="${esc(iconTip)}">${drawn}</span>`
-      : `<i class="${ICONS[e.res] ?? 'fa-solid fa-circle'} dsbl-res-icon" data-tooltip="${esc(iconTip)}"></i>`;
+      ? `<span class="dsbl-res-icon dsbl-res-icon-token" ${iconAttrs}>${drawn}</span>`
+      : `<i class="${ICONS[e.res] ?? 'fa-solid fa-circle'} dsbl-res-icon" ${iconAttrs}></i>`;
   }
 
   const type = `<span class="dsbl-res-type">${dtype && stamina ? damageTypeHTML(dtype) : ''}</span>`;
@@ -1018,19 +1151,19 @@ export const resourceRow = (e) => {
   let totals = '';
   if (e.res === 'recovery' && e.heal) {
     const healed = e.heal.to - e.heal.from;
-    totals = `<span class="dsbl-res-heal" data-tooltip="${esc(L('recoveryHeal', { n: healed }))}">${damageTypeHTML('healing')} +${esc(healed)}</span>`;
+    totals = `<span class="dsbl-res-heal" ${tipAttrs(richTip('recoveryHeal', { body: L('recoveryHeal', { n: healed }) }))}>${damageTypeHTML('healing')} +${esc(healed)}</span>`;
   } else if (shown) {
     totals = `${esc(e.from)} → ${esc(e.to)}`;
   }
 
   const gains = undoableGains(e);
   const undo = gains.length
-    ? `<a class="dsbl-res-control" data-dsbl-res-undo="${esc(gains.join(','))}" data-tooltip="${esc(L('undoGain'))}"><i class="fa-solid fa-rotate-left" inert></i></a>`
+    ? `<a class="dsbl-res-control" data-dsbl-res-undo="${esc(gains.join(','))}" ${tipAttrs(richTip('undoGain'))}><i class="fa-solid fa-rotate-left" inert></i></a>`
     : '';
   const controls = game.user.isGM
     ? `<span class="dsbl-res-controls">${undo}`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" data-tooltip="${esc(L(e.hidden ? 'reveal' : 'conceal'))}"><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
-      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" data-tooltip="${esc(L('delete'))}"><i class="fa-solid fa-trash" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
       + `</span>`
     : undo ? `<span class="dsbl-res-controls">${undo}</span>` : '';
   const reasons = (e.reasons ?? []).map((k) => {
@@ -1040,7 +1173,7 @@ export const resourceRow = (e) => {
   
   const fullName = many ? `${e.hits[0].name}s` : [e.by ?? e.name, ...reasons].join(' · ');
   const fitName = many ? `${e.hits[0].short ?? e.hits[0].name}s` : reasons.length ? (e.by ?? e.name) : e.short;
-  const nameTip = !many && reasons.length ? ` data-tooltip="${esc(fullName)}"` : '';
+  const nameTip = !many && reasons.length ? ` ${tipAttrs(richTip('spent', { title: e.by ?? e.name, body: reasons.join(', ') }))}` : '';
   li.innerHTML = `<span class="dsbl-res-who">${face}<strong class="dsbl-res-name"${nameTip}${fitName && fitName !== fullName ? ` data-full="${esc(fullName)}" data-short="${esc(fitName)}"` : ''}>${esc(fullName)}</strong>${controls}</span>`
     + icon + deltaCell + type + sourceCell + `<span class="dsbl-res-totals">${totals}</span>`;
   if (e.hidden) li.classList.add('is-concealed');
@@ -1063,23 +1196,23 @@ const coverState = () => {
 };
 
 const isCovered = (message, state) => {
-  if (coversEnd(message)) {
+  const pending = () => Date.now() - (message.timestamp ?? 0) < PENDING_MS && (anyCombat() || setting('resourceLogOutOfCombat'));
+  if (coversEnd(message) || coversMove(message)) {
     if (!setting('effectLog')) return false;
-    if (state.messages.has(message.id)) return true;
-    return Date.now() - (message.timestamp ?? 0) < PENDING_MS && (anyCombat() || setting('resourceLogOutOfCombat'));
+    return state.messages.has(message.id) || pending();
   }
   if (!setting('resourceLog')) return false;
+  const recurring = message.flags?.[CT]?.recurring;
+  if (recurring) return !!recurring.record && (state.messages.has(message.id) || pending());
   const card = message.flags?.[MODULE_ID]?.coveredBy;
   if (card) return replacesTokenCards() && state.lines.has(card);
   if (!setting('resourceLogTurnGainCards') || !gainKind(message)) return false;
-  if (state.messages.has(message.id)) return true;
-  const pending = Date.now() - (message.timestamp ?? 0) < PENDING_MS;
-  return pending && (anyCombat() || setting('resourceLogOutOfCombat'));
+  return state.messages.has(message.id) || pending();
 };
 
 export const refreshCovered = () => {
   const state = coverState();
-  for (const el of document.querySelectorAll('.chat-message[data-message-id]')) {
+  for (const el of queryAll('.chat-message[data-message-id]')) {
     const message = game.messages.get(el.dataset.messageId);
     if (message) el.classList.toggle('dsbl-covered', isCovered(message, state));
   }
@@ -1131,7 +1264,19 @@ const editEntry = async (id, change) => {
   await game.settings.set(MODULE_ID, LOG, list);
 };
 
-document.addEventListener('click', async (event) => {
+export const rewriteResourceLog = async (change) => {
+  if (!game.user.isGM) return;
+  const list = readResourceLog();
+  const next = list.map(change).filter(Boolean);
+  if (next.length !== list.length || next.some((e, i) => e !== list[i])) await game.settings.set(MODULE_ID, LOG, next);
+};
+
+onEveryDocument((doc) => doc.addEventListener('click', async (event) => {
+  if (event.target.closest?.('.dsbl-res-toggle')) {
+    event.preventDefault();
+    await game.settings.set(MODULE_ID, 'resourceLogShown', !(setting('resourceLogShown') !== false));
+    return;
+  }
   const undo = event.target.closest?.('[data-dsbl-res-undo]');
   if (undo) {
     event.preventDefault();
@@ -1149,40 +1294,17 @@ document.addEventListener('click', async (event) => {
   event.stopPropagation();
   const id = control.closest('.dsbl-res-row')?.dataset.dsblRes;
   if (id) editEntry(id, control.dataset.dsblResAction);
-});
+}));
 
 let _lastShown = null;
 export const syncResourceToggle = () => {
-  const shown = setting('resourceLogShown') !== false;
-  document.body.classList.toggle('dsbl-res-off', !shown);
-  if (shown && _lastShown !== true) for (const log of document.querySelectorAll('.chat-log')) fitNames(log);
-  _lastShown = shown;
-  for (const btn of document.querySelectorAll('.dsbl-res-toggle')) {
-    btn.setAttribute('aria-pressed', String(!shown));
-    btn.dataset.tooltip = L('hide');
-    btn.setAttribute('aria-label', L('hide'));
-  }
+  toggleBodyClass('dsbl-res-off', false);
+  if (_lastShown !== true) for (const log of queryAll('.chat-log')) fitNames(log);
+  _lastShown = true;
 };
 
-export const addResourceToggle = (controls = document.getElementById('chat-controls')) => {
-  const existing = document.querySelector('.dsbl-res-toggle');
-  if (!setting('resourceLog') && !setting('effectLog')) { existing?.remove(); return; }
-  if (!controls) return;
-  if (existing && controls.contains(existing)) return syncResourceToggle();
-  existing?.remove();
-  let group = controls.querySelector('.control-buttons');
-  if (!group) {
-    group = document.createElement('div');
-    group.className = 'control-buttons';
-    controls.append(group);
-  }
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'ui-control icon toggle fa-solid fa-heart-pulse dsbl-res-toggle';
-  btn.addEventListener('click', async (event) => {
-    event.preventDefault();
-    await game.settings.set(MODULE_ID, 'resourceLogShown', !(setting('resourceLogShown') !== false));
-  });
-  group.prepend(btn);
+export const addResourceToggle = () => {
+  for (const b of queryAll('.dsbl-res-toggle')) b.remove();
   syncResourceToggle();
+  addChatTabs();
 };
