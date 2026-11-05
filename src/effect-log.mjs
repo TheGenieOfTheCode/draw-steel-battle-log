@@ -79,7 +79,7 @@ const isMinion = (actor) => !!actor.system?.isMinion;
 const staminaStatusAllowed = (effect, actor) => {
   const statuses = effect.statuses ?? new Set();
   if (statuses.has(DEFEATED()) || statuses.has('dead')) return false;
-  if (statuses.has('dying')) return actor.type === 'hero';
+  if (statuses.has('dying')) return (actor.system?.stamina?.min ?? 0) < 0;
   if (statuses.has('winded')) return actor.type === 'hero' || !isMinion(actor);
   return true;
 };
