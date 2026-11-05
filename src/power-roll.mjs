@@ -7,7 +7,10 @@ const hasTargetPanel = (message, html) =>
   !!html.querySelector('[class*="draw-steel-target-damage"]')
   || !!message?.flags?.['draw-steel-target-damage']?.state;
 
+const hasTargetSections = (message) => !!message?.system?.parts?.contents?.some?.(p => p.type === 'targetResult');
+
 function buildRolls(html, characteristic, message) {
+  if (hasTargetSections(message)) return null;
   let sources = [...html.querySelectorAll('.dice-roll')];
   if (hasTargetPanel(message, html)) sources = sources.filter(s => s.querySelector('.tier'));
   if (!sources.length) return null;
