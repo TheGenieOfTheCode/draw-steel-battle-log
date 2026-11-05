@@ -594,7 +594,7 @@ const coverOf = (messageId, res) => {
 const wrapTurnGain = () => {
   const target = 'ds.data.Actor.HeroModel.prototype._onStartTurn';
   const wrapper = function (wrapped, ...args) {
-    const formula = this.class?.system?.turnGain;
+    const formula = this.hero?.primary && 'turnGain' in this.hero.primary ? this.hero.primary.turnGain : this.class?.system?.turnGain;
     const actor = this.parent;
     if (!formula || !actor?.uuid) return wrapped(...args);
     _turnGainFor = actor.uuid;
