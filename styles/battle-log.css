@@ -701,14 +701,15 @@ body .theme-dark .dsbl-turn-marker {
   min-width: 0;
 }
 
-.dsbl-speaker-row {
+.dsbl-speaker-row,
+.dsbl-chat-tabs {
   --dsbl-row-bg: var(--color-cool-5-75);
   --dsbl-row-border: var(--color-cool-4);
   --dsbl-row-hover-bg: var(--color-cool-5);
   --dsbl-row-hover-border: var(--color-cool-3);
 }
 
-body .theme-light .dsbl-speaker-row {
+body .theme-light :is(.dsbl-speaker-row, .dsbl-chat-tabs) {
   --dsbl-row-bg: rgba(255, 255, 255, 0.6);
   --dsbl-row-border: rgba(255, 255, 255, 0.8);
   --dsbl-row-hover-bg: rgba(255, 255, 255, 0.85);
@@ -1267,6 +1268,13 @@ body .theme-dark .dsbl-fx-img { background: none; padding: 0; }
   color: var(--color-text-secondary);
   border-bottom: 2px solid transparent;
   cursor: pointer;
+}
+.chat-sidebar:not(.with-background, .sidebar-popout) > .dsbl-chat-tabs {
+  width: auto;
+  margin: 0 4px 4px;
+  background: var(--dsbl-row-bg);
+  border: 1px solid var(--dsbl-row-border);
+  border-radius: 4px;
 }
 .dsbl-chat-tabs .item:hover { color: var(--color-text-primary); }
 .dsbl-chat-tabs .item.active {
