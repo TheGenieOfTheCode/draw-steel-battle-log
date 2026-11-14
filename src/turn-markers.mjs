@@ -676,6 +676,7 @@ export const pruneBoundaries = async ({ cleared = false } = {}) => {
   if (!isDirector()) return;
   const entries = readBoundaries();
   const empty = cleared && game.messages.size === 0;
+  if (empty) return clearRecords();
 
   const kept = [];
   let changed = false;
@@ -695,19 +696,35 @@ export const pruneBoundaries = async ({ cleared = false } = {}) => {
   if (changed) await game.settings.set(MODULE_ID, BOUNDARIES, kept);
 };
 
+export const clearRecords = async () => {
+  if (!isDirector()) return;
+  await rewriteResourceLog(() => null);
+  await rewriteEffectLog(() => null);
+  if (readBoundaries().length) await game.settings.set(MODULE_ID, BOUNDARIES, []);
+  rememberOrder();
+};
+
+const confirmClearRecords = async () => {
+  const ok = await foundry.applications.api.DialogV2.confirm({
+    window: { title: 'DSBL.Markers.clearRecords', icon: 'fa-solid fa-broom' },
+    content: `<p>${L('confirmClearRecords')}</p>`,
+  });
+  if (ok === true) await clearRecords();
+};
+
 export const watchClearAll = () => {
-  const wrapper = async function (wrapped, ids = [], operation = {}) {
-    const result = await wrapped(ids, operation);
+  const wrapper = async function (wrapped, documents, operation, user) {
+    const result = await wrapped(documents, operation, user);
     if (operation?.deleteAll) await pruneBoundaries({ cleared: true });
     return result;
   };
   if (globalThis.libWrapper) {
-    libWrapper.register(MODULE_ID, 'CONFIG.ChatMessage.documentClass.deleteDocuments', wrapper, 'WRAPPER');
+    libWrapper.register(MODULE_ID, 'CONFIG.ChatMessage.documentClass._onDeleteOperation', wrapper, 'WRAPPER');
     return;
   }
   const cls = CONFIG.ChatMessage.documentClass;
-  const original = cls.deleteDocuments;
-  cls.deleteDocuments = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
+  const original = cls._onDeleteOperation;
+  cls._onDeleteOperation = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
 };
 
 let _pruning = null;
@@ -831,6 +848,13 @@ export const addMarkerMenu = (root) => {
       icon: 'fa-solid fa-trash',
       visible: holds,
       onClick: (_event, li) => deleteContents(li.dataset.dscpTurn),
+    },
+  ], { jQuery: false, fixed: true });
+  new foundry.applications.ux.ContextMenu.implementation(root, '.dsbl-chat-tabs [data-dsbl-tab]', [
+    {
+      label: 'DSBL.Markers.clearRecords',
+      icon: 'fa-solid fa-broom',
+      onClick: () => confirmClearRecords(),
     },
   ], { jQuery: false, fixed: true });
 };

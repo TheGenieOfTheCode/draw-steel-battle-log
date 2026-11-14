@@ -121,6 +121,8 @@
     "Markers": {
       "deleteMarker": "Delete Marker",
       "deleteMessages": "Delete Contained Messages",
+      "clearRecords": "Clear Records",
+      "confirmClearRecords": "Delete every Battle Log record: the resource and effect log lines and all turn markers? Chat messages stay. This cannot be undone.",
       "messages": "{count} chat messages",
       "oneMessage": "1 chat message",
       "logLines": "{count} log lines",
