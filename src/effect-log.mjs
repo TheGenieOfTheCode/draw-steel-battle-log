@@ -297,7 +297,15 @@ const noteForcedMovement = (message) => {
   }
   if (!targets.length || (!inCombat && !setting('resourceLogOutOfCombat'))) return false;
   const first = moves[0].fmLog;
-  const lines = String(message.content ?? '').split(/<br\s*\/?>|<\/li>/i).map((l) => l.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  const text = flags.fallLog?.lines?.length ? flags.fallLog.lines.join('<br>') : message.content;
+  const lines = String(text ?? '').split(/<br\s*\/?>|<\/li>/i).map((l) => l.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  const mine = draftList().filter((e) => e.kind === 'fm' && e.covers?.includes(message.id));
+  const current = mine.find((e) => !e.undo);
+  if (current && !mine.some((e) => e.undo)) {
+    Object.assign(current, { targets, lines, hidden: targets.every((t) => t.hidden) });
+    scheduleFlush();
+    return true;
+  }
   draftList().push({
     id: foundry.utils.randomID(),
     kind: 'fm',
@@ -402,6 +410,7 @@ export const registerEffectRecording = ({ currentTurn }) => {
   Hooks.on('updateChatMessage', (message, changes) => {
     if (!isDirector()) return;
     if (foundry.utils.getProperty(changes, `flags.${CT}.isUndone`) === true || _moveSources.some((s) => s.undone?.(changes))) noteUndoneMove(message);
+    else if (setting('effectLog') && foundry.utils.hasProperty(changes, `flags.${CT}.fallLog`)) noteForcedMovement(message);
   });
 
   Hooks.on('createChatMessage', (message) => {
@@ -513,8 +522,12 @@ export const fmRow = (e) => {
   const names = many ? `${e.targets[0].name}s` : (e.targets[0]?.name ?? '');
   const short = many ? `${e.targets[0].short ?? e.targets[0].name}s` : (e.targets[0]?.short ?? names);
   const message = game.messages.get(e.covers?.[0]);
-  const canUndo = !e.undo && e.movement !== 'fall' && !!message && !moveFlags(message)?.isUndone && (game.user.isGM || message.isAuthor);
-  const controls = (canUndo ? `<a class="dsbl-res-control" data-dsbl-fm-undo="${esc(message.id)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
+  const source = moveSourceOf(message);
+  const live = !e.undo && !!message && !moveFlags(message)?.isUndone && (game.user.isGM || message.isAuthor);
+  const canUndo = live && (e.movement !== 'fall' || typeof source?.undo === 'function');
+  const canEdit = live && typeof source?.edit === 'function';
+  const controls = (canEdit ? `<a class="dsbl-res-control" data-dsbl-fm-edit="${esc(message.id)}" ${tipAttrs(richTip('editFall'))}><i class="fa-solid fa-pen" inert></i></a>` : '')
+    + (canUndo ? `<a class="dsbl-res-control" data-dsbl-fm-undo="${esc(message.id)}" ${tipAttrs(richTip('undoMove'))}><i class="fa-solid fa-rotate-left" inert></i></a>` : '')
     + (game.user.isGM
       ? `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
         + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
@@ -624,6 +637,14 @@ onEveryDocument((doc) => doc.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
     _moveLog.undo?.({ key: move.dataset.dsblMoveUndo, tokenUuid: move.dataset.token });
+    return;
+  }
+  const edit = event.target.closest?.('[data-dsbl-fm-edit]');
+  if (edit) {
+    event.preventDefault();
+    event.stopPropagation();
+    const message = game.messages.get(edit.dataset.dsblFmEdit);
+    moveSourceOf(message)?.edit?.(message);
     return;
   }
   const undo = event.target.closest?.('[data-dsbl-fm-undo]');

@@ -144,6 +144,7 @@
       "delete": { "title": "Delete", "category": "Battle Log", "body": "Removes this log line for everyone." },
       "undoGain": { "title": "Undo the Gain", "category": "Battle Log", "body": "Takes back what this line gained." },
       "undoMove": { "title": "Undo the Move", "category": "Battle Log", "body": "Puts the creature back where it was moved from." },
+      "editFall": { "title": "Edit the Fall", "category": "Battle Log", "body": "Change the fall's effective height, with Agility or extra terms, and apply the damage again." },
       "tabAll": { "title": "All", "category": "Battle Log", "body": "Everything: chat messages, with log lines in place of the messages they cover." },
       "tabAbilities": { "title": "Abilities", "category": "Battle Log", "body": "Only the chat messages of abilities used: no log lines and no talk." },
       "tabLogs": { "title": "Logs", "category": "Battle Log", "body": "Only log lines, with a short line for each ability used." },
