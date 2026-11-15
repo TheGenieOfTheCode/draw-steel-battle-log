@@ -1455,6 +1455,13 @@ body.theme-light .chat-message .dsbl-td-rowhead .dsbl-td-quick[disabled]:disable
 .chat-message .dsbl-td-split > .ctlib-undo { flex: 0 0 var(--dsbl-td-seg); width: var(--dsbl-td-seg); min-width: 0; padding: 0; border-left-width: 0; border-radius: 0; }
 .chat-message .dsbl-td-split > :last-child { border-radius: 0 3px 3px 0; }
 .chat-message .dsbl-td-pills { display: flex; flex-wrap: wrap; gap: 3px; }
+.chat-message .dsbl-td-pills.dsbl-td-global { align-items: center; margin: 2px 0 4px; }
+.chat-message .dsbl-td-pills-label {
+  font-size: var(--font-size-10); text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-text-secondary); margin-right: 3px;
+}
+.chat-message .dsbl-td-pill.dsbl-td-echo { border-style: dotted; opacity: 0.55; }
+.chat-message .dsbl-td-pill.dsbl-td-echo.dsbl-td-off { opacity: 0.4; }
 .chat-message .dsbl-td-pill {
   flex: 0 0 auto; width: auto; height: auto; min-height: 0; margin: 0;
   padding: 0 7px; line-height: 16px; font-size: var(--font-size-10);

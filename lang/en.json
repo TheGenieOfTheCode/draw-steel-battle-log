@@ -266,7 +266,8 @@
       "tier": "Tier {n}",
       "pillOn": "Click to switch it on.",
       "pillOff": "Click to switch it off.",
-      "pillLocked": "Already applied. Undo it to change this."
+      "pillLocked": "Already applied. Undo it to change this.",
+      "global": "Global"
     },
     "EffectLog": {
       "undoMoveMissing": "That move's chat message isn't loaded, so it can't be undone from here.",

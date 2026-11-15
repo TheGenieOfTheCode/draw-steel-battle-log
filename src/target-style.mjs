@@ -18,16 +18,16 @@ const isDamage = (roll) => roll instanceof ds.rolls.DamageRoll && !roll.isHeal;
 export const targetStyleOn = () => setting('targetSectionStyle') === 'targetDamage'
   && !!globalThis.ds?.CONFIG?.MessagePart?.targetResult && !game.modules.get('draw-steel-target-damage')?.active;
 
-function pillRow(list, message, partId) {
+function pillRow(list, message, partId, toggle = null) {
   if (!setting('showModifiersInChat') || !list?.length) return null;
   const row = document.createElement('div');
   row.className = 'dsbl-td-pills';
   for (const p of list) {
     const pill = document.createElement(p.locked ? 'span' : 'button');
     if (!p.locked) pill.type = 'button';
-    pill.className = `dsbl-td-pill dsbl-td-${p.tone}${p.off ? ' dsbl-td-off' : ''}${p.locked ? ' dsbl-td-locked' : ''}`;
+    pill.className = `dsbl-td-pill dsbl-td-${p.tone}${p.global && !toggle ? ' dsbl-td-echo' : ''}${p.off ? ' dsbl-td-off' : ''}${p.locked ? ' dsbl-td-locked' : ''}`;
     pill.innerHTML = `<span class="dsbl-td-short">${esc(p.short ?? p.text)}</span><span class="dsbl-td-full">${esc(p.text)}</span>`;
-    setTip(pill, tip('targetPill', { title: p.text, html: [p.sub, L(p.locked ? 'pillLocked' : p.off ? 'pillOn' : 'pillOff')].filter(Boolean).map((line) => `<p>${esc(line)}</p>`).join('') }));
+    setTip(pill, tip('targetPill', { title: p.text, html: [...[p.note ?? []].flat(), p.sub, L(p.locked ? 'pillLocked' : p.off ? 'pillOn' : 'pillOff')].filter(Boolean).map((line) => `<p>${esc(line)}</p>`).join('') }));
     if (p.srcTokenIds?.length) {
       pill.dataset.srcTokenIds = p.srcTokenIds.join(',');
       if (p.srcTokenIds.length === 1) pill.dataset.srcTokenId = p.srcTokenIds[0];
@@ -39,7 +39,8 @@ function pillRow(list, message, partId) {
       event.preventDefault();
       event.stopPropagation();
       pill.disabled = true;
-      await mods()?.toggle(game.messages.get(message.id) ?? message, partId, p.key, p.off);
+      if (toggle) await toggle(p);
+      else await mods()?.toggle(game.messages.get(message.id) ?? message, partId, p.key, p.off);
     });
     row.append(pill);
   }
@@ -251,9 +252,15 @@ export function restyleTargets(message, html) {
   }
   if (footer && !footer.querySelector('button, .ctlib-split')) footer.remove();
   if (sameRoll(found.map((f) => f.part))) panel.append(rollBlock(found[0].part, ability));
+  const api = mods();
+  const globalRow = pillRow(api?.globalPills?.(message), message, null, (p) => api.toggleGlobal(game.messages.get(message.id) ?? message, p.key));
+  if (globalRow) {
+    globalRow.classList.add('dsbl-td-global');
+    globalRow.insertAdjacentHTML('afterbegin', `<span class="dsbl-td-pills-label">${esc(L('global'))}</span>`);
+    panel.append(globalRow);
+  }
   anchor.before(panel);
 
-  const api = mods();
   for (const { part, sec } of found) {
     const row = buildRow(message, part, sec, ability, api?.sections?.(message, part.id) ?? null, found.length === 1);
     const group = sec.closest('details.dsct-squad12');
