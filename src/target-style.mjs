@@ -8,6 +8,11 @@ const esc = (s) => foundry.utils.escapeHTML(String(s ?? ''));
 const setting = (key) => game.settings.get(MODULE_ID, key);
 const mods = () => (game.modules.get(CT)?.active ? game.modules.get(CT).api?.resultModifiers ?? null : null);
 const opened = new Map();
+const S = {
+  header: ':is(.message-part-header, .card-target)',
+  name: ':is(.targetName, .target-name)',
+  rolls: ':is(.message-part-rolls, .card-rolls)',
+};
 const isDamage = (roll) => roll instanceof ds.rolls.DamageRoll && !roll.isHeal;
 
 export const targetStyleOn = () => setting('targetSectionStyle') === 'targetDamage'
@@ -18,11 +23,12 @@ function pillRow(list, message, partId) {
   const row = document.createElement('div');
   row.className = 'dsbl-td-pills';
   for (const p of list) {
-    const pill = document.createElement('button');
-    pill.type = 'button';
-    pill.className = `dsbl-td-pill dsbl-td-${p.tone}${p.off ? ' dsbl-td-off' : ''}`;
+    const pill = document.createElement(p.locked ? 'span' : 'button');
+    if (!p.locked) pill.type = 'button';
+    pill.className = `dsbl-td-pill dsbl-td-${p.tone}${p.off ? ' dsbl-td-off' : ''}${p.locked ? ' dsbl-td-locked' : ''}`;
     pill.innerHTML = `<span class="dsbl-td-short">${esc(p.short ?? p.text)}</span><span class="dsbl-td-full">${esc(p.text)}</span>`;
-    setTip(pill, tip('targetPill', { title: p.text, body: [p.sub, L(p.off ? 'pillOn' : 'pillOff')].filter(Boolean).join('<br>') }));
+    setTip(pill, tip('targetPill', { title: p.text, body: [p.sub, L(p.locked ? 'pillLocked' : p.off ? 'pillOn' : 'pillOff')].filter(Boolean).join('<br>') }));
+    if (p.locked) { row.append(pill); continue; }
     pill.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -75,23 +81,40 @@ function rollBlock(part, ability) {
   return block;
 }
 
-function quickDamage(sec) {
-  const real = sec.querySelector('.message-part-rolls [data-action=applyDamage]');
-  if (!real) return null;
+function quickButton(real) {
   const proxy = real.cloneNode(true);
   proxy.removeAttribute('data-action');
+  proxy.removeAttribute('data-tooltip');
   proxy.classList.add('dsbl-td-quick');
+  if (real.closest('.ctlib-split-applied')) proxy.classList.add('ctlib-applied');
+  if (real.matches('[data-action=applyEffect]')) {
+    for (const node of [...proxy.childNodes]) if (node.nodeType === Node.TEXT_NODE) node.remove();
+  }
+  const wrap = document.createElement('span');
+  wrap.className = 'dsbl-td-quickwrap';
+  wrap.append(proxy);
   proxy.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
     real.click();
   });
-  proxy.addEventListener('pointerenter', () => {
+  wrap.addEventListener('pointerenter', () => {
     const html = real.dataset.dsctTip;
-    if (html) game.tooltip.activate(proxy, { html, direction: 'LEFT' });
+    const text = real.dataset.tooltip ?? real.getAttribute('aria-label') ?? real.textContent.trim();
+    if (html) game.tooltip.activate(wrap, { html, direction: 'LEFT' });
+    else if (text) game.tooltip.activate(wrap, { text, direction: 'LEFT' });
   });
-  proxy.addEventListener('pointerleave', () => game.tooltip.deactivate());
-  return proxy;
+  wrap.addEventListener('pointerleave', () => game.tooltip.deactivate());
+  return wrap;
+}
+
+function quickButtons(sec) {
+  const mains = [];
+  for (const line of sec.querySelectorAll(`${S.rolls} > .dice-roll:not(.expanded)`)) {
+    const main = line.querySelector('[data-action=applyDamage], .dsct-fm-go, [data-action=applyEffect]');
+    if (main) mains.push(quickButton(main));
+  }
+  return mains;
 }
 
 function buildRow(message, part, sec, ability, pills, single) {
@@ -101,13 +124,18 @@ function buildRow(message, part, sec, ability, pills, single) {
   if (opened.get(key) ?? single) row.classList.add('dsbl-td-open');
   const head = document.createElement('div');
   head.className = 'dsbl-td-rowhead';
-  const img = sec.querySelector('.message-part-header img');
+  const img = sec.querySelector(`${S.header} img`);
   if (img) { img.classList.add('dsbl-td-portrait'); head.append(img); }
-  const name = sec.querySelector('.message-part-header .targetName');
+  const name = sec.querySelector(`${S.header} ${S.name}`);
   if (name) { name.classList.add('dsbl-td-name'); head.append(name); }
-  const quick = quickDamage(sec);
-  if (quick) head.append(quick);
-  const menu = sec.querySelector('.message-part-header [data-action=resultPartContext]');
+  const quick = quickButtons(sec);
+  if (quick.length) {
+    const wrap = document.createElement('span');
+    wrap.className = 'dsbl-td-quicks';
+    wrap.append(...quick);
+    head.append(wrap);
+  }
+  const menu = sec.querySelector(`${S.header} [data-action=resultPartContext]`);
   if (menu) { menu.classList.add('dsbl-td-menu'); head.append(menu); }
   const chevron = document.createElement('i');
   chevron.className = 'fa-solid fa-chevron-right dsbl-td-chevron';
@@ -125,7 +153,7 @@ function buildRow(message, part, sec, ability, pills, single) {
     const rp = pillRow(pills?.roll, message, part.id);
     if (rp) body.append(rp);
   }
-  const rolls = sec.querySelector('.message-part-rolls');
+  const rolls = sec.querySelector(S.rolls);
   const damageIdx = part.rolls.map((r, i) => (isDamage(r) ? i : -1)).filter((i) => i >= 0);
   let d = 0;
   for (const line of [...(rolls?.children ?? [])]) {
@@ -153,7 +181,8 @@ function buildRow(message, part, sec, ability, pills, single) {
       body.append(line);
     }
   }
-  for (const rest of [...sec.children]) if (!rest.matches('.message-part-header, .message-part-rolls')) body.append(rest);
+  const box = sec.querySelector(':scope > .chat-card.target-card') ?? sec;
+  for (const rest of [...box.children]) if (!rest.matches(`${S.header}, ${S.rolls}, .card-target-text`)) body.append(rest);
   sec.replaceChildren(head, body);
   return row;
 }

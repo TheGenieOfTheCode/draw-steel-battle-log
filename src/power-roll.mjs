@@ -85,7 +85,11 @@ function buildRolls(html, characteristic, message) {
   return wrap;
 }
 
+export const dspImprovedChat = () => !!game.modules.get('draw-steel-plus')?.active
+  && String(globalThis.ds?.data?.pseudoDocuments?.messageParts?.AbilityUse?.TEMPLATE ?? '').startsWith('modules/draw-steel-plus');
+
 export function collapsePowerRolls(message, html) {
+  if (dspImprovedChat()) return;
   const sections = html.querySelectorAll('document-embed.draw-steel.ability > section.powerResult');
 
   sections.forEach((section, index) => {

@@ -86,7 +86,7 @@ Hooks.once('init', () => {
       system: 'DSBL.Settings.targetSectionStyle.system',
       targetDamage: 'DSBL.Settings.targetSectionStyle.targetDamage',
     },
-    default: 'system',
+    default: 'targetDamage',
     onChange: refreshTargetStyle,
   });
 
@@ -312,6 +312,9 @@ Hooks.once('ready', () => {
         blendSpeech: 'Clean-Comms#joining-messages',
         mentionNames: 'Clean-Comms#highlighting-names',
         effectLog: 'Effect-Log',
+        targetSectionStyle: 'Target-Damage-Style',
+        showModifiersInChat: 'Target-Damage-Style#pills',
+        compactPills: 'Target-Damage-Style#settings',
       },
     },
   });

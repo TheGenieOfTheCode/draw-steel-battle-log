@@ -30,7 +30,7 @@
       },
       "targetSectionStyle": {
         "name": "Target Section Style",
-        "hint": "How the target sections of an ability's chat message look on Draw Steel 1.2. Target Damage folds them into the compact panel Target Damage used, one row per target.",
+        "hint": "How the target sections of an ability's chat message look on Draw Steel 1.2. Target Damage folds them into a compact panel, one row per target. Draw Steel keeps the system's sections.",
         "system": "Draw Steel",
         "targetDamage": "Target Damage"
       },
@@ -265,7 +265,8 @@
       "targetingArea": "{name} targeting (AoE)",
       "tier": "Tier {n}",
       "pillOn": "Click to switch it on.",
-      "pillOff": "Click to switch it off."
+      "pillOff": "Click to switch it off.",
+      "pillLocked": "Already applied. Undo it to change this."
     },
     "EffectLog": {
       "undoMoveMissing": "That move's chat message isn't loaded, so it can't be undone from here.",
