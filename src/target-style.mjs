@@ -86,6 +86,11 @@ function quickDamage(sec) {
     event.stopPropagation();
     real.click();
   });
+  proxy.addEventListener('pointerenter', () => {
+    const html = real.dataset.dsctTip;
+    if (html) game.tooltip.activate(proxy, { html, direction: 'LEFT' });
+  });
+  proxy.addEventListener('pointerleave', () => game.tooltip.deactivate());
   return proxy;
 }
 
