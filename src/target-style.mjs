@@ -27,7 +27,13 @@ function pillRow(list, message, partId) {
     if (!p.locked) pill.type = 'button';
     pill.className = `dsbl-td-pill dsbl-td-${p.tone}${p.off ? ' dsbl-td-off' : ''}${p.locked ? ' dsbl-td-locked' : ''}`;
     pill.innerHTML = `<span class="dsbl-td-short">${esc(p.short ?? p.text)}</span><span class="dsbl-td-full">${esc(p.text)}</span>`;
-    setTip(pill, tip('targetPill', { title: p.text, body: [p.sub, L(p.locked ? 'pillLocked' : p.off ? 'pillOn' : 'pillOff')].filter(Boolean).join('<br>') }));
+    setTip(pill, tip('targetPill', { title: p.text, html: [p.sub, L(p.locked ? 'pillLocked' : p.off ? 'pillOn' : 'pillOff')].filter(Boolean).map((line) => `<p>${esc(line)}</p>`).join('') }));
+    if (p.srcTokenIds?.length) {
+      pill.dataset.srcTokenIds = p.srcTokenIds.join(',');
+      if (p.srcTokenIds.length === 1) pill.dataset.srcTokenId = p.srcTokenIds[0];
+    }
+    if (p.lineFrom) pill.dataset.lineFrom = p.lineFrom;
+    if (p.lineStyle) pill.dataset.lineStyle = p.lineStyle;
     if (p.locked) { row.append(pill); continue; }
     pill.addEventListener('click', async (event) => {
       event.preventDefault();
