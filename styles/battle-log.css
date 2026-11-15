@@ -1392,13 +1392,11 @@ li.dsbl-stub:hover > * { opacity: 1; }
   display: grid; place-items: center; font-weight: bold;
   border: 1px solid var(--dsbl-td-line); border-radius: 4px;
 }
-.chat-message .dsbl-td-rollline > .dsbl-td-total:has(+ .dsbl-td-cog) { width: calc(var(--dsbl-td-btn) - var(--dsbl-td-seg) - 4px); }
 .chat-message .dsbl-td-panel .dsbl-td-line > .dsbl-td-split > button:first-child { flex: 1 1 auto; min-width: 0; width: auto; max-width: none; }
 .chat-message .dsbl-td-split > button:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--font-size-12); gap: 3px; }
 .chat-message .dsbl-td-split > button:first-child img { width: 16px; height: 16px; flex: 0 0 auto; border: none; }
 .chat-message .dsbl-td-panel .dsbl-td-quick,
 .chat-message .dsbl-td-split > button:first-child { display: flex; align-items: center; justify-content: center; }
-.chat-message .dsbl-td-rollline > .dsbl-td-cog { width: var(--dsbl-td-seg); height: var(--dsbl-td-h); min-height: 0; margin: 0; padding: 0; flex: 0 0 auto; }
 .chat-message .dsbl-td-body .dice-roll { margin: 0; }
 .chat-message .dsbl-td-body .dice-roll > .dice-flavor { display: none; }
 .chat-message .dsbl-td-body .inline-result.dsbl-td-line { display: flex; align-items: center; gap: 4px; min-height: 0; }
@@ -1410,8 +1408,7 @@ li.dsbl-stub:hover > * { opacity: 1; }
 .chat-message .dsbl-td-line > .ctlib-split.dsbl-td-split { flex: 0 0 var(--dsbl-td-btn); width: var(--dsbl-td-btn); margin: 0; display: flex; }
 .chat-message .dsbl-td-split > button { height: var(--dsbl-td-h); min-height: 0; margin: 0; }
 .chat-message .dsbl-td-split > button:first-child { flex: 1 1 auto; min-width: 0; padding: 0 4px; }
-.chat-message .dsbl-td-split > .ctlib-undo,
-.chat-message .dsbl-td-split > .dsbl-td-cog { flex: 0 0 var(--dsbl-td-seg); width: var(--dsbl-td-seg); min-width: 0; padding: 0; border-left-width: 0; border-radius: 0; }
+.chat-message .dsbl-td-split > .ctlib-undo { flex: 0 0 var(--dsbl-td-seg); width: var(--dsbl-td-seg); min-width: 0; padding: 0; border-left-width: 0; border-radius: 0; }
 .chat-message .dsbl-td-split > :last-child { border-radius: 0 3px 3px 0; }
 .chat-message .dsbl-td-pills { display: flex; flex-wrap: wrap; gap: 3px; }
 .chat-message .dsbl-td-pill {

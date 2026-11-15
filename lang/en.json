@@ -42,10 +42,6 @@
         "name": "Compact Modifier Pills",
         "hint": "Modifier pills in chat messages shrink to their amount and show their full detail on hover."
       },
-      "targetModifyButtons": {
-        "name": "Modify Buttons on Each Line",
-        "hint": "With the Target Damage style, each roll, damage, forced movement and effect line gets a cog that opens its modify window. Off, use the three dots menu."
-      },
       "powerRollResults": {
         "name": "Collapsible Power Roll Results",
         "hint": "Replace the \"Power Roll + Characteristic\" line with a Power Roll Results toggle holding the dice, the bonus and the tier list. Starts closed and remembers. Per client."
@@ -268,10 +264,6 @@
       "targeting": "{name} targeting",
       "targetingArea": "{name} targeting (AoE)",
       "tier": "Tier {n}",
-      "modifyRoll": "Modify Power Roll",
-      "modifyDamage": "Modify Damage",
-      "modifyForced": "Modify Forced Movement",
-      "modifyEffect": "Modify Applied Effect",
       "pillOn": "Click to switch it on.",
       "pillOff": "Click to switch it off."
     },

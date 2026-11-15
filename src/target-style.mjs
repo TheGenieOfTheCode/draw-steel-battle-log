@@ -34,22 +34,7 @@ function pillRow(list, message, partId) {
   return row;
 }
 
-function cogSegment(onClick, label) {
-  const cog = document.createElement('button');
-  cog.type = 'button';
-  cog.className = 'dsbl-td-cog';
-  cog.innerHTML = '<i class="fa-solid fa-gear" inert></i>';
-  cog.setAttribute('aria-label', label);
-  setTip(cog, tip('targetModify', { title: label }));
-  cog.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onClick();
-  });
-  return cog;
-}
-
-function fitLine(line, open, label) {
+function fitLine(line) {
   const result = line.querySelector('.inline-result');
   if (!result) return;
   result.classList.add('dsbl-td-line');
@@ -63,10 +48,9 @@ function fitLine(line, open, label) {
     split.append(...buttons);
   }
   split.classList.add('dsbl-td-split');
-  if (open && mods() && setting('targetModifyButtons')) split.append(cogSegment(open, label));
 }
 
-function rollBlock(part, message, ability, withCog) {
+function rollBlock(part, ability) {
   const roll = part.rolls[0];
   const block = document.createElement('div');
   block.className = 'dsbl-td-rollblock';
@@ -87,7 +71,6 @@ function rollBlock(part, message, ability, withCog) {
   line.className = 'dsbl-td-rollline';
   const dice = results.map((r) => `<img class="dsbl-td-die" src="${DIE(r.result)}" alt="${r.result}">`).join('');
   line.innerHTML = `<div class="dsbl-td-dice">${dice}<span>${rest >= 0 ? '+' : '-'} ${Math.abs(rest)}</span></div><div class="dsbl-td-total">${roll?.total ?? ''}</div>`;
-  if (withCog && mods() && setting('targetModifyButtons')) line.append(cogSegment(() => mods().open(game.messages.get(message.id) ?? message, part.id, 'roll'), L('modifyRoll')));
   block.append(line);
   return block;
 }
@@ -133,7 +116,7 @@ function buildRow(message, part, sec, ability, pills, single) {
   const body = document.createElement('div');
   body.className = 'dsbl-td-body';
   if (part.rolls[0] instanceof ds.rolls.PowerRoll) {
-    body.append(rollBlock(part, message, ability, true));
+    body.append(rollBlock(part, ability));
     const rp = pillRow(pills?.roll, message, part.id);
     if (rp) body.append(rp);
   }
@@ -144,24 +127,24 @@ function buildRow(message, part, sec, ability, pills, single) {
     if (line.matches('.dice-roll.expanded, dl.power-roll-display')) continue;
     if (line.matches('.dice-roll') && line.querySelector('[data-action=applyDamage]')) {
       const index = damageIdx[d++];
-      fitLine(line, () => mods()?.open(game.messages.get(message.id) ?? message, part.id, 'damage', index), L('modifyDamage'));
+      fitLine(line);
       body.append(line);
       const p = pillRow(pills?.damage?.[index], message, part.id);
       if (p) body.append(p);
     } else if (line.matches('.dsct-fm-roll')) {
       const index = Number(line.dataset.fmIndex ?? 0);
-      fitLine(line, () => mods()?.open(game.messages.get(message.id) ?? message, part.id, 'forced', index), L('modifyForced'));
+      fitLine(line);
       body.append(line);
       const p = pillRow(pills?.forced?.[index], message, part.id);
       if (p) body.append(p);
     } else if (line.matches('.dsct-effect-roll')) {
       const id = line.dataset.effectId;
-      fitLine(line, () => mods()?.open(game.messages.get(message.id) ?? message, part.id, 'effect', id), L('modifyEffect'));
+      fitLine(line);
       body.append(line);
       const p = pillRow(pills?.effects?.[id], message, part.id);
       if (p) body.append(p);
     } else {
-      if (line.matches('.dice-roll')) fitLine(line, null, '');
+      if (line.matches('.dice-roll')) fitLine(line);
       body.append(line);
     }
   }
@@ -227,7 +210,7 @@ export function restyleTargets(message, html) {
     panel.append(row);
   }
   if (footer && !footer.querySelector('button, .ctlib-split')) footer.remove();
-  if (sameRoll(found.map((f) => f.part))) panel.append(rollBlock(found[0].part, message, ability, false));
+  if (sameRoll(found.map((f) => f.part))) panel.append(rollBlock(found[0].part, ability));
   anchor.before(panel);
 
   const api = mods();

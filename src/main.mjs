@@ -110,16 +110,6 @@ Hooks.once('init', () => {
     onChange: applyCompactPills,
   });
 
-  game.settings.register(MODULE_ID, 'targetModifyButtons', {
-    name: 'DSBL.Settings.targetModifyButtons.name',
-    hint: 'DSBL.Settings.targetModifyButtons.hint',
-    scope: 'client',
-    config: true,
-    type: Boolean,
-    default: false,
-    onChange: refreshTargetStyle,
-  });
-
   game.settings.register(MODULE_ID, 'speakerPicker', {
     name: 'DSBL.Settings.speakerPicker.name',
     hint: 'DSBL.Settings.speakerPicker.hint',
@@ -299,7 +289,7 @@ Hooks.once('ready', () => {
   const H = (key) => `DSBL.Settings.Headers.${key}`;
   game.modules.get('draw-steel-ctlib')?.api?.registerSettingsLayout?.(MODULE_ID, [
     { label: H('chatCards'), wiki: 'Compact-Abilities', items: ['darkChat', 'compactAbilities', 'collapsibleAbilities', 'powerRollResults', 'flexButtons',
-      'targetSectionStyle', 'showModifiersInChat', 'compactPills', 'targetModifyButtons'] },
+      'targetSectionStyle', 'showModifiersInChat', 'compactPills'] },
     { label: H('typedChat'), wiki: 'Clean-Comms', items: ['speakerPicker', 'compactSpeech', 'blendSpeech', 'mentionNames'] },
     { label: H('turnMarkers'), wiki: 'Turn-Markers', items: ['turnMarkers', 'turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns',
       'turnMarkersAutoCollapse', 'loadOlderMessages'] },
