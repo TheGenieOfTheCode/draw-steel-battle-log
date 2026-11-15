@@ -28,6 +28,24 @@
         "name": "Full Width Chat Buttons",
         "hint": "Buttons in chat messages fill the width of the message, sharing a row when two or three fit, and always using the fewest rows with the most even split."
       },
+      "targetSectionStyle": {
+        "name": "Target Section Style",
+        "hint": "How the target sections of an ability's chat message look on Draw Steel 1.2. Target Damage folds them into the compact panel Target Damage used, one row per target.",
+        "system": "Draw Steel",
+        "targetDamage": "Target Damage"
+      },
+      "showModifiersInChat": {
+        "name": "Show Modifiers in Chat",
+        "hint": "With the Target Damage style, every edge, bane and other modifier shows as a pill under its line. Click a pill to switch it off or on, as in its modify window."
+      },
+      "compactPills": {
+        "name": "Compact Modifier Pills",
+        "hint": "Modifier pills in chat messages shrink to their amount and show their full detail on hover."
+      },
+      "targetModifyButtons": {
+        "name": "Modify Buttons on Each Line",
+        "hint": "With the Target Damage style, each roll, damage, forced movement and effect line gets a cog that opens its modify window. Off, use the three dots menu."
+      },
       "powerRollResults": {
         "name": "Collapsible Power Roll Results",
         "hint": "Replace the \"Power Roll + Characteristic\" line with a Power Roll Results toggle holding the dice, the bonus and the tier list. Starts closed and remembers. Per client."
@@ -244,6 +262,18 @@
         "turnGain": "Start of turn: {formula} = {total}",
         "combatStart": "set to their Victories ({victories})"
       }
+    },
+    "TargetStyle": {
+      "targets": "Targets",
+      "targeting": "{name} targeting",
+      "targetingArea": "{name} targeting (AoE)",
+      "tier": "Tier {n}",
+      "modifyRoll": "Modify Power Roll",
+      "modifyDamage": "Modify Damage",
+      "modifyForced": "Modify Forced Movement",
+      "modifyEffect": "Modify Applied Effect",
+      "pillOn": "Click to switch it on.",
+      "pillOff": "Click to switch it off."
     },
     "EffectLog": {
       "undoMoveMissing": "That move's chat message isn't loaded, so it can't be undone from here.",

@@ -12,6 +12,7 @@ import { addSpeakerRow, renderSpeech, scheduleSpeakerRefresh, scheduleBlend, wat
 import { registerCompatibilityMenu } from './compat-menu.mjs';
 import { registerLoadOlder } from './load-older.mjs';
 import { onEveryDocument, toggleBodyClass } from './windows.mjs';
+import { registerTargetStyle, refreshTargetStyle, applyCompactPills } from './target-style.mjs';
 
 export { MODULE_ID };
 
@@ -23,6 +24,7 @@ Hooks.once('init', () => {
   game.modules.get(MODULE_ID).api = { registerMoveSource, registerMoveLog, logMove, markMoveUndone };
   registerCompatibilityMenu();
   registerChatTabs();
+  registerTargetStyle();
 
   game.settings.register(MODULE_ID, 'darkChat', {
     name: 'DSBL.Settings.darkChat.name',
@@ -72,6 +74,50 @@ Hooks.once('init', () => {
     type: Boolean,
     default: true,
     onChange: syncBodyClasses,
+  });
+
+  game.settings.register(MODULE_ID, 'targetSectionStyle', {
+    name: 'DSBL.Settings.targetSectionStyle.name',
+    hint: 'DSBL.Settings.targetSectionStyle.hint',
+    scope: 'world',
+    config: true,
+    type: String,
+    choices: {
+      system: 'DSBL.Settings.targetSectionStyle.system',
+      targetDamage: 'DSBL.Settings.targetSectionStyle.targetDamage',
+    },
+    default: 'system',
+    onChange: refreshTargetStyle,
+  });
+
+  game.settings.register(MODULE_ID, 'showModifiersInChat', {
+    name: 'DSBL.Settings.showModifiersInChat.name',
+    hint: 'DSBL.Settings.showModifiersInChat.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: refreshTargetStyle,
+  });
+
+  game.settings.register(MODULE_ID, 'compactPills', {
+    name: 'DSBL.Settings.compactPills.name',
+    hint: 'DSBL.Settings.compactPills.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: applyCompactPills,
+  });
+
+  game.settings.register(MODULE_ID, 'targetModifyButtons', {
+    name: 'DSBL.Settings.targetModifyButtons.name',
+    hint: 'DSBL.Settings.targetModifyButtons.hint',
+    scope: 'client',
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: refreshTargetStyle,
   });
 
   game.settings.register(MODULE_ID, 'speakerPicker', {
@@ -252,7 +298,8 @@ Hooks.on('renderChatInput', (_app, elements) => {
 Hooks.once('ready', () => {
   const H = (key) => `DSBL.Settings.Headers.${key}`;
   game.modules.get('draw-steel-ctlib')?.api?.registerSettingsLayout?.(MODULE_ID, [
-    { label: H('chatCards'), wiki: 'Compact-Abilities', items: ['darkChat', 'compactAbilities', 'collapsibleAbilities', 'powerRollResults', 'flexButtons'] },
+    { label: H('chatCards'), wiki: 'Compact-Abilities', items: ['darkChat', 'compactAbilities', 'collapsibleAbilities', 'powerRollResults', 'flexButtons',
+      'targetSectionStyle', 'showModifiersInChat', 'compactPills', 'targetModifyButtons'] },
     { label: H('typedChat'), wiki: 'Clean-Comms', items: ['speakerPicker', 'compactSpeech', 'blendSpeech', 'mentionNames'] },
     { label: H('turnMarkers'), wiki: 'Turn-Markers', items: ['turnMarkers', 'turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns',
       'turnMarkersAutoCollapse', 'loadOlderMessages'] },
