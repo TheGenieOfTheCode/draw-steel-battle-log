@@ -23,6 +23,19 @@ Full documentation is available on the **[Wiki](https://github.com/TheGenieOfThe
 
 ---
 
+## Target Damage Style
+
+On Draw Steel 1.2, every ability chat message has a section for each target: clear, but a fight with six targets is a long scroll. Target Damage Style folds them into one compact panel, a short row per target, with the same buttons, menus and windows the system and [Draw Steel: Combat Tools](https://github.com/TheGenieOfTheCode/draw-steel-combat-tools) put in each section. Every edge, bane and modifier shows as a pill under its line, and a Global row holds the ones every target shares.
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="images/draw-steel-style-dark.png" alt="An area ability's chat message with the system's own target sections, one tall section per target" width="300"></td>
+      <td><img src="images/target-damage-style-dark.png" alt="The same chat message in Target Damage Style: one shared roll, then a short row per target with its damage and push buttons and its modifier pills" width="300"></td>
+    </tr>
+  </table>
+</div>
+
 ## Dark Theme 
 
 The system's dark palette does not cover the chat, now interface includes the chat as well.
@@ -71,6 +84,19 @@ Combat, round and turn markers can each be turned off, and so can the folding wh
 </p>
 
 
+## Chat Tabs
+
+Four tabs above the chat log pick what it shows: **All**, **Abilities** for just the abilities used, **Logs** for just the log lines with a short line for each ability, and **Chat** for only what people say. The Director can right-click a tab to clear every Battle Log record.
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="images/chat-tabs-dark.png" alt="The Logs tab in the dark theme: healing and damage lines, a declined triggers line, and a short line saying the Radenwight Maestro used Cacophony on two heroes" width="300"></td>
+      <td><img src="images/chat-tabs-light.png" alt="The same Logs tab in the light theme" width="300"></td>
+    </tr>
+  </table>
+</div>
+
 ## Effect Log
 
 When a condition or effect starts or ends on a creature, it gets a one line entry in chat, with a small token of whoever applied it and why it ended: saved, end of turn, removed, cleansed and so on. Players see what's on the heroes, and the conditions and ability effects on monsters.
@@ -80,6 +106,21 @@ When a condition or effect starts or ends on a creature, it gets a one line entr
     <tr>
       <td><img src="images/effect-log-dark.png" alt="The Effect Log in the dark theme. A goblin is Slowed by a hero's ability, and at the end of its turn the goblin saves and the Slowed line ends with saved." width="300"></td>
       <td><img src="images/effect-log-light.png" alt="The same lines in the light theme" width="300"></td>
+    </tr>
+  </table>
+</div>
+
+## Trigger Log
+
+With [Draw Steel: Triggers](https://github.com/TheGenieOfTheCode/draw-steel-triggers), declined triggers become one slim line instead of a chat message each. Triggers declined at the same moment share a line, and its tooltip lists who passed on what. Each person sees only the declines they could see before.
+
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="images/trigger-log-dark.png" alt="A Trigger Log line in the dark theme. Human Talent and Dwarf Fury both declined at the same moment, so one line shows both faces, and its tooltip lists Human Talent declining Feedback Loop and Dwarf Fury declining Lines of Force." width="600"></td>
+    </tr>
+    <tr>
+      <td><img src="images/trigger-log-light.png" alt="The same line and tooltip in the light theme" width="600"></td>
     </tr>
   </table>
 </div>
