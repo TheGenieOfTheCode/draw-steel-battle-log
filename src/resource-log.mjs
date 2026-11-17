@@ -1,6 +1,6 @@
 import { MODULE_ID } from './collapse.mjs';
 import { isDirector } from './director.mjs';
-import { effectCovers, coversEnd, coversMove } from './effect-log.mjs';
+import { effectCovers, coversEnd, coversMove, coversDecline } from './effect-log.mjs';
 import { onEveryDocument, queryAll, toggleBodyClass } from './windows.mjs';
 import { setTip, tip as richTip, tipAttrs } from './tips.mjs';
 import { addChatTabs } from './chat-tabs.mjs';
@@ -1208,6 +1208,7 @@ const coverState = () => {
 
 const isCovered = (message, state) => {
   const pending = () => Date.now() - (message.timestamp ?? 0) < PENDING_MS && (anyCombat() || setting('resourceLogOutOfCombat'));
+  if (coversDecline(message)) return setting('triggerLog') && (state.messages.has(message.id) || pending());
   if (coversEnd(message) || coversMove(message)) {
     if (!setting('effectLog')) return false;
     return state.messages.has(message.id) || pending();

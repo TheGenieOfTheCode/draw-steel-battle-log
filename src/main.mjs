@@ -244,6 +244,16 @@ Hooks.once('init', () => {
     onChange: () => { addResourceToggle(); scheduleDraw(); },
   });
 
+  game.settings.register(MODULE_ID, 'triggerLog', {
+    name: 'DSBL.Settings.triggerLog.name',
+    hint: 'DSBL.Settings.triggerLog.hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => { addResourceToggle(); scheduleDraw(); },
+  });
+
   game.settings.register(MODULE_ID, 'effectLogEntries', { scope: 'world', config: false, type: Array, default: [], onChange: scheduleDraw });
 
   game.settings.register(MODULE_ID, 'resourceLogEntries', { scope: 'world', config: false, type: Array, default: [], onChange: scheduleDraw });
@@ -294,7 +304,7 @@ Hooks.once('ready', () => {
     { label: H('turnMarkers'), wiki: 'Turn-Markers', items: ['turnMarkers', 'turnMarkersCombats', 'turnMarkersRounds', 'turnMarkersTurns',
       'turnMarkersAutoCollapse', 'loadOlderMessages'] },
     { label: H('resourceLog'), wiki: 'Resource-Log', items: ['resourceLog', 'resourceLogFullInfo', 'resourceLogOutOfCombat', 'resourceLogTokenCards',
-      'resourceLogTurnGainCards', 'effectLog'] },
+      'resourceLogTurnGainCards', 'effectLog', 'triggerLog'] },
   ], {
     dependencies: {
       turnMarkersCombats: 'turnMarkers',

@@ -103,7 +103,7 @@ const scheduleSync = () => {
   }, 80);
 };
 
-const showsTabs = () => setting('resourceLog') || setting('effectLog');
+const showsTabs = () => setting('resourceLog') || setting('effectLog') || setting('triggerLog');
 
 const buildNav = (doc) => {
   const nav = doc.createElement('nav');

@@ -1,7 +1,7 @@
 
 
 import { readResourceLog, visibleEntry, placeResourceRows, pruneResourceLog, resourceRow, refreshCovered, logStartShown, rewriteResourceLog } from './resource-log.mjs';
-import { readEffectLog, visibleEffect, effectRow, fmRow, moveRow, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
+import { readEffectLog, visibleEffect, effectRow, fmRow, moveRow, triggerRow, effectKindShown, pruneEffectLog, rewriteEffectLog } from './effect-log.mjs';
 import { isDirector, primaryGM } from './director.mjs';
 import { syncLoadOlder } from './load-older.mjs';
 import { setTip, tip } from './tips.mjs';
@@ -329,15 +329,15 @@ const selectorFor = (el) => {
 
 const _lastFor = new WeakMap();
 
-const drawSignature = (log) => JSON.stringify([setting('resourceLog'), setting('effectLog'), setting('turnMarkers'), olderCombatToolsLogs(),
+const drawSignature = (log) => JSON.stringify([setting('resourceLog'), setting('effectLog'), setting('triggerLog'), setting('turnMarkers'), olderCombatToolsLogs(),
   document.body.classList.contains('dsbl-res-off'), logStartShown(log), readBoundaries(), [...folds()]]);
 
 const logEntries = () => [
   ...(setting('resourceLog') ? readResourceLog().filter(visibleEntry) : []),
-  ...(setting('effectLog') ? readEffectLog().filter(visibleEffect) : []),
+  ...readEffectLog().filter((e) => effectKindShown(e) && visibleEffect(e)),
 ].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
 
-const rowOf = (e) => (e.kind === 'fx' ? effectRow(e) : e.kind === 'fm' ? fmRow(e) : e.kind === 'move' ? moveRow(e) : resourceRow(e));
+const rowOf = (e) => (e.kind === 'fx' ? effectRow(e) : e.kind === 'fm' ? fmRow(e) : e.kind === 'move' ? moveRow(e) : e.kind === 'trig' ? triggerRow(e) : resourceRow(e));
 const messageRows = (log) => [...log.querySelectorAll(':scope > .chat-message[data-message-id]')];
 const TURN_CLASSES = ['dsbl-in-turn', 'dsbl-turn-hidden', 'dsbl-round-hidden'];
 
@@ -764,7 +764,7 @@ const contentsOf = (entries, i) => {
   return {
     messages: all.filter((_, n) => within(n, -1)).map((m) => m.id),
     resources: logged(setting('resourceLog'), readResourceLog()),
-    effects: logged(setting('effectLog'), readEffectLog()),
+    effects: logged(true, readEffectLog().filter(effectKindShown)),
   };
 };
 

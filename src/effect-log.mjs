@@ -250,11 +250,89 @@ const coverEndMessage = (message) => {
   return false;
 };
 
+const TRIG = 'draw-steel-triggers';
+const MOMENT_GAP_MS = 2000;
+
+export const effectKindShown = (e) => (e.kind === 'trig' ? setting('triggerLog') : setting('effectLog'));
+
+export const coversDecline = (message) => !!message.flags?.[TRIG]?.decline;
+
+const seenByAll = (message, viewers) => {
+  const whisper = message.whisper ?? [];
+  return !whisper.length || viewers.every((id) => whisper.includes(id) || game.users.get(id)?.isGM);
+};
+
+const anchorFor = (viewers, fromId) => {
+  const messages = game.messages.contents;
+  const from = messages.findIndex((m) => m.id === fromId);
+  for (let i = (from < 0 ? messages.length : from) - 1; i >= 0; i--) if (seenByAll(messages[i], viewers)) return messages[i].id;
+  return null;
+};
+
+const noteDecline = (message) => {
+  const d = message.flags?.[TRIG]?.decline;
+  if (!d || !setting('triggerLog')) return false;
+  const owner = d.owner ? fromUuidSync(d.owner, { strict: false }) : null;
+  const token = owner ? tokenOf(owner) : null;
+  const combat = combatOf(token);
+  if (!combat && !setting('resourceLogOutOfCombat')) return false;
+  const viewers = [...(message.whisper ?? [])].sort();
+  const item = { ...(owner ? whoFor(owner, token, combat) : { name: d.ownerName ?? '' }), ability: d.ability ?? '', itemUuid: d.itemUuid ?? null, mandatory: !!d.mandatory, viewers };
+  const at = Number(d.at) || Date.now();
+  const list = draftList();
+  for (let i = list.length - 1; i >= Math.max(0, list.length - 40); i--) {
+    const e = list[i];
+    if (e.kind !== 'trig') continue;
+    if (!((d.moment && e.moments.includes(d.moment)) || Math.abs(e.momentAt - at) <= MOMENT_GAP_MS)) continue;
+    e.items.push(item);
+    e.viewers = [...new Set([...e.viewers, ...viewers])].sort();
+    const anchorMsg = e.after ? game.messages.get(e.after) : null;
+    if (anchorMsg && !seenByAll(anchorMsg, e.viewers)) e.after = anchorFor(e.viewers, e.after);
+    if (d.moment && !e.moments.includes(d.moment)) e.moments.push(d.moment);
+    e.momentAt = Math.max(e.momentAt, at);
+    e.covers = [...new Set([...(e.covers ?? []), message.id])];
+    scheduleFlush();
+    return true;
+  }
+  list.push({
+    id: foundry.utils.randomID(), kind: 'trig', after: anchorFor(viewers, message.id), turn: _currentTurn(), at: Date.now(),
+    moments: d.moment ? [d.moment] : [], momentAt: at, viewers, items: [item], covers: [message.id], targets: [], hidden: false, shown: true,
+  });
+  scheduleFlush();
+  return true;
+};
+
+export const triggerRow = (e) => {
+  const li = document.createElement('li');
+  li.className = 'message dsbl-res-row dsbl-fx-row dsbl-trig-row is-end';
+  li.dataset.dsblRes = e.id;
+  li.dataset.dsblLog = 'fx';
+  const items = game.user.isGM ? e.items : e.items.filter((t) => (t.viewers ?? e.viewers ?? []).includes(game.user.id));
+  const owners = [...new Map(items.map((t) => [t.tokenId ?? t.name, t])).values()];
+  const names = owners.map((t) => t.name).join(', ');
+  const short = owners.map((t) => t.short ?? t.name).join(', ');
+  const controls = game.user.isGM
+    ? `<span class="dsbl-res-controls">`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="conceal" ${tipAttrs(richTip(e.hidden ? 'reveal' : 'conceal'))}><i class="fa-solid ${e.hidden ? 'fa-eye' : 'fa-eye-slash'}" inert></i></a>`
+      + `<a class="dsbl-res-control" data-dsbl-res-action="delete" ${tipAttrs(richTip('delete'))}><i class="fa-solid fa-trash" inert></i></a>`
+      + `</span>`
+    : '';
+  const abilities = [...new Set(items.map((t) => t.ability))].join(', ');
+  const lines = items.map((t) => `<p>${esc(L(t.mandatory ? 'trigger.lineMandatory' : 'trigger.line', { owner: t.name, ability: t.ability }))}</p>`).join('');
+  li.innerHTML = `<span class="dsbl-res-who">${faceStack(owners.map(faceImg))}<strong class="dsbl-res-name"${short !== names ? ` data-full="${esc(names)}" data-short="${esc(short)}"` : ''}>${esc(names)}</strong>${controls}</span>`
+    + `<span class="dsbl-fx-what" ${tipAttrs(richTip('triggerDeclined', { title: abilities, html: lines }))}>`
+    + `<i class="fa-solid fa-xmark dsbl-fx-phase" inert></i>`
+    + `<span class="dsbl-fx-name">${esc(abilities)}</span>`
+    + `<span class="dsbl-fx-reason">${esc(L('trigger.declined'))}</span>`
+    + `</span>`;
+  if (e.hidden) li.classList.add('is-concealed');
+  return li;
+};
+
 export const effectCovers = () => {
   const out = new Set();
-  if (!setting('effectLog')) return out;
   for (const e of readEffectLog()) {
-    if (!visibleEffect(e)) continue;
+    if (!effectKindShown(e) || !visibleEffect(e)) continue;
     for (const id of e.covers ?? []) out.add(id);
   }
   return out;
@@ -415,6 +493,7 @@ export const registerEffectRecording = ({ currentTurn }) => {
 
   Hooks.on('createChatMessage', (message) => {
     if (!isDirector()) return;
+    if (noteDecline(message)) return;
     if (coverEndMessage(message)) return;
     if (setting('effectLog') && noteForcedMovement(message)) return;
     const parts = [...(message.system?.parts?.contents ?? message.system?.parts ?? [])];
@@ -435,7 +514,7 @@ export const registerEffectRecording = ({ currentTurn }) => {
   });
 };
 
-export const visibleEffect = (e) => game.user.isGM || (!e.hidden && e.shown);
+export const visibleEffect = (e) => game.user.isGM || (!e.hidden && (e.kind === 'trig' ? (e.viewers ?? []).includes(game.user.id) : e.shown));
 
 const REASONS = ['saved', 'expired', 'removed', 'cleansed', 'disabled', 'enabled'];
 

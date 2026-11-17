@@ -111,6 +111,10 @@
       "effectLog": {
         "name": "Effect Log",
         "hint": "Conditions and effects starting and ending, forced movement and falls appear in chat as one line entries, saying who caused them and why they ended. Players only see the ones from abilities on monsters."
+      },
+      "triggerLog": {
+        "name": "Trigger Log",
+        "hint": "With Draw Steel: Triggers, declined triggers appear in chat as one line, in place of their chat messages. Triggers declined at the same moment share a line."
       }
     },
     "powerRoll": {
@@ -169,6 +173,7 @@
       "fall": { "category": "Falling" },
       "effectStarted": { "category": "Effect Started" },
       "effectEnded": { "category": "Effect Ended" },
+      "triggerDeclined": { "category": "Trigger Declined" },
       "summary": { "category": "Combat" },
       "source": { "category": "Source" },
       "change": { "category": "Change" },
@@ -286,6 +291,11 @@
         "strikeLine": "Free strike from {name}: {damage}"
       },
       "fall": "Fall",
+      "trigger": {
+        "declined": "declined",
+        "line": "{owner} declined to use {ability}.",
+        "lineMandatory": "{owner} declined {ability}, a mandatory trigger."
+      },
       "from": "From {source}",
       "fromAbility": "{ability}, from {source}",
       "by": "From {ability}",
